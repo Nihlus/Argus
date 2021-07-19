@@ -33,7 +33,7 @@ namespace ImageScraper.Pipeline.Stages
     /// <summary>
     /// Indexes <see cref="ProcessedImage"/> instances into Elasticsearch.
     /// </summary>
-    internal sealed class IndexingStage
+    public sealed class IndexingStage
     {
         private readonly ILogger<IndexingStage> _log;
         private readonly NESTService _nestService;
@@ -65,7 +65,6 @@ namespace ImageScraper.Pipeline.Stages
                 new ExecutionDataflowBlockOptions
                 {
                     CancellationToken = ct,
-                    MaxDegreeOfParallelism = Environment.ProcessorCount,
                     EnsureOrdered = false,
                     SingleProducerConstrained = true
                 }

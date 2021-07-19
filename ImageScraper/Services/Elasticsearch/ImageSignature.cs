@@ -30,7 +30,7 @@ namespace ImageScraper.Services.Elasticsearch
     /// <summary>
     /// Represents the signature of an indexed image in Elasticsearch.
     /// </summary>
-    internal class ImageSignature
+    public class ImageSignature
     {
         /// <summary>
         /// Gets the raw signature of the image.

@@ -32,7 +32,7 @@ namespace ImageScraper.Services.Elasticsearch
     /// <summary>
     /// Represents an interface with Elasticsearch.
     /// </summary>
-    internal class NESTService
+    public class NESTService
     {
         private readonly ElasticClient _client;
 
@@ -91,6 +91,11 @@ namespace ImageScraper.Services.Elasticsearch
                     )
                 )
             );
+
+            if (existingImage.ServerError is not null)
+            {
+                return false;
+            }
 
             if (existingImage.Hits.Any())
             {

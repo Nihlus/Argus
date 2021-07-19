@@ -28,7 +28,7 @@ namespace ImageScraper.Pipeline.WorkUnits
     /// <summary>
     /// Represents a processed image, ready for indexing.
     /// </summary>
-    internal sealed class ProcessedImage
+    public sealed class ProcessedImage
     {
         /// <summary>
         /// Gets the source page that the image is associated with.

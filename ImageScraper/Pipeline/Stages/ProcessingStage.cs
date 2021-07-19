@@ -35,7 +35,7 @@ namespace ImageScraper.Pipeline.Stages
     /// Processes <see cref="LoadedImage"/> instances into <see cref="ProcessedImage"/> instances, computing their
     /// fingerprinting signatures.
     /// </summary>
-    internal sealed class ProcessingStage
+    public sealed class ProcessingStage
     {
         private readonly ILogger<ProcessingStage> _log;
         private readonly SignatureGenerator _signatureGenerator;
@@ -67,7 +67,6 @@ namespace ImageScraper.Pipeline.Stages
                 new ExecutionDataflowBlockOptions
                 {
                     CancellationToken = ct,
-                    MaxDegreeOfParallelism = Environment.ProcessorCount,
                     BoundedCapacity = Environment.ProcessorCount * 4,
                     EnsureOrdered = false,
                     SingleProducerConstrained = true,

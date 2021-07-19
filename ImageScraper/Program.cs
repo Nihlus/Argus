@@ -21,12 +21,16 @@
 //
 
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
+using ImageScraper.BackgroundServices;
+using ImageScraper.ServiceIndexers;
 using ImageScraper.Services.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Noppes.E621;
 using Puzzle;
 
 namespace ImageScraper
@@ -62,6 +66,10 @@ namespace ImageScraper
                                 var node = new Uri("http://192.168.0.11:9200");
                                 var settings = new ConnectionSettings(node);
 
+                                var username = Environment.GetEnvironmentVariable("IMAGE_SCRAPER_ELASTIC_USERNAME");
+                                var password = Environment.GetEnvironmentVariable("IMAGE_SCRAPER_ELASTIC_PASSWORD");
+                                settings.BasicAuthentication(username, password);
+
                                 settings.DefaultIndex("images");
 
                                 return settings;
@@ -70,9 +78,28 @@ namespace ImageScraper
                         .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
                         .AddTransient<NESTService>();
 
+                    // e621 services
+                    services
+                        .AddSingleton
+                        (
+                            s =>
+                            {
+                                var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0";
+                                var builder = new E621ClientBuilder()
+                                    .WithUserAgent("TestApplication", version, "Jax#7487", "Discord")
+                                    .WithMaximumConnections(E621Constants.MaximumConnectionsLimit)
+                                    .WithRequestInterval(E621Constants.MinimumRequestInterval);
+
+                                return builder.Build();
+                            }
+                        )
+                        .AddSingleton<E621Indexer>()
+                        .AddHostedService<IndexingBackgroundService<E621Indexer, int>>();
+
                     // Other services
                     services
                         .AddHttpClient()
+                        .AddMemoryCache()
                         .AddLogging
                         (
                             c => c

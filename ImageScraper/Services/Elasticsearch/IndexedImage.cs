@@ -28,7 +28,7 @@ namespace ImageScraper.Services.Elasticsearch
     /// <summary>
     /// Represents an indexed image.
     /// </summary>
-    internal class IndexedImage
+    public class IndexedImage
     {
         /// <summary>
         /// Gets the source page where the image was scraped.

@@ -24,8 +24,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using ImageScraper.Pipeline.Stages;
+using ImageScraper.ServiceIndexers;
 using ImageScraper.Services.Elasticsearch;
-using ImageScraper.ServiceScrapers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Puzzle;
@@ -37,7 +37,7 @@ namespace ImageScraper.BackgroundServices
     /// </summary>
     /// <typeparam name="TServiceIndexer">The interface type to use for scraping the service.</typeparam>
     /// <typeparam name="TIdentifier">The identifier type used by the service.</typeparam>
-    internal class IndexingBackgroundService<TServiceIndexer, TIdentifier> : BackgroundService
+    public class IndexingBackgroundService<TServiceIndexer, TIdentifier> : BackgroundService
         where TServiceIndexer : IServiceIndexer<TIdentifier>
     {
         private readonly TServiceIndexer _serviceIndexer;

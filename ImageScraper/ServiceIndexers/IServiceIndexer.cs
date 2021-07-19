@@ -21,24 +21,23 @@
 //
 
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using ImageScraper.Pipeline.WorkUnits;
 
-namespace ImageScraper.ServiceScrapers
+namespace ImageScraper.ServiceIndexers
 {
     /// <summary>
     /// Represents the public API of a service indexer.
     /// </summary>
     /// <typeparam name="TIdentifier">The source identifier type.</typeparam>
-    internal interface IServiceIndexer<TIdentifier>
+    public interface IServiceIndexer<TIdentifier>
     {
         /// <summary>
         /// Gets an asynchronous sequence of source identifiers that one or more images may be retrieved from.
         /// </summary>
         /// <param name="ct">The cancellation token for this operation.</param>
         /// <returns>A sequence of source links to process.</returns>
-        IAsyncEnumerable<TIdentifier> GetSourceIdentifiersAsync([EnumeratorCancellation] CancellationToken ct = default);
+        IAsyncEnumerable<TIdentifier> GetSourceIdentifiersAsync(CancellationToken ct = default);
 
         /// <summary>
         /// Gets images to index from the given source identifier.
@@ -46,6 +45,6 @@ namespace ImageScraper.ServiceScrapers
         /// <param name="sourceIdentifier">The source identifier.</param>
         /// <param name="ct">The cancellation token for this operation.</param>
         /// <returns>The images to index.</returns>
-        IAsyncEnumerable<AssociatedImage> GetImagesAsync(TIdentifier sourceIdentifier, [EnumeratorCancellation] CancellationToken ct = default);
+        IAsyncEnumerable<AssociatedImage> GetImagesAsync(TIdentifier sourceIdentifier, CancellationToken ct = default);
     }
 }

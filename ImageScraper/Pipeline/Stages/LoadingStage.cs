@@ -33,7 +33,7 @@ namespace ImageScraper.Pipeline.Stages
     /// <summary>
     /// Processes <see cref="Uri"/> instances into <see cref="LoadedImage"/> instances, downloading them into memory.
     /// </summary>
-    internal sealed class LoadingStage
+    public sealed class LoadingStage
     {
         private readonly ILogger<LoadingStage> _log;
 
@@ -60,7 +60,6 @@ namespace ImageScraper.Pipeline.Stages
                 new ExecutionDataflowBlockOptions
                 {
                     CancellationToken = ct,
-                    BoundedCapacity = Environment.ProcessorCount,
                     EnsureOrdered = false,
                     SingleProducerConstrained = true
                 }

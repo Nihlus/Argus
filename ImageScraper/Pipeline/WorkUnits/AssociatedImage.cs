@@ -28,7 +28,7 @@ namespace ImageScraper.Pipeline.WorkUnits
     /// <summary>
     /// Represents an image that has been associated with a source link.
     /// </summary>
-    internal sealed class AssociatedImage : IDisposable
+    public sealed class AssociatedImage : IDisposable
     {
         /// <summary>
         /// Gets the source page that the image is associated with.

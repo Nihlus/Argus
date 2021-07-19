@@ -28,7 +28,7 @@ namespace ImageScraper.Pipeline.WorkUnits
     /// <summary>
     /// Represents an in-memory image.
     /// </summary>
-    internal sealed class LoadedImage : IDisposable
+    public sealed class LoadedImage : IDisposable
     {
         /// <summary>
         /// Gets the source page that the image is associated with.
