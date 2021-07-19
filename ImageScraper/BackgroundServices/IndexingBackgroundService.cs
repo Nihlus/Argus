@@ -20,7 +20,6 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -37,17 +36,18 @@ namespace ImageScraper.BackgroundServices
     /// Represents a background service that continuously indexes a single service.
     /// </summary>
     /// <typeparam name="TServiceScraper">The interface type to use for scraping the service.</typeparam>
-    internal class IndexingBackgroundService<TServiceScraper> : BackgroundService
-        where TServiceScraper : IServiceScraper
+    /// <typeparam name="TIdentifier">The identifier type used by the service.</typeparam>
+    internal class IndexingBackgroundService<TServiceScraper, TIdentifier> : BackgroundService
+        where TServiceScraper : IServiceScraper<TIdentifier>
     {
         private readonly TServiceScraper _serviceIndexer;
         private readonly NESTService _nestService;
         private readonly SignatureGenerator _signatureGenerator;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly ILogger<IndexingBackgroundService<TServiceScraper>> _log;
+        private readonly ILogger<IndexingBackgroundService<TServiceScraper, TIdentifier>> _log;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="IndexingBackgroundService{TServiceIndexer}"/> class.
+        /// Initializes a new instance of the <see cref="IndexingBackgroundService{TServiceScraper, TIdentifier}"/> class.
         /// </summary>
         /// <param name="serviceIndexer">The service scraper.</param>
         /// <param name="nestService">The NEST service.</param>
@@ -60,7 +60,7 @@ namespace ImageScraper.BackgroundServices
             NESTService nestService,
             SignatureGenerator signatureGenerator,
             ILoggerFactory loggerFactory,
-            ILogger<IndexingBackgroundService<TServiceScraper>> log
+            ILogger<IndexingBackgroundService<TServiceScraper, TIdentifier>> log
         )
         {
             _serviceIndexer = serviceIndexer;
@@ -73,10 +73,9 @@ namespace ImageScraper.BackgroundServices
         /// <inheritdoc/>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var loadingStage = new LoadingStage<TServiceScraper>
+            var loadingStage = new LoadingStage
             (
-                _serviceIndexer,
-                _loggerFactory.CreateLogger<LoadingStage<TServiceScraper>>(),
+                _loggerFactory.CreateLogger<LoadingStage>(),
                 stoppingToken
             );
 
@@ -97,14 +96,23 @@ namespace ImageScraper.BackgroundServices
             loadingStage.Block.LinkTo(processingStage.Block);
             processingStage.Block.LinkTo(indexingStage.Block);
 
-            await foreach (var uri in _serviceIndexer.GetTargetUrlsAsync(stoppingToken))
+            await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(stoppingToken))
             {
-                if (!await loadingStage.Block.SendAsync(uri, stoppingToken))
+                _log.LogInformation("Indexing {Identifier}...", identifier);
+                await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, stoppingToken))
                 {
-                    continue;
-                }
+                    if (await loadingStage.Block.SendAsync(image, stoppingToken))
+                    {
+                        continue;
+                    }
 
-                _log.LogInformation("Enqueued {CurrentUri} for indexing...", uri);
+                    _log.LogWarning
+                    (
+                        "Failed to send {Link} (from {Source}) into the processing chain",
+                        image.Link,
+                        image.Source
+                    );
+                }
             }
         }
     }

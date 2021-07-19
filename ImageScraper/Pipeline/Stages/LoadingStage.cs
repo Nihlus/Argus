@@ -21,13 +21,10 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using ImageScraper.Pipeline.WorkUnits;
-using ImageScraper.ServiceScrapers;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 
@@ -36,35 +33,30 @@ namespace ImageScraper.Pipeline.Stages
     /// <summary>
     /// Processes <see cref="Uri"/> instances into <see cref="LoadedImage"/> instances, downloading them into memory.
     /// </summary>
-    /// <typeparam name="TServiceScraper">The service scraper type.</typeparam>
-    internal sealed class LoadingStage<TServiceScraper> where TServiceScraper : IServiceScraper
+    internal sealed class LoadingStage
     {
-        private readonly ILogger<LoadingStage<TServiceScraper>> _log;
-        private readonly TServiceScraper _serviceScraper;
+        private readonly ILogger<LoadingStage> _log;
 
         /// <summary>
         /// Gets the <see cref="TransformManyBlock{TInput,TOutput}"/> that the stage represents.
         /// </summary>
-        public TransformManyBlock<Uri, LoadedImage> Block { get; }
+        public TransformBlock<AssociatedImage, LoadedImage> Block { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LoadingStage{TServiceScraper}"/> class.
+        /// Initializes a new instance of the <see cref="LoadingStage"/> class.
         /// </summary>
-        /// <param name="serviceScraper">The scraping service.</param>
         /// <param name="log">The logging instance.</param>
         /// <param name="ct">The cancellation token for this operation.</param>
         public LoadingStage
         (
-            TServiceScraper serviceScraper,
-            ILogger<LoadingStage<TServiceScraper>> log,
+            ILogger<LoadingStage> log,
             CancellationToken ct = default
         )
         {
-            _serviceScraper = serviceScraper;
             _log = log;
-            this.Block = new TransformManyBlock<Uri, LoadedImage>
+            this.Block = new TransformBlock<AssociatedImage, LoadedImage>
             (
-                LoadImagesAsync,
+                LoadImageAsync,
                 new ExecutionDataflowBlockOptions
                 {
                     CancellationToken = ct,
@@ -75,28 +67,22 @@ namespace ImageScraper.Pipeline.Stages
             );
         }
 
-        private async Task<IEnumerable<LoadedImage>> LoadImagesAsync(Uri uri)
+        private async Task<LoadedImage> LoadImageAsync(AssociatedImage associatedImage)
         {
-            var loadedImages = new List<LoadedImage>();
-
             try
             {
-                await foreach (var associatedImage in _serviceScraper.GetImageUrlsAsync(uri))
+                _log.LogInformation("Downloading image from {Link}...", associatedImage.Link);
+                using (associatedImage)
                 {
-                    _log.LogInformation("Downloading image from {Link}...", associatedImage.Link);
-                    using (associatedImage)
-                    {
-                        var image = await Image.LoadAsync(associatedImage.ImageStream);
-                        loadedImages.Add(new LoadedImage(associatedImage.Source, associatedImage.Link, image));
-                    }
+                    var image = await Image.LoadAsync(associatedImage.ImageStream);
+                    return new LoadedImage(associatedImage.Source, associatedImage.Link, image);
                 }
             }
             catch (Exception e)
             {
-                _log.LogWarning(e, "Failed to index {Link}", uri);
+                _log.LogWarning(e, "Failed to index {Link}", associatedImage.Link);
+                throw;
             }
-
-            return loadedImages;
         }
     }
 }
