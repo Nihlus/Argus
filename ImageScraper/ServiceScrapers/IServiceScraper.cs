@@ -46,6 +46,6 @@ namespace ImageScraper.ServiceScrapers
         /// <param name="url">The URL to scrape.</param>
         /// <param name="ct">The cancellation token for this operation.</param>
         /// <returns>The images to index.</returns>
-        IAsyncEnumerable<AssociatedImage> GetImagesAsync(Uri url, [EnumeratorCancellation] CancellationToken ct = default);
+        IAsyncEnumerable<AssociatedImage> GetImageUrlsAsync(Uri url, [EnumeratorCancellation] CancellationToken ct = default);
     }
 }

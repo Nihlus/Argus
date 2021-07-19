@@ -1,5 +1,5 @@
 //
-//  AssociationStage.cs
+//  LoadingStage.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -37,9 +37,9 @@ namespace ImageScraper.Pipeline.Stages
     /// Processes <see cref="Uri"/> instances into <see cref="LoadedImage"/> instances, downloading them into memory.
     /// </summary>
     /// <typeparam name="TServiceScraper">The service scraper type.</typeparam>
-    internal sealed class AssociationStage<TServiceScraper> where TServiceScraper : IServiceScraper
+    internal sealed class LoadingStage<TServiceScraper> where TServiceScraper : IServiceScraper
     {
-        private readonly ILogger<AssociationStage<TServiceScraper>> _log;
+        private readonly ILogger<LoadingStage<TServiceScraper>> _log;
         private readonly TServiceScraper _serviceScraper;
 
         /// <summary>
@@ -48,15 +48,15 @@ namespace ImageScraper.Pipeline.Stages
         public TransformManyBlock<Uri, LoadedImage> Block { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AssociationStage{TServiceScraper}"/> class.
+        /// Initializes a new instance of the <see cref="LoadingStage{TServiceScraper}"/> class.
         /// </summary>
         /// <param name="serviceScraper">The scraping service.</param>
         /// <param name="log">The logging instance.</param>
         /// <param name="ct">The cancellation token for this operation.</param>
-        public AssociationStage
+        public LoadingStage
         (
             TServiceScraper serviceScraper,
-            ILogger<AssociationStage<TServiceScraper>> log,
+            ILogger<LoadingStage<TServiceScraper>> log,
             CancellationToken ct = default
         )
         {
@@ -64,7 +64,7 @@ namespace ImageScraper.Pipeline.Stages
             _log = log;
             this.Block = new TransformManyBlock<Uri, LoadedImage>
             (
-                ScrapeImagesAsync,
+                LoadImagesAsync,
                 new ExecutionDataflowBlockOptions
                 {
                     CancellationToken = ct,
@@ -75,19 +75,19 @@ namespace ImageScraper.Pipeline.Stages
             );
         }
 
-        private async Task<IEnumerable<LoadedImage>> ScrapeImagesAsync(Uri uri)
+        private async Task<IEnumerable<LoadedImage>> LoadImagesAsync(Uri uri)
         {
             var loadedImages = new List<LoadedImage>();
 
             try
             {
-                await foreach (var scrapedImage in _serviceScraper.GetImagesAsync(uri))
+                await foreach (var associatedImage in _serviceScraper.GetImageUrlsAsync(uri))
                 {
-                    _log.LogInformation("Downloading image from {Link}...", scrapedImage.Link);
-                    using (scrapedImage)
+                    _log.LogInformation("Downloading image from {Link}...", associatedImage.Link);
+                    using (associatedImage)
                     {
-                        var image = await Image.LoadAsync(scrapedImage.ImageStream);
-                        loadedImages.Add(new LoadedImage(scrapedImage.Source, scrapedImage.Link, image));
+                        var image = await Image.LoadAsync(associatedImage.ImageStream);
+                        loadedImages.Add(new LoadedImage(associatedImage.Source, associatedImage.Link, image));
                     }
                 }
             }

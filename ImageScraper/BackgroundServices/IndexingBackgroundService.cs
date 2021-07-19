@@ -73,10 +73,10 @@ namespace ImageScraper.BackgroundServices
         /// <inheritdoc/>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var scrapingStage = new AssociationStage<TServiceScraper>
+            var loadingStage = new LoadingStage<TServiceScraper>
             (
                 _serviceIndexer,
-                _loggerFactory.CreateLogger<AssociationStage<TServiceScraper>>(),
+                _loggerFactory.CreateLogger<LoadingStage<TServiceScraper>>(),
                 stoppingToken
             );
 
@@ -94,12 +94,12 @@ namespace ImageScraper.BackgroundServices
                 stoppingToken
             );
 
-            scrapingStage.Block.LinkTo(processingStage.Block);
+            loadingStage.Block.LinkTo(processingStage.Block);
             processingStage.Block.LinkTo(indexingStage.Block);
 
             await foreach (var uri in _serviceIndexer.GetTargetUrlsAsync(stoppingToken))
             {
-                if (!await scrapingStage.Block.SendAsync(uri, stoppingToken))
+                if (!await loadingStage.Block.SendAsync(uri, stoppingToken))
                 {
                     continue;
                 }
