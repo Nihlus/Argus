@@ -72,7 +72,6 @@ namespace ImageScraper
 
                     // Other services
                     services
-                        .AddMemoryCache()
                         .AddHttpClient()
                         .AddLogging
                         (
