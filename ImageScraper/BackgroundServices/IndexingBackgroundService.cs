@@ -96,24 +96,49 @@ namespace ImageScraper.BackgroundServices
             loadingStage.Block.LinkTo(processingStage.Block);
             processingStage.Block.LinkTo(indexingStage.Block);
 
-            await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(stoppingToken))
+            try
             {
-                _log.LogInformation("Indexing {Identifier}...", identifier);
-                await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, stoppingToken))
+                await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(stoppingToken))
                 {
-                    if (await loadingStage.Block.SendAsync(image, stoppingToken))
+                    if (stoppingToken.IsCancellationRequested)
                     {
-                        continue;
+                        break;
                     }
 
-                    _log.LogWarning
-                    (
-                        "Failed to send {Link} (from {Source}) into the processing chain",
-                        image.Link,
-                        image.Source
-                    );
+                    _log.LogInformation("Indexing {Identifier}...", identifier);
+                    await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, stoppingToken))
+                    {
+                        if (stoppingToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
+
+                        if (await loadingStage.Block.SendAsync(image, stoppingToken))
+                        {
+                            continue;
+                        }
+
+                        _log.LogWarning
+                        (
+                            "Failed to send {Link} (from {Source}) into the processing chain",
+                            image.Link,
+                            image.Source
+                        );
+                    }
                 }
             }
+            catch (TaskCanceledException)
+            {
+            }
+
+            loadingStage.Block.Complete();
+            await loadingStage.Block.Completion;
+
+            processingStage.Block.Complete();
+            await processingStage.Block.Completion;
+
+            indexingStage.Block.Complete();
+            await indexingStage.Block.Completion;
         }
     }
 }

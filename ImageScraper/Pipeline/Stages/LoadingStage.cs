@@ -80,7 +80,7 @@ namespace ImageScraper.Pipeline.Stages
             }
             catch (Exception e)
             {
-                _log.LogWarning(e, "Failed to index {Link}", associatedImage.Link);
+                _log.LogWarning(e, "Failed to download {Link}", associatedImage.Link);
                 throw;
             }
         }
