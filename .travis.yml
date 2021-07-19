@@ -1,8 +1,8 @@
 language: csharp
 dist: bionic
-solution: Remora.Discord.sln
+solution: ImageScraper.sln
 mono: none
-dotnet: 5.0.101
+dotnet: 5.0.302
 script:
   - dotnet restore
   - dotnet build
