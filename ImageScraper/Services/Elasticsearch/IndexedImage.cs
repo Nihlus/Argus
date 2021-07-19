@@ -20,6 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
 using System.Collections.Generic;
 using Puzzle;
 
@@ -30,6 +31,11 @@ namespace ImageScraper.Services.Elasticsearch
     /// </summary>
     public class IndexedImage
     {
+        /// <summary>
+        /// Gets the time at which the image was indexed.
+        /// </summary>
+        public DateTimeOffset IndexedAt { get; init; }
+
         /// <summary>
         /// Gets the source page where the image was scraped.
         /// </summary>
@@ -53,18 +59,21 @@ namespace ImageScraper.Services.Elasticsearch
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexedImage"/> class.
         /// </summary>
+        /// <param name="indexedAt">The time at which the image was indexed.</param>
         /// <param name="source">The source page.</param>
         /// <param name="link">The direct link.</param>
         /// <param name="signature">The image signature.</param>
         /// <param name="words">The composed signature.</param>
         public IndexedImage
         (
+            DateTimeOffset indexedAt,
             string source,
             string link,
             IReadOnlyCollection<LuminosityLevel> signature,
             IReadOnlyCollection<int> words
         )
         {
+            this.IndexedAt = indexedAt;
             this.Source = source;
             this.Link = link;
             this.Signature = signature;
