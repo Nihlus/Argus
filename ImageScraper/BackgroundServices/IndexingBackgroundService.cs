@@ -35,16 +35,16 @@ namespace ImageScraper.BackgroundServices
     /// <summary>
     /// Represents a background service that continuously indexes a single service.
     /// </summary>
-    /// <typeparam name="TServiceScraper">The interface type to use for scraping the service.</typeparam>
+    /// <typeparam name="TServiceIndexer">The interface type to use for scraping the service.</typeparam>
     /// <typeparam name="TIdentifier">The identifier type used by the service.</typeparam>
-    internal class IndexingBackgroundService<TServiceScraper, TIdentifier> : BackgroundService
-        where TServiceScraper : IServiceScraper<TIdentifier>
+    internal class IndexingBackgroundService<TServiceIndexer, TIdentifier> : BackgroundService
+        where TServiceIndexer : IServiceIndexer<TIdentifier>
     {
-        private readonly TServiceScraper _serviceIndexer;
+        private readonly TServiceIndexer _serviceIndexer;
         private readonly NESTService _nestService;
         private readonly SignatureGenerator _signatureGenerator;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly ILogger<IndexingBackgroundService<TServiceScraper, TIdentifier>> _log;
+        private readonly ILogger<IndexingBackgroundService<TServiceIndexer, TIdentifier>> _log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexingBackgroundService{TServiceScraper, TIdentifier}"/> class.
@@ -56,11 +56,11 @@ namespace ImageScraper.BackgroundServices
         /// <param name="log">The logging instance.</param>
         public IndexingBackgroundService
         (
-            TServiceScraper serviceIndexer,
+            TServiceIndexer serviceIndexer,
             NESTService nestService,
             SignatureGenerator signatureGenerator,
             ILoggerFactory loggerFactory,
-            ILogger<IndexingBackgroundService<TServiceScraper, TIdentifier>> log
+            ILogger<IndexingBackgroundService<TServiceIndexer, TIdentifier>> log
         )
         {
             _serviceIndexer = serviceIndexer;

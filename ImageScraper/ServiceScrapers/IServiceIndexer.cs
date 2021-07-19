@@ -1,5 +1,5 @@
 //
-//  IServiceScraper.cs
+//  IServiceIndexer.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,7 +20,6 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -32,7 +31,7 @@ namespace ImageScraper.ServiceScrapers
     /// Represents the public API of a service indexer.
     /// </summary>
     /// <typeparam name="TIdentifier">The source identifier type.</typeparam>
-    internal interface IServiceScraper<TIdentifier>
+    internal interface IServiceIndexer<TIdentifier>
     {
         /// <summary>
         /// Gets an asynchronous sequence of source identifiers that one or more images may be retrieved from.
