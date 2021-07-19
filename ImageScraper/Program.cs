@@ -45,8 +45,26 @@ namespace ImageScraper
         /// </summary>
         /// <param name="args">The arguments passed to the program.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task Main(string[] args) =>
-            CreateHostBuilder(args).Build().RunAsync();
+        public static async Task Main(string[] args)
+        {
+            var host = CreateHostBuilder(args).Build();
+            var services = host.Services;
+
+            var log = services.GetRequiredService<ILogger<Program>>();
+
+            // Ensure the index is created
+            var elasticClient = services.GetRequiredService<ElasticClient>();
+            var ensureCreated = await elasticClient.Indices
+                .CreateAsync("images", i => i.Map<IndexedImage>(x => x.AutoMap()));
+
+            if (ensureCreated.ServerError is not null and not { Error: { Type: "resource_already_exists_exception" } })
+            {
+                log.LogError("Failed to initialize connection to Elasticsearch");
+                return;
+            }
+
+            await host.RunAsync();
+        }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args).ConfigureServices
@@ -82,7 +100,7 @@ namespace ImageScraper
                     services
                         .AddSingleton
                         (
-                            s =>
+                            _ =>
                             {
                                 var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0";
                                 var builder = new E621ClientBuilder()
