@@ -94,55 +94,60 @@ namespace ImageScraper.BackgroundServices
                 stoppingToken
             );
 
-            loadingStage.Block.LinkTo(processingStage.Block);
-            processingStage.Block.LinkTo(indexingStage.Block);
-
-            try
+            var linkOptions = new DataflowLinkOptions
             {
-                await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(stoppingToken))
+                PropagateCompletion = true
+            };
+
+            loadingStage.Block.LinkTo(processingStage.Block, linkOptions);
+            processingStage.Block.LinkTo(indexingStage.Block, linkOptions);
+
+            var producer = ProduceImagesAsync(loadingStage, stoppingToken);
+
+            var task = await Task.WhenAny
+            (
+                producer,
+                loadingStage.Block.Completion,
+                processingStage.Block.Completion,
+                indexingStage.Block.Completion
+            );
+
+            _log.LogWarning("Unexpected termination");
+        }
+
+        private async Task ProduceImagesAsync(LoadingStage loadingStage, CancellationToken ct = default)
+        {
+            await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(ct))
+            {
+                if (ct.IsCancellationRequested)
                 {
-                    if (stoppingToken.IsCancellationRequested)
+                    _log.LogInformation("Halting indexing...");
+                    return;
+                }
+
+                _log.LogInformation("Indexing {Identifier}...", identifier);
+                await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, ct))
+                {
+                    if (ct.IsCancellationRequested)
                     {
                         _log.LogInformation("Halting indexing...");
-                        break;
+                        return;
                     }
 
-                    _log.LogInformation("Indexing {Identifier}...", identifier);
-                    await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, stoppingToken))
+                    while (!await loadingStage.Block.SendAsync(image, ct))
                     {
-                        if (stoppingToken.IsCancellationRequested)
-                        {
-                            _log.LogInformation("Halting indexing...");
-                            break;
-                        }
+                        _log.LogWarning
+                        (
+                            "Failed to send {Link} (from {Source}) into the processing chain",
+                            image.Link,
+                            image.Source
+                        );
 
-                        while (!await loadingStage.Block.SendAsync(image, stoppingToken))
-                        {
-                            _log.LogWarning
-                            (
-                                "Failed to send {Link} (from {Source}) into the processing chain",
-                                image.Link,
-                                image.Source
-                            );
-
-                            _log.LogInformation("Waiting a small amount of time to let the chain catch up...");
-                            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-                        }
+                        _log.LogInformation("Waiting a small amount of time to let the chain catch up...");
+                        await Task.Delay(TimeSpan.FromSeconds(1), ct);
                     }
                 }
             }
-            catch (TaskCanceledException)
-            {
-            }
-
-            loadingStage.Block.Complete();
-            await loadingStage.Block.Completion;
-
-            processingStage.Block.Complete();
-            await processingStage.Block.Completion;
-
-            indexingStage.Block.Complete();
-            await indexingStage.Block.Completion;
         }
     }
 }
