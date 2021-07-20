@@ -123,16 +123,14 @@ namespace ImageScraper.BackgroundServices
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        _log.LogInformation("Halting indexing...");
                         return;
                     }
 
-                    _log.LogInformation("Indexing {Identifier}...", identifier);
+                    _log.LogDebug("Indexing {Identifier}...", identifier);
                     await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, ct))
                     {
                         if (ct.IsCancellationRequested)
                         {
-                            _log.LogInformation("Halting indexing...");
                             return;
                         }
 
@@ -145,7 +143,7 @@ namespace ImageScraper.BackgroundServices
                                 image.Source
                             );
 
-                            _log.LogInformation("Waiting a small amount of time to let the chain catch up...");
+                            _log.LogWarning("Waiting a small amount of time to let the chain catch up...");
                             await Task.Delay(TimeSpan.FromSeconds(1), ct);
                         }
                     }

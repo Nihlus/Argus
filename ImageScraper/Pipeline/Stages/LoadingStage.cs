@@ -77,7 +77,7 @@ namespace ImageScraper.Pipeline.Stages
 
             try
             {
-                _log.LogInformation("Downloading image from {Link}...", associatedImage.Link);
+                _log.LogDebug("Downloading image from {Link}...", associatedImage.Link);
                 using (associatedImage)
                 {
                     var image = await Image.LoadAsync(associatedImage.ImageStream);
@@ -92,7 +92,7 @@ namespace ImageScraper.Pipeline.Stages
             }
             catch (Exception e)
             {
-                _log.LogWarning(e, "Failed to download {Link}", associatedImage.Link);
+                _log.LogError(e, "Failed to download {Link}", associatedImage.Link);
                 return null;
             }
         }

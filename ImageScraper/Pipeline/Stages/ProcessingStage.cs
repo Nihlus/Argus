@@ -82,7 +82,7 @@ namespace ImageScraper.Pipeline.Stages
                 return null;
             }
 
-            _log.LogInformation("Generating image signature for {Link}...", image.Link);
+            _log.LogDebug("Generating image signature for {Link}...", image.Link);
 
             try
             {

@@ -100,13 +100,13 @@ namespace ImageScraper.ServiceIndexers
                 {
                     if (post.File is null)
                     {
-                        _log.LogInformation("Skipping post {ID} (no file)", post.Id);
+                        _log.LogDebug("Skipping post {ID} (no file)", post.Id);
                         continue;
                     }
 
                     if (post.File?.FileExtension is "swf" or "gif")
                     {
-                        _log.LogInformation("Skipping post {ID} (animation)", post.Id);
+                        _log.LogDebug("Skipping post {ID} (animation)", post.Id);
                         continue;
                     }
 

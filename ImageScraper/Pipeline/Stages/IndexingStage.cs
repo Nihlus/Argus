@@ -106,7 +106,7 @@ namespace ImageScraper.Pipeline.Stages
             }
             catch (Exception e)
             {
-                _log.LogWarning(e, "Failed to index {Link}", image.Link);
+                _log.LogError(e, "Failed to index {Link}", image.Link);
             }
         }
     }

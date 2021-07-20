@@ -73,7 +73,7 @@ namespace ImageScraper
                 {
                     // Signature generation services
                     services
-                        .AddSingleton<SignatureGenerator>();
+                        .AddTransient<SignatureGenerator>();
 
                     // Elasticsearch services
                     services

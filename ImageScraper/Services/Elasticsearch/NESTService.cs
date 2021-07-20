@@ -100,7 +100,7 @@ namespace ImageScraper.Services.Elasticsearch
 
             if (existingImage.ServerError is not null)
             {
-                _log.LogWarning("Failed to index image at {Source}: {Error}", image.Source, existingImage.ServerError);
+                _log.LogError("Failed to index image at {Source}: {Error}", image.Source, existingImage.ServerError);
                 return false;
             }
 
