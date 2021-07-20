@@ -24,8 +24,10 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using ImageScraper.BackgroundServices;
+using ImageScraper.Model;
 using ImageScraper.ServiceIndexers;
 using ImageScraper.Services.Elasticsearch;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -61,6 +63,12 @@ namespace ImageScraper
             {
                 log.LogError("Failed to initialize connection to Elasticsearch");
                 return;
+            }
+
+            // Ensure the database is created
+            await using (var db = new IndexingContext())
+            {
+                await db.Database.MigrateAsync();
             }
 
             await host.RunAsync();

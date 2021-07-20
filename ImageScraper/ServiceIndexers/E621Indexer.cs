@@ -28,7 +28,9 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ImageScraper.Model;
 using ImageScraper.Pipeline.WorkUnits;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Noppes.E621;
@@ -44,7 +46,9 @@ namespace ImageScraper.ServiceIndexers
         private readonly IMemoryCache _memoryCache;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<E621Indexer> _log;
-        private int _currentPostId;
+
+        /// <inheritdoc />
+        public string Service => "e621";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="E621Indexer"/> class.
@@ -65,12 +69,6 @@ namespace ImageScraper.ServiceIndexers
             _memoryCache = memoryCache;
             _httpClientFactory = httpClientFactory;
             _log = log;
-
-            var restartId = Environment.GetEnvironmentVariable("__E621_POST_ID");
-            if (!int.TryParse(restartId, out _currentPostId))
-            {
-                _currentPostId = 0;
-            }
         }
 
         /// <inheritdoc />
@@ -79,11 +77,40 @@ namespace ImageScraper.ServiceIndexers
             [EnumeratorCancellation] CancellationToken ct = default
         )
         {
+            int currentPostId;
+            await using (var db = new IndexingContext())
+            {
+                var state = db.ServiceStates.FirstOrDefault(s => s.Name == this.Service);
+                if (state is null)
+                {
+                    state = db.CreateProxy<ServiceState>();
+                    state.Name = this.Service;
+
+                    db.ServiceStates.Update(state);
+                    await db.SaveChangesAsync(ct);
+                }
+
+                if (!int.TryParse(state.ResumePoint, out currentPostId))
+                {
+                    currentPostId = 0;
+                    state.ResumePoint = currentPostId.ToString();
+
+                    await db.SaveChangesAsync(ct);
+                }
+                else
+                {
+                    // Be pessimistic - assume the whole chain has failed
+                    var potentiallyFailed = Environment.ProcessorCount * 4 * 3;
+                    currentPostId -= potentiallyFailed;
+                    currentPostId = Math.Clamp(currentPostId, 0, currentPostId);
+                }
+            }
+
             while (!ct.IsCancellationRequested)
             {
                 var page = await _e621Client.GetPostsAsync
                 (
-                    _currentPostId,
+                    currentPostId,
                     Position.After,
                     E621Constants.PostsMaximumLimit
                 );
@@ -117,7 +144,7 @@ namespace ImageScraper.ServiceIndexers
                 }
 
                 var mostRecentPost = page.OrderByDescending(p => p.Id).First();
-                _currentPostId = mostRecentPost.Id;
+                currentPostId = mostRecentPost.Id;
             }
         }
 

@@ -21,12 +21,15 @@
 //
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using ImageScraper.Model;
 using ImageScraper.Pipeline.Stages;
 using ImageScraper.ServiceIndexers;
 using ImageScraper.Services.Elasticsearch;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Puzzle;
@@ -112,7 +115,32 @@ namespace ImageScraper.BackgroundServices
                 indexingStage.Block.Completion
             );
 
-            _log.LogWarning("Unexpected termination");
+            if (!task.IsCanceled)
+            {
+                var taskName = task == producer
+                    ? nameof(producer)
+                    : task == loadingStage.Block.Completion
+                        ? nameof(loadingStage)
+                        : task == processingStage.Block.Completion
+                            ? nameof(processingStage)
+                            : task == indexingStage.Block.Completion
+                                ? nameof(indexingStage)
+                                : "unknown";
+
+                _log.LogWarning("Unexpected termination by {Task}", taskName);
+            }
+
+            loadingStage.Block.Complete();
+            processingStage.Block.Complete();
+            indexingStage.Block.Complete();
+
+            await Task.WhenAll
+            (
+                producer,
+                loadingStage.Block.Completion,
+                processingStage.Block.Completion,
+                indexingStage.Block.Completion
+            );
         }
 
         private async Task ProduceImagesAsync(LoadingStage loadingStage, CancellationToken ct = default)
@@ -147,6 +175,19 @@ namespace ImageScraper.BackgroundServices
                             await Task.Delay(TimeSpan.FromSeconds(1), ct);
                         }
                     }
+
+                    await using var db = new IndexingContext();
+                    var state = db.ServiceStates.FirstOrDefault(s => s.Name == _serviceIndexer.Service);
+                    if (state is null)
+                    {
+                        state = db.CreateProxy<ServiceState>();
+                        state.Name = _serviceIndexer.Service;
+
+                        db.ServiceStates.Update(state);
+                    }
+
+                    state.ResumePoint = identifier?.ToString();
+                    await db.SaveChangesAsync(ct);
                 }
             }
             catch (Exception e)

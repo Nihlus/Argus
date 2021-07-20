@@ -33,6 +33,11 @@ namespace ImageScraper.ServiceIndexers
     public interface IServiceIndexer<TIdentifier>
     {
         /// <summary>
+        /// Gets the name of the service that the indexer operates on.
+        /// </summary>
+        string Service { get; }
+
+        /// <summary>
         /// Gets an asynchronous sequence of source identifiers that one or more images may be retrieved from.
         /// </summary>
         /// <param name="ct">The cancellation token for this operation.</param>
