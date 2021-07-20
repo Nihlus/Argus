@@ -142,6 +142,7 @@ namespace ImageScraper.ServiceIndexers
 
             yield return new AssociatedImage
             (
+                "e621",
                 new Uri($"{_e621Client.BaseUrl}/posts/{sourceIdentifier}"),
                 post.File.Location,
                 memoryStream

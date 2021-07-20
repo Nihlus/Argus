@@ -78,12 +78,20 @@ namespace ImageScraper.Pipeline.Stages
         {
             _log.LogInformation("Generating image signature for {Link}...", image.Link);
 
-            using (image)
+            try
             {
-                var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image.Image).ToArray());
-                var imageSignature = new ImageSignature(signature);
+                using (image)
+                {
+                    var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image.Image).ToArray());
+                    var imageSignature = new ImageSignature(signature);
 
-                return new ProcessedImage(image.Source, image.Link, imageSignature);
+                    return new ProcessedImage(image.Service, image.Source, image.Link, imageSignature);
+                }
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Failed to generate image signature for {Link}", image.Link);
+                throw;
             }
         }
     }

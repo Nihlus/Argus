@@ -79,6 +79,7 @@ namespace ImageScraper.Pipeline.Stages
 
                 var indexedImage = new IndexedImage
                 (
+                    image.Service,
                     DateTimeOffset.UtcNow,
                     image.Link.ToString(),
                     image.Source.ToString(),

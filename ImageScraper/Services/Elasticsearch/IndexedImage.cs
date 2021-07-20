@@ -32,6 +32,11 @@ namespace ImageScraper.Services.Elasticsearch
     public class IndexedImage
     {
         /// <summary>
+        /// Gets the name of the service that the image was indexed from.
+        /// </summary>
+        public string Service { get; }
+
+        /// <summary>
         /// Gets the time at which the image was indexed.
         /// </summary>
         public DateTimeOffset IndexedAt { get; init; }
@@ -59,6 +64,7 @@ namespace ImageScraper.Services.Elasticsearch
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexedImage"/> class.
         /// </summary>
+        /// <param name="service">The name of the service the image was indexed from.</param>
         /// <param name="indexedAt">The time at which the image was indexed.</param>
         /// <param name="source">The source page.</param>
         /// <param name="link">The direct link.</param>
@@ -66,6 +72,7 @@ namespace ImageScraper.Services.Elasticsearch
         /// <param name="words">The composed signature.</param>
         public IndexedImage
         (
+            string service,
             DateTimeOffset indexedAt,
             string source,
             string link,
@@ -73,6 +80,7 @@ namespace ImageScraper.Services.Elasticsearch
             IReadOnlyCollection<int> words
         )
         {
+            this.Service = service;
             this.IndexedAt = indexedAt;
             this.Source = source;
             this.Link = link;

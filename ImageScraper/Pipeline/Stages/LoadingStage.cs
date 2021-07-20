@@ -74,7 +74,13 @@ namespace ImageScraper.Pipeline.Stages
                 using (associatedImage)
                 {
                     var image = await Image.LoadAsync(associatedImage.ImageStream);
-                    return new LoadedImage(associatedImage.Source, associatedImage.Link, image);
+                    return new LoadedImage
+                    (
+                        associatedImage.Service,
+                        associatedImage.Source,
+                        associatedImage.Link,
+                        image
+                    );
                 }
             }
             catch (Exception e)

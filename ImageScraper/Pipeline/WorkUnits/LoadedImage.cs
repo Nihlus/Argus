@@ -31,6 +31,11 @@ namespace ImageScraper.Pipeline.WorkUnits
     public sealed class LoadedImage : IDisposable
     {
         /// <summary>
+        /// Gets the name of the service the image is associated with.
+        /// </summary>
+        public string Service { get; }
+
+        /// <summary>
         /// Gets the source page that the image is associated with.
         /// </summary>
         public Uri Source { get; }
@@ -48,11 +53,13 @@ namespace ImageScraper.Pipeline.WorkUnits
         /// <summary>
         /// Initializes a new instance of the <see cref="LoadedImage"/> class.
         /// </summary>
+        /// <param name="service">The service the image is associated with.</param>
         /// <param name="source">The source page.</param>
         /// <param name="link">The direct link.</param>
         /// <param name="image">The image data.</param>
-        public LoadedImage(Uri source, Uri link, Image image)
+        public LoadedImage(string service, Uri source, Uri link, Image image)
         {
+            this.Service = service;
             this.Source = source;
             this.Link = link;
             this.Image = image;
