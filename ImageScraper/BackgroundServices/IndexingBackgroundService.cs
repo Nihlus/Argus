@@ -117,16 +117,9 @@ namespace ImageScraper.BackgroundServices
 
         private async Task ProduceImagesAsync(LoadingStage loadingStage, CancellationToken ct = default)
         {
-            await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(ct))
+            try
             {
-                if (ct.IsCancellationRequested)
-                {
-                    _log.LogInformation("Halting indexing...");
-                    return;
-                }
-
-                _log.LogInformation("Indexing {Identifier}...", identifier);
-                await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, ct))
+                await foreach (var identifier in _serviceIndexer.GetSourceIdentifiersAsync(ct))
                 {
                     if (ct.IsCancellationRequested)
                     {
@@ -134,19 +127,34 @@ namespace ImageScraper.BackgroundServices
                         return;
                     }
 
-                    while (!await loadingStage.Block.SendAsync(image, ct))
+                    _log.LogInformation("Indexing {Identifier}...", identifier);
+                    await foreach (var image in _serviceIndexer.GetImagesAsync(identifier, ct))
                     {
-                        _log.LogWarning
-                        (
-                            "Failed to send {Link} (from {Source}) into the processing chain",
-                            image.Link,
-                            image.Source
-                        );
+                        if (ct.IsCancellationRequested)
+                        {
+                            _log.LogInformation("Halting indexing...");
+                            return;
+                        }
 
-                        _log.LogInformation("Waiting a small amount of time to let the chain catch up...");
-                        await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                        while (!await loadingStage.Block.SendAsync(image, ct))
+                        {
+                            _log.LogWarning
+                            (
+                                "Failed to send {Link} (from {Source}) into the processing chain",
+                                image.Link,
+                                image.Source
+                            );
+
+                            _log.LogInformation("Waiting a small amount of time to let the chain catch up...");
+                            await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Image producer faulted");
+                throw;
             }
         }
     }
