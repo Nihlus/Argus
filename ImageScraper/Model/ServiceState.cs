@@ -33,7 +33,7 @@ namespace ImageScraper.Model
         /// <summary>
         /// Gets the database ID of the service state.
         /// </summary>
-        public Guid Id { get; init; }
+        public int Id { get; init; }
 
         /// <summary>
         /// Gets or sets the name of the service.
@@ -60,7 +60,6 @@ namespace ImageScraper.Model
         /// <param name="name">The name of the service that uses this state.</param>
         public ServiceState(string name)
         {
-            this.Id = Guid.Empty;
             this.Name = name;
         }
     }

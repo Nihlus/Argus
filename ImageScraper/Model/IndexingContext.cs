@@ -56,6 +56,12 @@ namespace ImageScraper.Model
         /// <inheritdoc />
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<ServiceState>()
+                .HasIndex(s => s.Id)
+                .IsUnique();
+
             modelBuilder.Entity<ServiceState>()
                 .HasIndex(s => s.Name)
                 .IsUnique();
