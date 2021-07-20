@@ -30,6 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ImageScraper.Pipeline.WorkUnits;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Noppes.E621;
 
 namespace ImageScraper.ServiceIndexers
@@ -42,6 +43,7 @@ namespace ImageScraper.ServiceIndexers
         private readonly IE621Client _e621Client;
         private readonly IMemoryCache _memoryCache;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<E621Indexer> _log;
         private int _currentPostId;
 
         /// <summary>
@@ -50,11 +52,19 @@ namespace ImageScraper.ServiceIndexers
         /// <param name="e621Client">The e621 client.</param>
         /// <param name="memoryCache">The memory cache.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
-        public E621Indexer(IE621Client e621Client, IMemoryCache memoryCache, IHttpClientFactory httpClientFactory)
+        /// <param name="log">The logging instance.</param>
+        public E621Indexer
+        (
+            IE621Client e621Client,
+            IMemoryCache memoryCache,
+            IHttpClientFactory httpClientFactory,
+            ILogger<E621Indexer> log
+        )
         {
             _e621Client = e621Client;
             _memoryCache = memoryCache;
             _httpClientFactory = httpClientFactory;
+            _log = log;
 
             var restartId = Environment.GetEnvironmentVariable("__E621_POST_ID");
             if (!int.TryParse(restartId, out _currentPostId))
@@ -80,7 +90,8 @@ namespace ImageScraper.ServiceIndexers
 
                 if (page.Count <= 0)
                 {
-                    // Wait for new posts to come in...
+                    _log.LogInformation("Waiting for new posts to come in...");
+
                     await Task.Delay(TimeSpan.FromHours(1), ct);
                     continue;
                 }
@@ -89,11 +100,13 @@ namespace ImageScraper.ServiceIndexers
                 {
                     if (post.File is null)
                     {
+                        _log.LogInformation("Skipping post {ID} (no file)", post.Id);
                         continue;
                     }
 
-                    if (post.File?.FileExtension == "swf")
+                    if (post.File?.FileExtension is "swf" or "gif")
                     {
+                        _log.LogInformation("Skipping post {ID} (animation)", post.Id);
                         continue;
                     }
 

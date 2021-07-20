@@ -20,6 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -102,6 +103,7 @@ namespace ImageScraper.BackgroundServices
                 {
                     if (stoppingToken.IsCancellationRequested)
                     {
+                        _log.LogInformation("Halting indexing...");
                         break;
                     }
 
@@ -110,20 +112,22 @@ namespace ImageScraper.BackgroundServices
                     {
                         if (stoppingToken.IsCancellationRequested)
                         {
+                            _log.LogInformation("Halting indexing...");
                             break;
                         }
 
-                        if (await loadingStage.Block.SendAsync(image, stoppingToken))
+                        while (!await loadingStage.Block.SendAsync(image, stoppingToken))
                         {
-                            continue;
-                        }
+                            _log.LogWarning
+                            (
+                                "Failed to send {Link} (from {Source}) into the processing chain",
+                                image.Link,
+                                image.Source
+                            );
 
-                        _log.LogWarning
-                        (
-                            "Failed to send {Link} (from {Source}) into the processing chain",
-                            image.Link,
-                            image.Source
-                        );
+                            _log.LogInformation("Waiting a small amount of time to let the chain catch up...");
+                            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                        }
                     }
                 }
             }

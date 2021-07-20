@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nest;
 using Puzzle;
 
@@ -35,14 +36,17 @@ namespace ImageScraper.Services.Elasticsearch
     public class NESTService
     {
         private readonly ElasticClient _client;
+        private readonly ILogger<NESTService> _log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NESTService"/> class.
         /// </summary>
         /// <param name="client">The Elasticsearch client to use.</param>
-        public NESTService(ElasticClient client)
+        /// <param name="log">The logging instance.</param>
+        public NESTService(ElasticClient client, ILogger<NESTService> log)
         {
             _client = client;
+            _log = log;
         }
 
         private ISearchRequest BuildQuery(SearchDescriptor<IndexedImage> q, IEnumerable<int> searchWords)
@@ -79,6 +83,8 @@ namespace ImageScraper.Services.Elasticsearch
         /// <returns>true if the image was indexed; otherwise, false.</returns>
         public async Task<bool> IndexImageAsync(IndexedImage image)
         {
+            _log.LogInformation("Indexing image at {Source}", image.Source);
+
             var existingImage = await _client.SearchAsync<IndexedImage>
             (
                 q => q.Index("images").Query
@@ -94,6 +100,7 @@ namespace ImageScraper.Services.Elasticsearch
 
             if (existingImage.ServerError is not null)
             {
+                _log.LogWarning("Failed to index image at {Source}: {Error}", image.Source, existingImage.ServerError);
                 return false;
             }
 
@@ -102,6 +109,7 @@ namespace ImageScraper.Services.Elasticsearch
                 if (existingImage.Hits.Any(hit => hit.Source.Signature.SequenceEqual(image.Signature)))
                 {
                     // It's already indexed, so it's fine
+                    _log.LogInformation("Skipping indexing of already indexed image at {Source}", image.Source);
                     return true;
                 }
             }

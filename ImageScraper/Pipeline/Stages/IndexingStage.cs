@@ -75,8 +75,6 @@ namespace ImageScraper.Pipeline.Stages
         {
             try
             {
-                _log.LogInformation("Indexing image...");
-
                 var indexedImage = new IndexedImage
                 (
                     image.Service,
@@ -102,6 +100,7 @@ namespace ImageScraper.Pipeline.Stages
             catch (Exception e)
             {
                 _log.LogWarning(e, "Failed to index {Link}", image.Link);
+                throw;
             }
         }
     }
