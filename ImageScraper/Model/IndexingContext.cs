@@ -20,8 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-using System.IO;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace ImageScraper.Model
@@ -31,29 +30,28 @@ namespace ImageScraper.Model
     /// </summary>
     public class IndexingContext : DbContext
     {
-        private readonly string _dbPath;
+        private readonly SqliteConnectionPool _connectionPool;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IndexingContext"/> class.
+        /// </summary>
+        /// <param name="options">The context options.</param>
+        /// <param name="connectionPool">The connection pool.</param>
+        public IndexingContext(DbContextOptions options, SqliteConnectionPool connectionPool)
+            : base(options)
+        {
+            _connectionPool = connectionPool;
+        }
 
         /// <summary>
         /// Gets the service states.
         /// </summary>
         public DbSet<ServiceState> ServiceStates => Set<ServiceState>();
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="IndexingContext"/> class.
-        /// </summary>
-        public IndexingContext()
-        {
-            var cacheFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var applicationName = "image-indexer";
-
-            _dbPath = Path.Combine(cacheFolder, applicationName, "indexer.sqlite");
-            Directory.CreateDirectory(Path.GetDirectoryName(_dbPath) ?? throw new InvalidOperationException());
-        }
-
         /// <inheritdoc />
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
             optionsBuilder
-                .UseSqlite($"Data Source={_dbPath}")
+                .UseSqlite(_connectionPool.LeaseConnection())
                 .UseLazyLoadingProxies();
 
         /// <inheritdoc />
@@ -62,6 +60,20 @@ namespace ImageScraper.Model
             modelBuilder.Entity<ServiceState>()
                 .HasIndex(s => s.Name)
                 .IsUnique();
+        }
+
+        /// <inheritdoc/>
+        public override void Dispose()
+        {
+            _connectionPool.ReturnConnection(this.Database.GetDbConnection());
+            base.Dispose();
+        }
+
+        /// <inheritdoc />
+        public override ValueTask DisposeAsync()
+        {
+            _connectionPool.ReturnConnection(this.Database.GetDbConnection());
+            return base.DisposeAsync();
         }
     }
 }

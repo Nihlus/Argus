@@ -49,6 +49,7 @@ namespace ImageScraper.BackgroundServices
         private readonly SignatureGenerator _signatureGenerator;
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<IndexingBackgroundService<TServiceIndexer, TIdentifier>> _log;
+        private readonly IDbContextFactory<IndexingContext> _contextFactory;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexingBackgroundService{TServiceScraper, TIdentifier}"/> class.
@@ -58,13 +59,15 @@ namespace ImageScraper.BackgroundServices
         /// <param name="signatureGenerator">The image signature generator.</param>
         /// <param name="loggerFactory">The logger factory.</param>
         /// <param name="log">The logging instance.</param>
+        /// <param name="contextFactory">The database context factory.</param>
         public IndexingBackgroundService
         (
             TServiceIndexer serviceIndexer,
             NESTService nestService,
             SignatureGenerator signatureGenerator,
             ILoggerFactory loggerFactory,
-            ILogger<IndexingBackgroundService<TServiceIndexer, TIdentifier>> log
+            ILogger<IndexingBackgroundService<TServiceIndexer, TIdentifier>> log,
+            IDbContextFactory<IndexingContext> contextFactory
         )
         {
             _serviceIndexer = serviceIndexer;
@@ -72,6 +75,7 @@ namespace ImageScraper.BackgroundServices
             _signatureGenerator = signatureGenerator;
             _loggerFactory = loggerFactory;
             _log = log;
+            _contextFactory = contextFactory;
         }
 
         /// <inheritdoc/>
@@ -176,7 +180,7 @@ namespace ImageScraper.BackgroundServices
                         }
                     }
 
-                    await using var db = new IndexingContext();
+                    await using var db = _contextFactory.CreateDbContext();
                     var state = db.ServiceStates.FirstOrDefault(s => s.Name == _serviceIndexer.Service);
                     if (state is null)
                     {

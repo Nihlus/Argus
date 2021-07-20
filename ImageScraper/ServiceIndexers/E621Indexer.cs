@@ -42,6 +42,7 @@ namespace ImageScraper.ServiceIndexers
     /// </summary>
     public class E621Indexer : IServiceIndexer<int>
     {
+        private readonly IDbContextFactory<IndexingContext> _contextFactory;
         private readonly IE621Client _e621Client;
         private readonly IMemoryCache _memoryCache;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -57,18 +58,21 @@ namespace ImageScraper.ServiceIndexers
         /// <param name="memoryCache">The memory cache.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="log">The logging instance.</param>
+        /// <param name="contextFactory">The database context factory.</param>
         public E621Indexer
         (
             IE621Client e621Client,
             IMemoryCache memoryCache,
             IHttpClientFactory httpClientFactory,
-            ILogger<E621Indexer> log
+            ILogger<E621Indexer> log,
+            IDbContextFactory<IndexingContext> contextFactory
         )
         {
             _e621Client = e621Client;
             _memoryCache = memoryCache;
             _httpClientFactory = httpClientFactory;
             _log = log;
+            _contextFactory = contextFactory;
         }
 
         /// <inheritdoc />
@@ -78,7 +82,7 @@ namespace ImageScraper.ServiceIndexers
         )
         {
             int currentPostId;
-            await using (var db = new IndexingContext())
+            await using (var db = _contextFactory.CreateDbContext())
             {
                 var state = db.ServiceStates.FirstOrDefault(s => s.Name == this.Service);
                 if (state is null)

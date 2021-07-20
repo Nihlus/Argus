@@ -66,7 +66,8 @@ namespace ImageScraper
             }
 
             // Ensure the database is created
-            await using (var db = new IndexingContext())
+            var contextFactory = services.GetRequiredService<IDbContextFactory<IndexingContext>>();
+            await using (var db = contextFactory.CreateDbContext())
             {
                 await db.Database.MigrateAsync();
             }
@@ -79,6 +80,11 @@ namespace ImageScraper
             (
                 services =>
                 {
+                    // Database
+                    services
+                        .AddDbContextFactory<IndexingContext>()
+                        .AddSingleton<SqliteConnectionPool>();
+
                     // Signature generation services
                     services
                         .AddTransient<SignatureGenerator>();
