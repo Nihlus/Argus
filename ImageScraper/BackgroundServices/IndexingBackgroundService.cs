@@ -184,9 +184,7 @@ namespace ImageScraper.BackgroundServices
                     var state = db.ServiceStates.FirstOrDefault(s => s.Name == _serviceIndexer.Service);
                     if (state is null)
                     {
-                        state = db.CreateProxy<ServiceState>();
-                        state.Name = _serviceIndexer.Service;
-
+                        state = new ServiceState(_serviceIndexer.Service);
                         db.ServiceStates.Update(state);
                     }
 

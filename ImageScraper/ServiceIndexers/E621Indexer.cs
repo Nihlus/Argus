@@ -87,8 +87,7 @@ namespace ImageScraper.ServiceIndexers
                 var state = db.ServiceStates.FirstOrDefault(s => s.Name == this.Service);
                 if (state is null)
                 {
-                    state = db.CreateProxy<ServiceState>();
-                    state.Name = this.Service;
+                    state = new ServiceState(this.Service);
 
                     db.ServiceStates.Update(state);
                     await db.SaveChangesAsync(ct);

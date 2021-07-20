@@ -33,18 +33,18 @@ namespace ImageScraper.Model
         /// <summary>
         /// Gets the database ID of the service state.
         /// </summary>
-        public virtual Guid Id { get; init; }
+        public Guid Id { get; init; }
 
         /// <summary>
         /// Gets or sets the name of the service.
         /// </summary>
-        public virtual string Name { get; set; } = null!;
+        public string Name { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the serialized representation of a resume point that the service understands. This can be an
         /// ID, a nonce, a token, etc.
         /// </summary>
-        public virtual string? ResumePoint { get; set; }
+        public string? ResumePoint { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceState"/> class. Required by EF Core.

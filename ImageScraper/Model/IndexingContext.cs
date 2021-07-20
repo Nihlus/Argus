@@ -51,8 +51,7 @@ namespace ImageScraper.Model
         /// <inheritdoc />
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
             optionsBuilder
-                .UseSqlite(_connectionPool.LeaseConnection())
-                .UseLazyLoadingProxies();
+                .UseSqlite(_connectionPool.LeaseConnection());
 
         /// <inheritdoc />
         protected override void OnModelCreating(ModelBuilder modelBuilder)
