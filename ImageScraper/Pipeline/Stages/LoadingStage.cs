@@ -60,6 +60,7 @@ namespace ImageScraper.Pipeline.Stages
                 new ExecutionDataflowBlockOptions
                 {
                     CancellationToken = ct,
+                    BoundedCapacity = Environment.ProcessorCount * 4,
                     EnsureOrdered = false,
                     SingleProducerConstrained = true
                 }
