@@ -38,9 +38,9 @@ namespace ImageScraper.Pipeline.Stages
         private readonly ILogger<LoadingStage> _log;
 
         /// <summary>
-        /// Gets the <see cref="TransformManyBlock{TInput,TOutput}"/> that the stage represents.
+        /// Gets the <see cref="TransformBlock{TInput,TOutput}"/> that the stage represents.
         /// </summary>
-        public TransformBlock<AssociatedImage, LoadedImage> Block { get; }
+        public TransformBlock<AssociatedImage?, LoadedImage?> Block { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoadingStage"/> class.
@@ -54,7 +54,7 @@ namespace ImageScraper.Pipeline.Stages
         )
         {
             _log = log;
-            this.Block = new TransformBlock<AssociatedImage, LoadedImage>
+            this.Block = new TransformBlock<AssociatedImage?, LoadedImage?>
             (
                 LoadImageAsync,
                 new ExecutionDataflowBlockOptions
@@ -66,8 +66,13 @@ namespace ImageScraper.Pipeline.Stages
             );
         }
 
-        private async Task<LoadedImage> LoadImageAsync(AssociatedImage associatedImage)
+        private async Task<LoadedImage?> LoadImageAsync(AssociatedImage? associatedImage)
         {
+            if (associatedImage is null)
+            {
+                return null;
+            }
+
             try
             {
                 _log.LogInformation("Downloading image from {Link}...", associatedImage.Link);
@@ -86,7 +91,7 @@ namespace ImageScraper.Pipeline.Stages
             catch (Exception e)
             {
                 _log.LogWarning(e, "Failed to download {Link}", associatedImage.Link);
-                throw;
+                return null;
             }
         }
     }

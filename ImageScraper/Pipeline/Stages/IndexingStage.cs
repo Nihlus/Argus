@@ -41,7 +41,7 @@ namespace ImageScraper.Pipeline.Stages
         /// <summary>
         /// Gets the <see cref="ActionBlock{TInput}"/> that the stage represents.
         /// </summary>
-        public ActionBlock<ProcessedImage> Block { get; }
+        public ActionBlock<ProcessedImage?> Block { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexingStage"/> class.
@@ -59,7 +59,7 @@ namespace ImageScraper.Pipeline.Stages
             _nestService = nestService;
             _log = log;
 
-            this.Block = new ActionBlock<ProcessedImage>
+            this.Block = new ActionBlock<ProcessedImage?>
             (
                 IndexImageAsync,
                 new ExecutionDataflowBlockOptions
@@ -71,8 +71,13 @@ namespace ImageScraper.Pipeline.Stages
             );
         }
 
-        private async Task IndexImageAsync(ProcessedImage image)
+        private async Task IndexImageAsync(ProcessedImage? image)
         {
+            if (image is null)
+            {
+                return;
+            }
+
             try
             {
                 var indexedImage = new IndexedImage
@@ -100,7 +105,6 @@ namespace ImageScraper.Pipeline.Stages
             catch (Exception e)
             {
                 _log.LogWarning(e, "Failed to index {Link}", image.Link);
-                throw;
             }
         }
     }

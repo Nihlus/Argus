@@ -43,7 +43,7 @@ namespace ImageScraper.Pipeline.Stages
         /// <summary>
         /// Gets the <see cref="TransformBlock{TInput,TOutput}"/> that the stage represents.
         /// </summary>
-        public TransformBlock<LoadedImage, ProcessedImage> Block { get; }
+        public TransformBlock<LoadedImage?, ProcessedImage?> Block { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessingStage"/> class.
@@ -61,7 +61,7 @@ namespace ImageScraper.Pipeline.Stages
             _signatureGenerator = signatureGenerator;
             _log = log;
 
-            this.Block = new TransformBlock<LoadedImage, ProcessedImage>
+            this.Block = new TransformBlock<LoadedImage?, ProcessedImage?>
             (
                 ProcessImageAsync,
                 new ExecutionDataflowBlockOptions
@@ -74,8 +74,13 @@ namespace ImageScraper.Pipeline.Stages
             );
         }
 
-        private async Task<ProcessedImage> ProcessImageAsync(LoadedImage image)
+        private async Task<ProcessedImage?> ProcessImageAsync(LoadedImage? image)
         {
+            if (image is null)
+            {
+                return null;
+            }
+
             _log.LogInformation("Generating image signature for {Link}...", image.Link);
 
             try
@@ -91,7 +96,7 @@ namespace ImageScraper.Pipeline.Stages
             catch (Exception e)
             {
                 _log.LogError(e, "Failed to generate image signature for {Link}", image.Link);
-                throw;
+                return null;
             }
         }
     }
