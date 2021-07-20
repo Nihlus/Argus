@@ -68,6 +68,7 @@ namespace ImageScraper.Pipeline.Stages
                 {
                     CancellationToken = ct,
                     BoundedCapacity = Environment.ProcessorCount * 4,
+                    MaxDegreeOfParallelism = Environment.ProcessorCount,
                     EnsureOrdered = false,
                     SingleProducerConstrained = true,
                 }
