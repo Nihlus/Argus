@@ -128,7 +128,7 @@ namespace ImageScraper.API.FList
             {
                 var client = _clientFactory.CreateClient(nameof(FListAPI));
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "/json/api/character-data.php");
+                var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
                 var parameters = new Dictionary<string, string>
                 {
                     { "account", _account },

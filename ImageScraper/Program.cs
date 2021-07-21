@@ -99,6 +99,7 @@ namespace ImageScraper
                             o =>
                             {
                                 o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                                o.PropertyNameCaseInsensitive = true;
                             }
                         );
 
@@ -164,10 +165,10 @@ namespace ImageScraper
                             (_, client) =>
                             {
                                 var assemblyName = Assembly.GetExecutingAssembly().GetName();
-                                var name = assemblyName.Name ?? "ImageIndexer";
+                                var name = assemblyName.Name ?? "Indexer";
                                 var version = assemblyName.Version ?? new Version(1, 0, 0);
 
-                                client.BaseAddress = new Uri("https://www.f-list.net/json");
+                                client.BaseAddress = new Uri("https://www.f-list.net");
                                 client.DefaultRequestHeaders.UserAgent.Add
                                 (
                                     new ProductInfoHeaderValue(name, version.ToString())
