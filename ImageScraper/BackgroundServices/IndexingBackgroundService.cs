@@ -194,7 +194,11 @@ namespace ImageScraper.BackgroundServices
             }
             catch (Exception e)
             {
-                _log.LogError(e, "Image producer faulted");
+                if (e is not TaskCanceledException)
+                {
+                    _log.LogError(e, "Image producer faulted");
+                }
+
                 throw;
             }
         }
