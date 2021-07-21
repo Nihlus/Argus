@@ -88,7 +88,8 @@ namespace ImageScraper
                     // Signature generation services
                     services
                         .AddTransient<SignatureGenerator>()
-                        .AddHostedService<ImageProcessingService>();
+                        .AddSingleton<ImageProcessingService>()
+                        .AddHostedService(s => s.GetRequiredService<ImageProcessingService>());
 
                     // Elasticsearch services
                     services
