@@ -63,7 +63,7 @@ namespace ImageScraper.Pipeline.Stages
                     BoundedCapacity = Environment.ProcessorCount * 4,
                     MaxDegreeOfParallelism = Environment.ProcessorCount,
                     EnsureOrdered = false,
-                    SingleProducerConstrained = true
+                    SingleProducerConstrained = false
                 }
             );
         }
