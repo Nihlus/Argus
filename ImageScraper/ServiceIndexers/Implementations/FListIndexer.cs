@@ -113,17 +113,21 @@ namespace ImageScraper.ServiceIndexers
                 var getCharacter = await _fListAPI.GetCharacterDataAsync(currentCharacterId, ct);
                 if (!getCharacter.IsSuccess)
                 {
+                    ++currentCharacterId;
                     continue;
                 }
 
                 var character = getCharacter.Entity;
                 if (character.Images.Count <= 0)
                 {
+                    ++currentCharacterId;
                     continue;
                 }
 
                 _memoryCache.Set($"flist.{character.Id}", character);
                 yield return currentCharacterId;
+
+                ++currentCharacterId;
             }
         }
 
