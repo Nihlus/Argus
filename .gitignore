@@ -599,3 +599,4 @@ docs/output/
 docs/wwwroot/
 docs/config.wyam.*
 docs/site/
+/ImageScraper/appsettings.Secrets.json

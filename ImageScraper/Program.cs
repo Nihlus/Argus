@@ -21,10 +21,17 @@
 //
 
 using System;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text.Json;
 using System.Threading.Tasks;
+using ImageScraper.API.FList;
 using ImageScraper.BackgroundServices;
+using ImageScraper.Json;
 using ImageScraper.Model;
+using ImageScraper.Polly;
 using ImageScraper.ServiceIndexers;
 using ImageScraper.Services.Elasticsearch;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +40,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Noppes.E621;
+using Polly;
+using Polly.Contrib.WaitAndRetry;
 using Puzzle;
+using Policy = Polly.Policy;
 
 namespace ImageScraper
 {
@@ -80,6 +90,18 @@ namespace ImageScraper
             (
                 services =>
                 {
+                    var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+
+                    // JSON
+                    services
+                        .Configure<JsonSerializerOptions>
+                        (
+                            o =>
+                            {
+                                o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                            }
+                        );
+
                     // Database
                     services
                         .AddDbContextFactory<IndexingContext>()
@@ -127,8 +149,47 @@ namespace ImageScraper
                                 return builder.Build();
                             }
                         )
-                        .AddSingleton<E621Indexer>()
-                        .AddHostedService<IndexingBackgroundService<E621Indexer, int>>();
+                        .AddSingleton<E621Indexer>();
+                        //.AddHostedService<IndexingBackgroundService<E621Indexer, int>>();
+
+                    // f-list services
+                    services
+                        .AddSingleton<FListAPI>()
+                        .AddSingleton<FListAuthenticationRefreshPolicy>();
+
+                    services
+                        .AddHttpClient
+                        (
+                            nameof(FListAPI),
+                            (_, client) =>
+                            {
+                                var assemblyName = Assembly.GetExecutingAssembly().GetName();
+                                var name = assemblyName.Name ?? "ImageIndexer";
+                                var version = assemblyName.Version ?? new Version(1, 0, 0);
+
+                                client.BaseAddress = new Uri("https://www.f-list.net/json");
+                                client.DefaultRequestHeaders.UserAgent.Add
+                                (
+                                    new ProductInfoHeaderValue(name, version.ToString())
+                                );
+                            }
+                        )
+                        .AddTransientHttpErrorPolicy
+                        (
+                            b => b
+                                .WaitAndRetryAsync(retryDelay)
+                        )
+                        .AddPolicyHandler
+                        (
+                            (s, _) => Policy
+                                .HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
+                                .RetryAsync(1)
+                                .WrapAsync(s.GetRequiredService<FListAuthenticationRefreshPolicy>())
+                        );
+
+                    services
+                        .AddSingleton<FListIndexer>()
+                        .AddHostedService<IndexingBackgroundService<FListIndexer, int>>();
 
                     // Other services
                     services

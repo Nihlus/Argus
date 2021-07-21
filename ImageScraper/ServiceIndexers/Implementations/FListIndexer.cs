@@ -1,5 +1,5 @@
 //
-//  E621Indexer.cs
+//  FListIndexer.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -27,52 +27,51 @@ using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
+using ImageScraper.API.FList;
 using ImageScraper.Model;
 using ImageScraper.Pipeline.WorkUnits;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Noppes.E621;
 
 namespace ImageScraper.ServiceIndexers
 {
     /// <summary>
-    /// Indexes https://e621.net.
+    /// Indexes https://f-list.net characters.
     /// </summary>
-    public class E621Indexer : IServiceIndexer<int>
+    public class FListIndexer : IServiceIndexer<int>
     {
         private readonly IDbContextFactory<IndexingContext> _contextFactory;
-        private readonly IE621Client _e621Client;
         private readonly IMemoryCache _memoryCache;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<E621Indexer> _log;
+        private readonly ILogger<FListIndexer> _log;
+        private readonly FListAPI _fListAPI;
 
         /// <inheritdoc />
-        public string Service => "e621";
+        public string Service => "f-list";
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="E621Indexer"/> class.
+        /// Initializes a new instance of the <see cref="FListIndexer"/> class.
         /// </summary>
-        /// <param name="e621Client">The e621 client.</param>
+        /// <param name="contextFactory">The database context factory.</param>
         /// <param name="memoryCache">The memory cache.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="log">The logging instance.</param>
-        /// <param name="contextFactory">The database context factory.</param>
-        public E621Indexer
+        /// <param name="fListAPI">The F-List API.</param>
+        public FListIndexer
         (
-            IE621Client e621Client,
+            IDbContextFactory<IndexingContext> contextFactory,
             IMemoryCache memoryCache,
             IHttpClientFactory httpClientFactory,
-            ILogger<E621Indexer> log,
-            IDbContextFactory<IndexingContext> contextFactory
+            ILogger<FListIndexer> log,
+            FListAPI fListAPI
         )
         {
-            _e621Client = e621Client;
+            _contextFactory = contextFactory;
             _memoryCache = memoryCache;
             _httpClientFactory = httpClientFactory;
             _log = log;
-            _contextFactory = contextFactory;
+            _fListAPI = fListAPI;
         }
 
         /// <inheritdoc />
@@ -81,7 +80,7 @@ namespace ImageScraper.ServiceIndexers
             [EnumeratorCancellation] CancellationToken ct = default
         )
         {
-            int currentPostId;
+            int currentCharacterId;
             await using (var db = _contextFactory.CreateDbContext())
             {
                 var state = db.ServiceStates.FirstOrDefault(s => s.Name == this.Service);
@@ -93,10 +92,10 @@ namespace ImageScraper.ServiceIndexers
                     await db.SaveChangesAsync(ct);
                 }
 
-                if (!int.TryParse(state.ResumePoint, out currentPostId))
+                if (!int.TryParse(state.ResumePoint, out currentCharacterId))
                 {
-                    currentPostId = 0;
-                    state.ResumePoint = currentPostId.ToString();
+                    currentCharacterId = 0;
+                    state.ResumePoint = currentCharacterId.ToString();
 
                     await db.SaveChangesAsync(ct);
                 }
@@ -104,50 +103,27 @@ namespace ImageScraper.ServiceIndexers
                 {
                     // Be pessimistic - assume the whole chain has failed
                     var potentiallyFailed = Environment.ProcessorCount * 4 * 3;
-                    currentPostId -= potentiallyFailed;
-                    currentPostId = Math.Clamp(currentPostId, 0, int.MaxValue);
+                    currentCharacterId -= potentiallyFailed;
+                    currentCharacterId = Math.Clamp(currentCharacterId, 0, int.MaxValue);
                 }
             }
 
             while (!ct.IsCancellationRequested)
             {
-                var page = await _e621Client.GetPostsAsync
-                (
-                    currentPostId,
-                    Position.After,
-                    E621Constants.PostsMaximumLimit
-                );
-
-                if (page.Count <= 0)
+                var getCharacter = await _fListAPI.GetCharacterDataAsync(currentCharacterId, ct);
+                if (!getCharacter.IsSuccess)
                 {
-                    _log.LogInformation("Waiting for new posts to come in...");
-
-                    await Task.Delay(TimeSpan.FromHours(1), ct);
                     continue;
                 }
 
-                foreach (var post in page)
+                var character = getCharacter.Entity;
+                if (character.Images.Count <= 0)
                 {
-                    if (post.File is null)
-                    {
-                        _log.LogDebug("Skipping post {ID} (no file)", post.Id);
-                        continue;
-                    }
-
-                    if (post.File?.FileExtension is "swf" or "gif")
-                    {
-                        _log.LogDebug("Skipping post {ID} (animation)", post.Id);
-                        continue;
-                    }
-
-                    var key = $"e621.{post.Id}";
-                    _memoryCache.Set(key, post);
-
-                    yield return post.Id;
+                    continue;
                 }
 
-                var mostRecentPost = page.OrderByDescending(p => p.Id).First();
-                currentPostId = mostRecentPost.Id;
+                _memoryCache.Set($"flist.{character.Id}", character);
+                yield return currentCharacterId;
             }
         }
 
@@ -158,38 +134,43 @@ namespace ImageScraper.ServiceIndexers
             [EnumeratorCancellation] CancellationToken ct = default
         )
         {
-            var key = $"e621.{sourceIdentifier}";
-            if (!_memoryCache.TryGetValue<Post>(key, out var post))
+            var key = $"flist.{sourceIdentifier}";
+            if (!_memoryCache.TryGetValue<CharacterData>(key, out var character))
             {
-                post = await _e621Client.GetPostAsync(sourceIdentifier);
+                var getCharacter = await _fListAPI.GetCharacterDataAsync(sourceIdentifier, ct);
+                if (!getCharacter.IsSuccess)
+                {
+                    yield break;
+                }
+
+                character = getCharacter.Entity;
             }
             else
             {
                 _memoryCache.Remove(key);
             }
 
-            if (post?.File is null)
+            foreach (var image in character.Images)
             {
-                yield break;
+                var client = _httpClientFactory.CreateClient();
+                var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
+                await using var stream = await client.GetStreamAsync(location, ct);
+
+                // Copy to avoid dealing with HttpClient for longer than necessary
+                var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream, ct);
+
+                // Rewind the stream for the upcoming consumer
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
+                yield return new AssociatedImage
+                (
+                    "e621",
+                    new Uri($"https://www.f-list.net/c/{character.Name}"),
+                    new Uri(location),
+                    memoryStream
+                );
             }
-
-            var client = _httpClientFactory.CreateClient();
-            await using var stream = await client.GetStreamAsync(post.File.Location, ct);
-
-            // Copy to avoid dealing with HttpClient for longer than necessary
-            var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream, ct);
-
-            // Rewind the stream for the upcoming consumer
-            memoryStream.Seek(0, SeekOrigin.Begin);
-
-            yield return new AssociatedImage
-            (
-                "e621",
-                new Uri($"{_e621Client.BaseUrl}/posts/{sourceIdentifier}"),
-                post.File.Location,
-                memoryStream
-            );
         }
     }
 }
