@@ -87,7 +87,8 @@ namespace ImageScraper
 
                     // Signature generation services
                     services
-                        .AddTransient<SignatureGenerator>();
+                        .AddTransient<SignatureGenerator>()
+                        .AddHostedService<ImageProcessingService>();
 
                     // Elasticsearch services
                     services
@@ -118,7 +119,7 @@ namespace ImageScraper
                             {
                                 var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0";
                                 var builder = new E621ClientBuilder()
-                                    .WithUserAgent("TestApplication", version, "Jax#7487", "Discord")
+                                    .WithUserAgent("ImageIndexer", version, "Jax#7487", "Discord")
                                     .WithMaximumConnections(E621Constants.MaximumConnectionsLimit)
                                     .WithRequestInterval(E621Constants.MinimumRequestInterval);
 
