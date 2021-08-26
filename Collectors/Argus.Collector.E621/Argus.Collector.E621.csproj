@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net5.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Description>
+            Serves as an image collector for E621.
+        </Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+    </ItemGroup>
+
+</Project>
