@@ -82,11 +82,11 @@ namespace Argus.Worker.Services
             _log.LogInformation("Worker {WorkerID} started", _options.WorkerID);
 
             var limit = Environment.ProcessorCount * _options.ParallelismMultiplier;
-            var tasks = new Dictionary<RetrievedImage, Task<Result<FingerprintedImage>>>(limit);
+            var tasks = new Dictionary<CollectedImage, Task<Result<FingerprintedImage>>>(limit);
 
             var requestMessageTask = _incomingSocket.ReceiveMultipartMessageAsync
             (
-                RetrievedImage.FrameCount,
+                CollectedImage.FrameCount,
                 stoppingToken
             );
 
@@ -140,11 +140,11 @@ namespace Argus.Worker.Services
                 var requestMessage = await requestMessageTask;
                 requestMessageTask = _incomingSocket.ReceiveMultipartMessageAsync
                 (
-                    RetrievedImage.FrameCount,
+                    CollectedImage.FrameCount,
                     stoppingToken
                 );
 
-                if (!RetrievedImage.TryParse(requestMessage, out var retrievedImage))
+                if (!CollectedImage.TryParse(requestMessage, out var retrievedImage))
                 {
                     _log.LogWarning("Failed to parse incoming message from the coordinator");
                     continue;
@@ -156,14 +156,14 @@ namespace Argus.Worker.Services
 
         private async Task<Result<FingerprintedImage>> FingerprintImageAsync
         (
-            RetrievedImage retrievedImage,
+            CollectedImage collectedImage,
             CancellationToken ct = default
         )
         {
             try
             {
                 // CPU-intensive step 1
-                var data = retrievedImage.Data.ToArray();
+                var data = collectedImage.Data.ToArray();
                 using var image = Image.Load(data);
                 if (ct.IsCancellationRequested)
                 {
@@ -184,9 +184,9 @@ namespace Argus.Worker.Services
                 var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image).ToArray(), ct);
                 return new FingerprintedImage
                 (
-                    retrievedImage.ServiceName,
-                    retrievedImage.Source,
-                    retrievedImage.Image,
+                    collectedImage.ServiceName,
+                    collectedImage.Source,
+                    collectedImage.Image,
                     signature,
                     hashString
                 );
