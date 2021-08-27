@@ -1,5 +1,5 @@
 //
-//  FingerprintedImage.cs
+//  StatusReport.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -21,52 +21,59 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using System.Globalization;
 using NetMQ;
-using Puzzle;
 
 namespace Argus.Common.Messages
 {
     /// <summary>
-    /// Represents an image that has been fingerprinted by a worker.
+    /// Represents a report regarding the processing status of an image.
     /// </summary>
-    /// <param name="ServiceName">The name of the service the original collector retrieved the image from.</param>
+    /// <param name="Timestamp">The time at which the report was created.</param>
+    /// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Image">A direct link to the image.</param>
-    /// <param name="Fingerprint">The image data.</param>
-    /// <param name="Hash">A SHA256 hash of the image data.</param>
-    public record FingerprintedImage
+    /// <param name="Status">The status of the image.</param>
+    /// <param name="Message">The status message.</param>
+    public record StatusReport
     (
+        DateTimeOffset Timestamp,
         string ServiceName,
         Uri Source,
         Uri Image,
-        IReadOnlyCollection<LuminosityLevel> Fingerprint,
-        string Hash
+        ImageStatus Status,
+        string Message
     )
     {
         /// <summary>
         /// Gets the name of the message type.
         /// </summary>
-        public static string MessageType => nameof(FingerprintedImage);
+        public static string MessageType => nameof(StatusReport);
 
         /// <summary>
         /// Gets the number of serialized frames the message will fit into.
         /// </summary>
-        public static int FrameCount => 5;
+        public static int FrameCount => 4;
 
         /// <summary>
-        /// Attempts to parse a fingerprinted image from the given NetMQ message.
+        /// Attempts to parse a status report from the given NetMQ message.
         /// </summary>
         /// <param name="message">The message.</param>
-        /// <param name="image">The parsed image.</param>
-        /// <returns>true if an image was successfully parsed; otherwise, false.</returns>
-        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out FingerprintedImage? image)
+        /// <param name="status">The parsed status report.</param>
+        /// <returns>true if a status report was successfully parsed; otherwise, false.</returns>
+        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out StatusReport? status)
         {
-            image = null;
+            status = null;
 
             if (message.FrameCount < 5)
+            {
+                return false;
+            }
+
+            var rawTime = message.Pop().ConvertToString();
+            var formatInfo = DateTimeFormatInfo.InvariantInfo;
+            if (!DateTimeOffset.TryParse(rawTime, formatInfo, DateTimeStyles.None, out var timestamp))
             {
                 return false;
             }
@@ -85,25 +92,26 @@ namespace Argus.Common.Messages
                 return false;
             }
 
-            var fingerprint = message.Pop().ToByteArray().Select(b => (LuminosityLevel)b).ToList();
-            var hash = message.Pop().ConvertToString();
+            var imageStatus = (ImageStatus)message.Pop().ConvertToInt64();
+            var statusMessage = message.Pop().ConvertToString();
 
-            image = new FingerprintedImage(serviceName, source, imageLink, fingerprint, hash);
+            status = new StatusReport(timestamp, serviceName, source, imageLink, imageStatus, statusMessage);
             return true;
         }
 
         /// <summary>
-        /// Serializes the image to a NetMQ message.
+        /// Serializes the retrieved image to a NetMQ message.
         /// </summary>
         /// <returns>The message.</returns>
         public NetMQMessage Serialize()
         {
             var message = new NetMQMessage();
+            message.Append(this.Timestamp.ToString(DateTimeFormatInfo.InvariantInfo));
             message.Append(this.ServiceName);
             message.Append(this.Source.ToString());
             message.Append(this.Image.ToString());
-            message.Append(this.Fingerprint.Select(l => (byte)l).ToArray());
-            message.Append(this.Hash);
+            message.Append((long)this.Status);
+            message.Append(this.Message);
 
             return message;
         }

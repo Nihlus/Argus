@@ -22,6 +22,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using NetMQ;
 
 namespace Argus.Common.Messages
 {
@@ -32,5 +35,66 @@ namespace Argus.Common.Messages
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Image">A direct link to the image.</param>
     /// <param name="Data">The image data.</param>
-    public record RetrievedImage(string ServiceName, Uri Source, Uri Image, IReadOnlyCollection<byte> Data);
+    public record RetrievedImage(string ServiceName, Uri Source, Uri Image, IReadOnlyCollection<byte> Data)
+    {
+        /// <summary>
+        /// Gets the name of the message type.
+        /// </summary>
+        public static string MessageType => nameof(RetrievedImage);
+
+        /// <summary>
+        /// Gets the number of serialized frames the message will fit into.
+        /// </summary>
+        public static int FrameCount => 4;
+
+        /// <summary>
+        /// Attempts to parse a retrieved image from the given NetMQ message.
+        /// </summary>
+        /// <param name="message">The message.</param>
+        /// <param name="image">The parsed image.</param>
+        /// <returns>true if an image was successfully parsed; otherwise, false.</returns>
+        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out RetrievedImage? image)
+        {
+            image = null;
+
+            if (message.FrameCount < 5)
+            {
+                return false;
+            }
+
+            var serviceName = message.Pop().ConvertToString();
+
+            var rawSource = message.Pop().ConvertToString();
+            if (!Uri.TryCreate(rawSource, UriKind.RelativeOrAbsolute, out var source))
+            {
+                return false;
+            }
+
+            var rawImageLink = message.Pop().ConvertToString();
+            if (!Uri.TryCreate(rawImageLink, UriKind.RelativeOrAbsolute, out var imageLink))
+            {
+                return false;
+            }
+
+            var imageData = message.Pop().ToByteArray();
+
+            image = new RetrievedImage(serviceName, source, imageLink, imageData);
+            return true;
+        }
+
+        /// <summary>
+        /// Serializes the retrieved image to a NetMQ message.
+        /// </summary>
+        /// <returns>The message.</returns>
+        public NetMQMessage Serialize()
+        {
+            var message = new NetMQMessage();
+            message.Append(this.ServiceName);
+            message.Append(this.Source.ToString());
+            message.Append(this.Image.ToString());
+            message.Append(this.Data.ToArray());
+
+            return message;
+        }
+    }
 }

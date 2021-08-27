@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Argus.Coordinator.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NetMQ.Sockets;
 
 namespace Argus.Coordinator.Services
 {
@@ -35,6 +36,8 @@ namespace Argus.Coordinator.Services
     public class CoordinatorService : BackgroundService
     {
         private readonly CoordinatorOptions _options;
+        private readonly PullSocket _incomingSocket;
+        private readonly PushSocket _outgoingSocket;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CoordinatorService"/> class.
@@ -43,6 +46,12 @@ namespace Argus.Coordinator.Services
         public CoordinatorService(IOptions<CoordinatorOptions> options)
         {
             _options = options.Value;
+
+            _incomingSocket = new PullSocket();
+            _outgoingSocket = new PushSocket();
+
+            _incomingSocket.Bind(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
+            _outgoingSocket.Bind(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
         }
 
         /// <inheritdoc />
@@ -52,6 +61,17 @@ namespace Argus.Coordinator.Services
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
             }
+        }
+
+        /// <inheritdoc />
+        public sealed override void Dispose()
+        {
+            base.Dispose();
+
+            _incomingSocket.Dispose();
+            _outgoingSocket.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -29,6 +29,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetMQ;
+using Puzzle;
 using Remora.Extensions.Options.Immutable;
 
 namespace Argus.Worker
@@ -69,12 +70,13 @@ namespace Argus.Worker
             {
                 services.Configure(() =>
                 {
-                    var options = new WorkerOptions(new Uri("tcp://localhost"));
+                    var options = new WorkerOptions(new Uri("tcp://localhost:6666"), new Uri("tcp://localhost:6667"));
                     hostContext.Configuration.Bind(nameof(WorkerOptions), options);
 
                     return options;
                 });
 
+                services.AddSingleton<SignatureGenerator>();
                 services.AddHostedService<ImageFingerprintingService>();
             });
     }

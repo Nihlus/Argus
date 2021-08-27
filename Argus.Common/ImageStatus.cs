@@ -1,5 +1,5 @@
 //
-//  CoordinatorOptions.cs
+//  ImageStatus.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,14 +20,36 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-
-namespace Argus.Coordinator.Configuration
+namespace Argus.Common
 {
     /// <summary>
-    /// Represents the application configuration.
+    /// Enumerates the various states an image can be in.
     /// </summary>
-    /// <param name="CoordinatorInputEndpoint">The input endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorOutputEndpoint">The output endpoint of the cluster coordinator.</param>
-    public record CoordinatorOptions(Uri CoordinatorInputEndpoint, Uri CoordinatorOutputEndpoint);
+    public enum ImageStatus
+    {
+        /// <summary>
+        /// The image has been collected, and has been submitted for processing.
+        /// </summary>
+        Collected,
+
+        /// <summary>
+        /// The image has been rejected by the collector.
+        /// </summary>
+        Rejected,
+
+        /// <summary>
+        /// The image has been sent for processing by a worker.
+        /// </summary>
+        Processing,
+
+        /// <summary>
+        /// The image has been processed, and has been sent back to the coordinator.
+        /// </summary>
+        Processed,
+
+        /// <summary>
+        /// Processing of the image faulted in some way.
+        /// </summary>
+        Faulted
+    }
 }

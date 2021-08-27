@@ -21,12 +21,22 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Argus.Common;
+using Argus.Common.Messages;
 using Argus.Worker.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetMQ;
 using NetMQ.Sockets;
+using Puzzle;
+using Remora.Results;
+using SixLabors.ImageSharp;
 
 namespace Argus.Worker.Services
 {
@@ -36,25 +46,166 @@ namespace Argus.Worker.Services
     public class ImageFingerprintingService : BackgroundService
     {
         private readonly WorkerOptions _options;
-        private readonly RequestSocket _socket;
+        private readonly SignatureGenerator _signatureGenerator;
+        private readonly ILogger<ImageFingerprintingService> _log;
+
+        private readonly PullSocket _incomingSocket;
+        private readonly PushSocket _outgoingSocket;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFingerprintingService"/> class.
         /// </summary>
         /// <param name="options">The worker options.</param>
-        public ImageFingerprintingService(IOptions<WorkerOptions> options)
+        /// <param name="signatureGenerator">The signature generator.</param>
+        /// <param name="log">The logging instance.</param>
+        public ImageFingerprintingService
+        (
+            IOptions<WorkerOptions> options,
+            SignatureGenerator signatureGenerator,
+            ILogger<ImageFingerprintingService> log
+        )
         {
             _options = options.Value;
-            _socket = new RequestSocket(_options.CoordinatorEndpoint.ToString());
+            _signatureGenerator = signatureGenerator;
+            _log = log;
+
+            _incomingSocket = new PullSocket();
+            _outgoingSocket = new PushSocket();
+
+            _incomingSocket.Connect(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
+            _outgoingSocket.Connect(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
         }
 
         /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _log.LogInformation("Worker {WorkerID} started", _options.WorkerID);
+
+            var limit = Environment.ProcessorCount * _options.ParallelismMultiplier;
+            var tasks = new Dictionary<RetrievedImage, Task<Result<FingerprintedImage>>>(limit);
+
+            var requestMessageTask = _incomingSocket.ReceiveMultipartMessageAsync
+            (
+                RetrievedImage.FrameCount,
+                stoppingToken
+            );
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                // Process finished tasks
+                var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                var task = await Task.WhenAny(tasks.Values.Concat(new[] { timeout }));
+
+                if (task != timeout)
+                {
+                    var completedTasks = tasks.Where(t => t.Value.IsCompleted).ToList();
+                    foreach (var (request, finishedTask) in completedTasks)
+                    {
+                        var result = await finishedTask;
+                        if (result.IsSuccess)
+                        {
+                            _outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+                        }
+
+                        // send status message
+                        var message = new StatusReport
+                        (
+                            DateTimeOffset.UtcNow,
+                            request.ServiceName,
+                            request.Source,
+                            request.Image,
+                            result.IsSuccess ? ImageStatus.Processed : ImageStatus.Faulted,
+                            result.IsSuccess ? string.Empty : result.Error.Message
+                        );
+
+                        _outgoingSocket.SendMultipartMessage(message.Serialize());
+
+                        tasks.Remove(request);
+                    }
+                }
+
+                if (tasks.Count >= limit)
+                {
+                    continue;
+                }
+
+                var requestMessageTimeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                var completedRequestTask = await Task.WhenAny(requestMessageTask, requestMessageTimeout);
+
+                if (completedRequestTask != requestMessageTask)
+                {
+                    continue;
+                }
+
+                var requestMessage = await requestMessageTask;
+                requestMessageTask = _incomingSocket.ReceiveMultipartMessageAsync
+                (
+                    RetrievedImage.FrameCount,
+                    stoppingToken
+                );
+
+                if (!RetrievedImage.TryParse(requestMessage, out var retrievedImage))
+                {
+                    _log.LogWarning("Failed to parse incoming message from the coordinator");
+                    continue;
+                }
+
+                tasks.Add(retrievedImage, FingerprintImageAsync(retrievedImage, stoppingToken));
             }
+        }
+
+        private async Task<Result<FingerprintedImage>> FingerprintImageAsync
+        (
+            RetrievedImage retrievedImage,
+            CancellationToken ct = default
+        )
+        {
+            try
+            {
+                // CPU-intensive step 1
+                var data = retrievedImage.Data.ToArray();
+                using var image = Image.Load(data);
+                if (ct.IsCancellationRequested)
+                {
+                    return new TaskCanceledException();
+                }
+
+                // CPU-intensive step 2
+                using var sha256 = new SHA256Managed();
+                var hash = sha256.ComputeHash(data);
+                if (ct.IsCancellationRequested)
+                {
+                    return new TaskCanceledException();
+                }
+
+                var hashString = BitConverter.ToString(hash).ToLowerInvariant();
+
+                // CPU-intensive step 3
+                var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image).ToArray(), ct);
+                return new FingerprintedImage
+                (
+                    retrievedImage.ServiceName,
+                    retrievedImage.Source,
+                    retrievedImage.Image,
+                    signature,
+                    hashString
+                );
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            _incomingSocket.Dispose();
+            _outgoingSocket.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }
