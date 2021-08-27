@@ -1,5 +1,5 @@
 //
-//  CoordinatorOptions.cs
+//  FListOptions.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,23 +20,12 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-
-namespace Argus.Coordinator.Configuration
+namespace Argus.Collector.FList.Configuration
 {
     /// <summary>
-    /// Represents the application configuration.
+    /// Represents collector-specific configuration.
     /// </summary>
-    /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorInputEndpoint">The input endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorOutputEndpoint">The output endpoint of the cluster coordinator.</param>
-    public record CoordinatorOptions
-    (
-        Uri CoordinatorEndpoint,
-        Uri CoordinatorInputEndpoint,
-        Uri CoordinatorOutputEndpoint,
-        Uri ElasticsearchServer,
-        string ElasticsearchUsername,
-        string ElasticsearchPassword
-    );
+    /// <param name="Username">The username to log in with.</param>
+    /// <param name="Password">The password to log in with.</param>
+    public record FListOptions(string Username, string Password);
 }

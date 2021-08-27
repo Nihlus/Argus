@@ -1,5 +1,5 @@
 //
-//  WorkerOptions.cs
+//  CollectorOptions.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -22,32 +22,16 @@
 
 using System;
 
-namespace Argus.Worker.Configuration
+namespace Argus.Collector.Common.Configuration
 {
     /// <summary>
     /// Represents the application configuration.
     /// </summary>
     /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
     /// <param name="CoordinatorInputEndpoint">The input endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorOutputEndpoint">The output endpoint of the cluster coordinator.</param>
-    /// <param name="ParallelismMultiplier">
-    /// The multiplier used with the available processor count to determine the maximum number of parallel tasks the
-    /// worker will process.
-    /// </param>
-    public record WorkerOptions
+    public record CollectorOptions
     (
         Uri CoordinatorEndpoint,
-        Uri CoordinatorInputEndpoint,
-        Uri CoordinatorOutputEndpoint,
-        int ParallelismMultiplier = 4
-    )
-    {
-        /// <summary>
-        /// Gets the worker ID.
-        /// </summary>
-        /// <remarks>
-        /// This ID is randomly generated every time the worker starts.
-        /// </remarks>
-        public Guid WorkerID { get; } = Guid.NewGuid();
-    }
+        Uri CoordinatorInputEndpoint
+    );
 }

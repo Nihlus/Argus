@@ -20,6 +20,28 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection;
+using System.Text.Json;
+using Argus.Collector.Common.Extensions;
+using Argus.Collector.FList.API;
+using Argus.Collector.FList.Configuration;
+using Argus.Collector.FList.Json;
+using Argus.Collector.FList.Polly;
+using Argus.Collector.FList.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NetMQ;
+using Polly;
+using Polly.Contrib.WaitAndRetry;
+using Remora.Extensions.Options.Immutable;
+
 namespace Argus.Collector.FList
 {
     /// <summary>
@@ -29,6 +51,78 @@ namespace Argus.Collector.FList
     {
         private static void Main(string[] args)
         {
+            using var runtime = new NetMQRuntime();
+            using var host = CreateHostBuilder(args).Build();
+
+            var log = host.Services.GetRequiredService<ILogger<Program>>();
+
+            runtime.Run(host.RunAsync());
+            log.LogInformation("Shutting down...");
         }
+
+        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+            .UseCollector<FListCollectorService>()
+            .ConfigureAppConfiguration((_, configuration) =>
+            {
+                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.flist.json");
+                configuration.AddJsonFile(systemConfigFile, true);
+            })
+            .ConfigureServices((hostContext, services) =>
+            {
+                services.Configure(() =>
+                {
+                    var options = new FListOptions(string.Empty, string.Empty);
+
+                    hostContext.Configuration.Bind(nameof(FListOptions), options);
+                    return options;
+                });
+
+                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+
+                services
+                    .Configure<JsonSerializerOptions>
+                    (
+                        o =>
+                        {
+                            o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                            o.PropertyNameCaseInsensitive = true;
+                        }
+                    );
+
+                services
+                    .AddSingleton<FListAPI>()
+                    .AddSingleton<FListAuthenticationRefreshPolicy>();
+
+                services
+                    .AddHttpClient
+                    (
+                        nameof(FListAPI),
+                        (_, client) =>
+                        {
+                            var assemblyName = Assembly.GetExecutingAssembly().GetName();
+                            var name = assemblyName.Name ?? "Indexer";
+                            var version = assemblyName.Version ?? new Version(1, 0, 0);
+
+                            client.BaseAddress = new Uri("https://www.f-list.net");
+                            client.DefaultRequestHeaders.UserAgent.Add
+                            (
+                                new ProductInfoHeaderValue(name, version.ToString())
+                            );
+                        }
+                    )
+                    .AddTransientHttpErrorPolicy
+                    (
+                        b => b
+                            .WaitAndRetryAsync(retryDelay)
+                    )
+                    .AddPolicyHandler
+                    (
+                        (s, _) => Policy
+                            .HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
+                            .RetryAsync(1)
+                            .WrapAsync(s.GetRequiredService<FListAuthenticationRefreshPolicy>())
+                    );
+            });
     }
 }

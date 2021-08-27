@@ -1,5 +1,5 @@
 //
-//  CoordinatorOptions.cs
+//  ElasticsearchError.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,23 +20,19 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
+using Elasticsearch.Net;
+using Remora.Results;
 
-namespace Argus.Coordinator.Configuration
+namespace Argus.Coordinator.Results
 {
     /// <summary>
-    /// Represents the application configuration.
+    /// Represents an error resulting from Elasticsearch.
     /// </summary>
-    /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorInputEndpoint">The input endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorOutputEndpoint">The output endpoint of the cluster coordinator.</param>
-    public record CoordinatorOptions
+    /// <param name="Error">The error.</param>
+    /// <param name="Message">The error message.</param>
+    public record ElasticsearchError
     (
-        Uri CoordinatorEndpoint,
-        Uri CoordinatorInputEndpoint,
-        Uri CoordinatorOutputEndpoint,
-        Uri ElasticsearchServer,
-        string ElasticsearchUsername,
-        string ElasticsearchPassword
-    );
+        ServerError Error,
+        string Message = "An error occurred in Elasticsearch."
+    ) : ResultError(Message);
 }

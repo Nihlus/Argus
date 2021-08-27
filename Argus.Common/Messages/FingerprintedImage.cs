@@ -66,7 +66,7 @@ namespace Argus.Common.Messages
         {
             image = null;
 
-            if (message.FrameCount < 5)
+            if (message.FrameCount < FrameCount)
             {
                 return false;
             }

@@ -15,4 +15,8 @@
       <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Noppes.E621Client" Version="0.6.0" />
+    </ItemGroup>
+
 </Project>

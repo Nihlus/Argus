@@ -57,20 +57,23 @@ namespace Argus.Worker
         #else
             .UseEnvironment("Production")
         #endif
-            .ConfigureAppConfiguration((hostContext, configuration) =>
+            .ConfigureAppConfiguration((_, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 var systemConfigFile = Path.Combine(configFolder, "argus", "worker.json");
                 configuration.AddJsonFile(systemConfigFile, true);
             })
-            .ConfigureLogging((hostContext, logging) =>
-            {
-            })
             .ConfigureServices((hostContext, services) =>
             {
                 services.Configure(() =>
                 {
-                    var options = new WorkerOptions(new Uri("tcp://localhost:6666"), new Uri("tcp://localhost:6667"));
+                    var options = new WorkerOptions
+                    (
+                        new Uri("tcp://localhost:6666"),
+                        new Uri("tcp://localhost:6667"),
+                        new Uri("tcp://localhost:6668")
+                    );
+
                     hostContext.Configuration.Bind(nameof(WorkerOptions), options);
 
                     return options;

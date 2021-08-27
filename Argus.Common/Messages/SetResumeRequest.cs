@@ -1,5 +1,5 @@
 //
-//  CollectedImage.cs
+//  SetResumeRequest.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,42 +20,35 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using NetMQ;
 
 namespace Argus.Common.Messages
 {
     /// <summary>
-    /// Represents an image that has been retrieved by a service collector.
+    /// Represents a request to set the resume point of a collector.
     /// </summary>
-    /// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
-    /// <param name="Source">The source URL where the image was retrieved.</param>
-    /// <param name="Image">A direct link to the image.</param>
-    /// <param name="Data">The image data.</param>
-    public record CollectedImage(string ServiceName, Uri Source, Uri Image, IReadOnlyCollection<byte> Data)
+    public record SetResumeRequest(string ServiceName, string ResumePoint)
     {
         /// <summary>
         /// Gets the name of the message type.
         /// </summary>
-        public static string MessageType => nameof(CollectedImage);
+        public static string MessageType => nameof(SetResumeRequest);
 
         /// <summary>
         /// Gets the number of serialized frames the message will fit into.
         /// </summary>
-        public static int FrameCount => 4;
+        public static int FrameCount => 2;
 
         /// <summary>
-        /// Attempts to parse a retrieved image from the given NetMQ message.
+        /// Attempts to parse a resume request from the given NetMQ message.
         /// </summary>
         /// <param name="message">The message.</param>
-        /// <param name="image">The parsed image.</param>
-        /// <returns>true if an image was successfully parsed; otherwise, false.</returns>
-        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out CollectedImage? image)
+        /// <param name="status">The parsed status report.</param>
+        /// <returns>true if the entity was successfully parsed; otherwise, false.</returns>
+        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out SetResumeRequest? status)
         {
-            image = null;
+            status = null;
 
             if (message.FrameCount < FrameCount)
             {
@@ -69,27 +62,14 @@ namespace Argus.Common.Messages
             }
 
             var serviceName = message.Pop().ConvertToString();
+            var resumePoint = message.Pop().ConvertToString();
 
-            var rawSource = message.Pop().ConvertToString();
-            if (!Uri.TryCreate(rawSource, UriKind.RelativeOrAbsolute, out var source))
-            {
-                return false;
-            }
-
-            var rawImageLink = message.Pop().ConvertToString();
-            if (!Uri.TryCreate(rawImageLink, UriKind.RelativeOrAbsolute, out var imageLink))
-            {
-                return false;
-            }
-
-            var imageData = message.Pop().ToByteArray();
-
-            image = new CollectedImage(serviceName, source, imageLink, imageData);
+            status = new SetResumeRequest(serviceName, resumePoint);
             return true;
         }
 
         /// <summary>
-        /// Serializes the retrieved image to a NetMQ message.
+        /// Serializes the request to a NetMQ message.
         /// </summary>
         /// <returns>The message.</returns>
         public NetMQMessage Serialize()
@@ -97,9 +77,7 @@ namespace Argus.Common.Messages
             var message = new NetMQMessage();
             message.Append(MessageType);
             message.Append(this.ServiceName);
-            message.Append(this.Source.ToString());
-            message.Append(this.Image.ToString());
-            message.Append(this.Data.ToArray());
+            message.Append(this.ResumePoint);
 
             return message;
         }
