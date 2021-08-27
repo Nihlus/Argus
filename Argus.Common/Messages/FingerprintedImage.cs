@@ -71,6 +71,12 @@ namespace Argus.Common.Messages
                 return false;
             }
 
+            var messageType = message.Pop().ConvertToString();
+            if (messageType != MessageType)
+            {
+                return false;
+            }
+
             var serviceName = message.Pop().ConvertToString();
 
             var rawSource = message.Pop().ConvertToString();
@@ -99,6 +105,7 @@ namespace Argus.Common.Messages
         public NetMQMessage Serialize()
         {
             var message = new NetMQMessage();
+            message.Append(MessageType);
             message.Append(this.ServiceName);
             message.Append(this.Source.ToString());
             message.Append(this.Image.ToString());

@@ -71,6 +71,12 @@ namespace Argus.Common.Messages
                 return false;
             }
 
+            var messageType = message.Pop().ConvertToString();
+            if (messageType != MessageType)
+            {
+                return false;
+            }
+
             var rawTime = message.Pop().ConvertToString();
             var formatInfo = DateTimeFormatInfo.InvariantInfo;
             if (!DateTimeOffset.TryParse(rawTime, formatInfo, DateTimeStyles.None, out var timestamp))
@@ -106,6 +112,7 @@ namespace Argus.Common.Messages
         public NetMQMessage Serialize()
         {
             var message = new NetMQMessage();
+            message.Append(MessageType);
             message.Append(this.Timestamp.ToString(DateTimeFormatInfo.InvariantInfo));
             message.Append(this.ServiceName);
             message.Append(this.Source.ToString());
