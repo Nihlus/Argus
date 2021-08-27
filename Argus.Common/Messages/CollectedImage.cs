@@ -1,5 +1,5 @@
 //
-//  RetrievedImage.cs
+//  CollectedImage.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -35,12 +35,12 @@ namespace Argus.Common.Messages
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Image">A direct link to the image.</param>
     /// <param name="Data">The image data.</param>
-    public record RetrievedImage(string ServiceName, Uri Source, Uri Image, IReadOnlyCollection<byte> Data)
+    public record CollectedImage(string ServiceName, Uri Source, Uri Image, IReadOnlyCollection<byte> Data)
     {
         /// <summary>
         /// Gets the name of the message type.
         /// </summary>
-        public static string MessageType => nameof(RetrievedImage);
+        public static string MessageType => nameof(CollectedImage);
 
         /// <summary>
         /// Gets the number of serialized frames the message will fit into.
@@ -53,11 +53,17 @@ namespace Argus.Common.Messages
         /// <param name="message">The message.</param>
         /// <param name="image">The parsed image.</param>
         /// <returns>true if an image was successfully parsed; otherwise, false.</returns>
-        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out RetrievedImage? image)
+        public static bool TryParse(NetMQMessage message, [NotNullWhen(true)] out CollectedImage? image)
         {
             image = null;
 
             if (message.FrameCount < 5)
+            {
+                return false;
+            }
+
+            var messageType = message.Pop().ConvertToString();
+            if (messageType != MessageType)
             {
                 return false;
             }
@@ -78,7 +84,7 @@ namespace Argus.Common.Messages
 
             var imageData = message.Pop().ToByteArray();
 
-            image = new RetrievedImage(serviceName, source, imageLink, imageData);
+            image = new CollectedImage(serviceName, source, imageLink, imageData);
             return true;
         }
 
@@ -89,6 +95,7 @@ namespace Argus.Common.Messages
         public NetMQMessage Serialize()
         {
             var message = new NetMQMessage();
+            message.Append(MessageType);
             message.Append(this.ServiceName);
             message.Append(this.Source.ToString());
             message.Append(this.Image.ToString());
