@@ -23,10 +23,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Argus.Common.Messages;
 using Argus.Coordinator.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetMQ;
 using NetMQ.Sockets;
+using Remora.Results;
 
 namespace Argus.Coordinator.Services
 {
@@ -36,6 +40,8 @@ namespace Argus.Coordinator.Services
     public class CoordinatorService : BackgroundService
     {
         private readonly CoordinatorOptions _options;
+        private readonly ILogger<CoordinatorService> _log;
+
         private readonly PullSocket _incomingSocket;
         private readonly PushSocket _outgoingSocket;
 
@@ -43,8 +49,10 @@ namespace Argus.Coordinator.Services
         /// Initializes a new instance of the <see cref="CoordinatorService"/> class.
         /// </summary>
         /// <param name="options">The coordinator options.</param>
-        public CoordinatorService(IOptions<CoordinatorOptions> options)
+        /// <param name="log">The logging instance.</param>
+        public CoordinatorService(IOptions<CoordinatorOptions> options, ILogger<CoordinatorService> log)
         {
+            _log = log;
             _options = options.Value;
 
             _incomingSocket = new PullSocket();
@@ -59,8 +67,94 @@ namespace Argus.Coordinator.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                var incomingMessage = await _incomingSocket.ReceiveMultipartMessageAsync
+                (
+                    cancellationToken: stoppingToken
+                );
+
+                var messageType = incomingMessage.First.ConvertToString();
+                switch (messageType)
+                {
+                    case var _ when messageType == CollectedImage.MessageType:
+                    {
+                        if (!CollectedImage.TryParse(incomingMessage, out var collectedImage))
+                        {
+                            _log.LogWarning
+                            (
+                                "Failed to parse incoming message as a {Type}",
+                                CollectedImage.MessageType
+                            );
+
+                            continue;
+                        }
+
+                        _outgoingSocket.SendMultipartMessage(collectedImage.Serialize());
+                        break;
+                    }
+                    case var _ when messageType == FingerprintedImage.MessageType:
+                    {
+                        if (!FingerprintedImage.TryParse(incomingMessage, out var fingerprintedImage))
+                        {
+                            _log.LogWarning
+                            (
+                                "Failed to parse incoming message as a {Type}",
+                                FingerprintedImage.MessageType
+                            );
+
+                            continue;
+                        }
+
+                        var result = await HandleFingerprintedImageAsync(fingerprintedImage, stoppingToken);
+                        if (!result.IsSuccess)
+                        {
+                            _log.LogWarning("Failed to handle fingerprinted image: {Message}", result.Error.Message);
+                        }
+
+                        break;
+                    }
+                    case var _ when messageType == StatusReport.MessageType:
+                    {
+                        if (!StatusReport.TryParse(incomingMessage, out var statusReport))
+                        {
+                            _log.LogWarning
+                            (
+                                "Failed to parse incoming message as a {Type}",
+                                FingerprintedImage.MessageType
+                            );
+
+                            continue;
+                        }
+
+                        var result = await HandleStatusReportAsync(statusReport, stoppingToken);
+                        if (!result.IsSuccess)
+                        {
+                            _log.LogWarning("Failed to handle status report: {Message}", result.Error.Message);
+                        }
+
+                        break;
+                    }
+                }
             }
+        }
+
+        private async Task<Result> HandleFingerprintedImageAsync
+        (
+            FingerprintedImage fingerprintedImage,
+            CancellationToken ct
+        )
+        {
+            // Save to database
+            return new NotImplementedException();
+        }
+
+        private async Task<Result> HandleStatusReportAsync
+        (
+            StatusReport statusReport,
+            CancellationToken ct
+        )
+        {
+            // Save to database
+            return new NotImplementedException();
         }
 
         /// <inheritdoc />
