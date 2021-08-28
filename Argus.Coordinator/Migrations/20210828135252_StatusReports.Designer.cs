@@ -3,14 +3,16 @@ using System;
 using Argus.Coordinator.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ImageScraper.Migrations
 {
     [DbContext(typeof(CoordinatorContext))]
-    partial class IndexingContextModelSnapshot : ModelSnapshot
+    [Migration("20210828135252_StatusReports")]
+    partial class StatusReports
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

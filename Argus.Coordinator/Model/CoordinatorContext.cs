@@ -21,6 +21,7 @@
 //
 
 using System.Threading.Tasks;
+using Argus.Common.Messages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Argus.Coordinator.Model
@@ -48,6 +49,11 @@ namespace Argus.Coordinator.Model
         /// </summary>
         public DbSet<ServiceState> ServiceStates => Set<ServiceState>();
 
+        /// <summary>
+        /// Gets received status reports.
+        /// </summary>
+        public DbSet<ServiceStatusReport> ServiceStatusReports => Set<ServiceStatusReport>();
+
         /// <inheritdoc />
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
             optionsBuilder
@@ -65,6 +71,24 @@ namespace Argus.Coordinator.Model
             modelBuilder.Entity<ServiceState>()
                 .HasIndex(s => s.Name)
                 .IsUnique();
+
+            modelBuilder.Entity<ServiceStatusReport>()
+                .HasIndex(s => s.Id)
+                .IsUnique();
+
+            var ownedReport = modelBuilder.Entity<ServiceStatusReport>()
+                .OwnsOne(s => s.Report);
+
+            ownedReport
+                .HasIndex(s => s.ServiceName);
+
+            ownedReport
+                .HasIndex(s => s.Source);
+
+            ownedReport
+                .HasIndex(s => s.Image);
+
+            ownedReport.WithOwner();
         }
 
         /// <inheritdoc/>
