@@ -119,10 +119,10 @@ namespace Argus.Coordinator
                 {
                     var options = new CoordinatorOptions
                     (
-                        new Uri("tcp://localhost:6666"),
-                        new Uri("tcp://localhost:6667"),
-                        new Uri("tcp://localhost:6668"),
-                        new Uri("http://192.168.0.11:9200"),
+                        new Uri("about:blank"),
+                        new Uri("about:blank"),
+                        new Uri("about:blank"),
+                        new Uri("about:blank"),
                         string.Empty,
                         string.Empty
                     );

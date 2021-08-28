@@ -72,9 +72,10 @@ namespace Argus.Worker
                 {
                     var options = new WorkerOptions
                     (
-                        new Uri("tcp://localhost:6666"),
-                        new Uri("tcp://localhost:6667"),
-                        new Uri("tcp://localhost:6668")
+                        new Uri("about:blank"),
+                        new Uri("about:blank"),
+                        new Uri("about:blank"),
+                        0
                     );
 
                     hostContext.Configuration.Bind(nameof(WorkerOptions), options);

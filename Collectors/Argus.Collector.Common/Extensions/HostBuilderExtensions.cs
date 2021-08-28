@@ -64,8 +64,8 @@ namespace Argus.Collector.Common.Extensions
                     {
                         var options = new CollectorOptions
                         (
-                            new Uri("tcp://localhost:6666"),
-                            new Uri("tcp://localhost:6667")
+                            new Uri("about:blank"),
+                            new Uri("about:blank")
                         );
 
                         hostContext.Configuration.Bind(nameof(CollectorOptions), options);
