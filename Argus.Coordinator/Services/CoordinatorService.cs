@@ -21,6 +21,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Common;
@@ -83,39 +85,63 @@ namespace Argus.Coordinator.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _log.LogInformation("Started coordinator");
+            await Task.WhenAll(RunResponsesAsync(stoppingToken), RunPullsAsync(stoppingToken));
+        }
 
-            var pullMessage = _incomingSocket.ReceiveMultipartMessageAsync
-            (
-                cancellationToken: stoppingToken
-            );
-
-            var responseMessage = _responseSocket.ReceiveMultipartMessageAsync
-            (
-                cancellationToken: stoppingToken
-            );
-
-            while (!stoppingToken.IsCancellationRequested)
+        private async Task RunResponsesAsync(CancellationToken ct = default)
+        {
+            var runningTasks = new List<Task>();
+            while (!ct.IsCancellationRequested)
             {
-                var messageTask = await Task.WhenAny(pullMessage, responseMessage);
-                if (messageTask == pullMessage)
+                NetMQMessage? responseMessage = null;
+                if (_responseSocket.TryReceiveMultipartMessage(ref responseMessage))
                 {
-                    var incomingMessage = await messageTask;
-                    pullMessage = _incomingSocket.ReceiveMultipartMessageAsync
-                    (
-                        cancellationToken: stoppingToken
-                    );
-
-                    await HandlePullMessageAsync(incomingMessage, stoppingToken);
+                    runningTasks.Add(HandleResponseMessageAsync(responseMessage, ct));
                 }
-                else if (messageTask == responseMessage)
-                {
-                    var incomingMessage = await messageTask;
-                    await HandleResponseMessageAsync(incomingMessage, stoppingToken);
 
-                    responseMessage = _responseSocket.ReceiveMultipartMessageAsync
-                    (
-                        cancellationToken: stoppingToken
-                    );
+                var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), ct);
+                if (runningTasks.Count <= 0)
+                {
+                    await timeout;
+                    continue;
+                }
+
+                await Task.WhenAny(Task.WhenAny(runningTasks), timeout);
+
+                var completedTasks = runningTasks.Where(t => t.IsCompleted).ToList();
+                foreach (var completedTask in completedTasks)
+                {
+                    await completedTask;
+                    runningTasks.Remove(completedTask);
+                }
+            }
+        }
+
+        private async Task RunPullsAsync(CancellationToken ct = default)
+        {
+            var runningTasks = new List<Task>();
+            while (!ct.IsCancellationRequested)
+            {
+                NetMQMessage? pullMessage = null;
+                if (_incomingSocket.TryReceiveMultipartMessage(ref pullMessage))
+                {
+                    runningTasks.Add(HandlePullMessageAsync(pullMessage, ct));
+                }
+
+                var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), ct);
+                if (runningTasks.Count <= 0)
+                {
+                    await timeout;
+                    continue;
+                }
+
+                await Task.WhenAny(Task.WhenAny(runningTasks), timeout);
+
+                var completedTasks = runningTasks.Where(t => t.IsCompleted).ToList();
+                foreach (var completedTask in completedTasks)
+                {
+                    await completedTask;
+                    runningTasks.Remove(completedTask);
                 }
             }
         }
