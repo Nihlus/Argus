@@ -21,7 +21,6 @@
 //
 
 using System.Threading.Tasks;
-using Argus.Common.Messages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Argus.Coordinator.Model

@@ -43,7 +43,6 @@ namespace Argus.Coordinator.Services
     /// </summary>
     public class CoordinatorService : BackgroundService
     {
-        private readonly CoordinatorOptions _options;
         private readonly NESTService _nestService;
         private readonly IDbContextFactory<CoordinatorContext> _contextFactory;
         private readonly ILogger<CoordinatorService> _log;
@@ -67,7 +66,6 @@ namespace Argus.Coordinator.Services
             IDbContextFactory<CoordinatorContext> contextFactory
         )
         {
-            _options = options.Value;
             _nestService = nestService;
             _log = log;
             _contextFactory = contextFactory;
@@ -76,9 +74,9 @@ namespace Argus.Coordinator.Services
             _incomingSocket = new PullSocket();
             _outgoingSocket = new PushSocket();
 
-            _responseSocket.Bind(_options.CoordinatorEndpoint.ToString().TrimEnd('/'));
-            _incomingSocket.Bind(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
-            _outgoingSocket.Bind(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
+            _responseSocket.Bind(options.Value.CoordinatorEndpoint.ToString().TrimEnd('/'));
+            _incomingSocket.Bind(options.Value.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
+            _outgoingSocket.Bind(options.Value.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
         }
 
         /// <inheritdoc />
