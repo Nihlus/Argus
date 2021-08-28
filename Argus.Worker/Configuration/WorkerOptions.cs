@@ -39,6 +39,6 @@ namespace Argus.Worker.Configuration
         Uri CoordinatorEndpoint,
         Uri CoordinatorInputEndpoint,
         Uri CoordinatorOutputEndpoint,
-        int ParallelismMultiplier
+        int ParallelismMultiplier = 4
     );
 }

@@ -183,8 +183,7 @@ namespace Argus.Worker.Services
             try
             {
                 // CPU-intensive step 1
-                var data = collectedImage.Data.ToArray();
-                using var image = Image.Load(data);
+                using var image = Image.Load(collectedImage.Data);
                 if (ct.IsCancellationRequested)
                 {
                     return new TaskCanceledException();
@@ -192,7 +191,7 @@ namespace Argus.Worker.Services
 
                 // CPU-intensive step 2
                 using var sha256 = new SHA256Managed();
-                var hash = sha256.ComputeHash(data);
+                var hash = sha256.ComputeHash(collectedImage.Data);
                 if (ct.IsCancellationRequested)
                 {
                     return new TaskCanceledException();
@@ -201,7 +200,7 @@ namespace Argus.Worker.Services
                 var hashString = BitConverter.ToString(hash).ToLowerInvariant();
 
                 // CPU-intensive step 3
-                var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image).ToArray(), ct);
+                var signature = _signatureGenerator.GenerateSignature(image).ToArray();
                 return new FingerprintedImage
                 (
                     collectedImage.ServiceName,

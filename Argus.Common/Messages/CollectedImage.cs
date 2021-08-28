@@ -35,7 +35,7 @@ namespace Argus.Common.Messages
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Image">A direct link to the image.</param>
     /// <param name="Data">The image data.</param>
-    public record CollectedImage(string ServiceName, Uri Source, Uri Image, IReadOnlyCollection<byte> Data)
+    public record CollectedImage(string ServiceName, Uri Source, Uri Image, byte[] Data)
     {
         /// <summary>
         /// Gets the name of the message type.
