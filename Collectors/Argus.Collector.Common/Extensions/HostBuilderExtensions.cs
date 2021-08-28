@@ -27,6 +27,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Remora.Extensions.Options.Immutable;
+using Serilog;
 
 namespace Argus.Collector.Common.Extensions
 {
@@ -45,6 +46,12 @@ namespace Argus.Collector.Common.Extensions
             where TCollector : CollectorService
         {
             hostBuilder
+                .UseSerilog((_, logging) =>
+                {
+                    logging
+                        .MinimumLevel.Information()
+                        .WriteTo.Console();
+                })
                 #if DEBUG
                 .UseEnvironment("Development")
                 #else

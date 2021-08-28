@@ -79,7 +79,7 @@ namespace Argus.Worker.Services
         /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _log.LogInformation("Worker {WorkerID} started", _options.WorkerID);
+            _log.LogInformation("Started fingerprinting worker");
 
             var limit = Environment.ProcessorCount * _options.ParallelismMultiplier;
             var tasks = new Dictionary<CollectedImage, Task<Result<FingerprintedImage>>>(limit);
@@ -92,66 +92,86 @@ namespace Argus.Worker.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                // Process finished tasks
-                var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
-                var task = await Task.WhenAny(tasks.Values.Concat(new[] { timeout }));
-
-                if (task != timeout)
+                try
                 {
-                    var completedTasks = tasks.Where(t => t.Value.IsCompleted).ToList();
-                    foreach (var (request, finishedTask) in completedTasks)
+                    // Process finished tasks
+                    var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                    var task = await Task.WhenAny(tasks.Values.Concat(new[] { timeout }));
+
+                    if (task != timeout)
                     {
-                        var result = await finishedTask;
-                        if (result.IsSuccess)
+                        var completedTasks = tasks.Where(t => t.Value.IsCompleted).ToList();
+                        foreach (var (request, finishedTask) in completedTasks)
                         {
-                            _outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+                            var result = await finishedTask;
+                            if (result.IsSuccess)
+                            {
+                                _log.LogInformation("Fingerprinted {Image} from {Source}", request.Image, request.Source);
+                                _outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+                            }
+                            else
+                            {
+                                _log.LogInformation
+                                (
+                                    "Failed to fingerprint {Image} from {Source}: {Reason}",
+                                    request.Image,
+                                    request.Source,
+                                    result.Error.Message
+                                );
+                            }
+
+                            // send status message
+                            var message = new StatusReport
+                            (
+                                DateTimeOffset.UtcNow,
+                                request.ServiceName,
+                                request.Source,
+                                request.Image,
+                                result.IsSuccess ? ImageStatus.Processed : ImageStatus.Faulted,
+                                result.IsSuccess ? string.Empty : result.Error.Message
+                            );
+
+                            _outgoingSocket.SendMultipartMessage(message.Serialize());
+
+                            tasks.Remove(request);
                         }
-
-                        // send status message
-                        var message = new StatusReport
-                        (
-                            DateTimeOffset.UtcNow,
-                            request.ServiceName,
-                            request.Source,
-                            request.Image,
-                            result.IsSuccess ? ImageStatus.Processed : ImageStatus.Faulted,
-                            result.IsSuccess ? string.Empty : result.Error.Message
-                        );
-
-                        _outgoingSocket.SendMultipartMessage(message.Serialize());
-
-                        tasks.Remove(request);
                     }
-                }
 
-                if (tasks.Count >= limit)
+                    if (tasks.Count >= limit)
+                    {
+                        continue;
+                    }
+
+                    var requestMessageTimeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                    var completedRequestTask = await Task.WhenAny(requestMessageTask, requestMessageTimeout);
+
+                    if (completedRequestTask != requestMessageTask)
+                    {
+                        continue;
+                    }
+
+                    var requestMessage = await requestMessageTask;
+                    requestMessageTask = _incomingSocket.ReceiveMultipartMessageAsync
+                    (
+                        CollectedImage.FrameCount,
+                        stoppingToken
+                    );
+
+                    if (!CollectedImage.TryParse(requestMessage, out var retrievedImage))
+                    {
+                        _log.LogWarning("Failed to parse incoming message from the coordinator");
+                        continue;
+                    }
+
+                    tasks.Add(retrievedImage, FingerprintImageAsync(retrievedImage, stoppingToken));
+                }
+                catch (OperationCanceledException)
                 {
-                    continue;
+                    break;
                 }
-
-                var requestMessageTimeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
-                var completedRequestTask = await Task.WhenAny(requestMessageTask, requestMessageTimeout);
-
-                if (completedRequestTask != requestMessageTask)
-                {
-                    continue;
-                }
-
-                var requestMessage = await requestMessageTask;
-                requestMessageTask = _incomingSocket.ReceiveMultipartMessageAsync
-                (
-                    CollectedImage.FrameCount,
-                    stoppingToken
-                );
-
-                if (!CollectedImage.TryParse(requestMessage, out var retrievedImage))
-                {
-                    _log.LogWarning("Failed to parse incoming message from the coordinator");
-                    continue;
-                }
-
-                tasks.Add(retrievedImage, FingerprintImageAsync(retrievedImage, stoppingToken));
             }
+
+            _log.LogInformation("Shutting down...");
         }
 
         private async Task<Result<FingerprintedImage>> FingerprintImageAsync

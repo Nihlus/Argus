@@ -40,14 +40,5 @@ namespace Argus.Worker.Configuration
         Uri CoordinatorInputEndpoint,
         Uri CoordinatorOutputEndpoint,
         int ParallelismMultiplier = 4
-    )
-    {
-        /// <summary>
-        /// Gets the worker ID.
-        /// </summary>
-        /// <remarks>
-        /// This ID is randomly generated every time the worker starts.
-        /// </remarks>
-        public Guid WorkerID { get; } = Guid.NewGuid();
-    }
+    );
 }

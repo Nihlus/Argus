@@ -15,6 +15,8 @@
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
       <PackageReference Include="NetMQ" Version="4.0.1.6" />
       <PackageReference Include="Remora.Extensions.Options.Immutable" Version="1.0.0" />
+      <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
+      <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
     </ItemGroup>
 
     <ItemGroup>

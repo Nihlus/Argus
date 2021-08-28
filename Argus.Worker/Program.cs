@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Argus.Worker.Configuration;
 using Argus.Worker.Services;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +32,7 @@ using Microsoft.Extensions.Logging;
 using NetMQ;
 using Puzzle;
 using Remora.Extensions.Options.Immutable;
+using Serilog;
 
 namespace Argus.Worker
 {
@@ -44,14 +46,17 @@ namespace Argus.Worker
             using var runtime = new NetMQRuntime();
             using var host = CreateHostBuilder(args).Build();
 
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
-
             runtime.Run(host.RunAsync());
-            log.LogInformation("Shutting down...");
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
             .UseConsoleLifetime()
+            .UseSerilog((_, logging) =>
+            {
+                logging
+                    .MinimumLevel.Information()
+                    .WriteTo.Console();
+            })
         #if DEBUG
             .UseEnvironment("Development")
         #else

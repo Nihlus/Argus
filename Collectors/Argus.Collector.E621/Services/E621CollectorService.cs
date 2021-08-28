@@ -32,6 +32,7 @@ using Argus.Common.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Noppes.E621;
+using Remora.Results;
 
 namespace Argus.Collector.E621.Services
 {
@@ -59,8 +60,9 @@ namespace Argus.Collector.E621.Services
             IOptions<CollectorOptions> options,
             IE621Client e621Client,
             IHttpClientFactory httpClientFactory,
-            ILogger<E621CollectorService> log)
-            : base(options)
+            ILogger<E621CollectorService> log
+        )
+            : base(options, log)
         {
             _e621Client = e621Client;
             _httpClientFactory = httpClientFactory;
@@ -68,13 +70,13 @@ namespace Argus.Collector.E621.Services
         }
 
         /// <inheritdoc />
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task<Result> CollectAsync(CancellationToken ct = default)
         {
-            var getResume = await GetResumePointAsync(stoppingToken);
+            var getResume = await GetResumePointAsync(ct);
             if (!getResume.IsSuccess)
             {
                 _log.LogWarning("Failed to get the resume point: {Reason}", getResume.Error.Message);
-                return;
+                return Result.FromError(getResume);
             }
 
             var resumePoint = getResume.Entity;
@@ -83,7 +85,7 @@ namespace Argus.Collector.E621.Services
                 currentPostId = 0;
             }
 
-            while (!stoppingToken.IsCancellationRequested)
+            while (!ct.IsCancellationRequested)
             {
                 try
                 {
@@ -98,7 +100,7 @@ namespace Argus.Collector.E621.Services
                     {
                         _log.LogInformation("Waiting for new posts to come in...");
 
-                        await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+                        await Task.Delay(TimeSpan.FromHours(1), ct);
                         continue;
                     }
 
@@ -126,6 +128,7 @@ namespace Argus.Collector.E621.Services
                             if (!reject.IsSuccess)
                             {
                                 _log.LogWarning("Failed to push status report: {Reason}", reject.Error.Message);
+                                return reject;
                             }
 
                             continue;
@@ -143,6 +146,7 @@ namespace Argus.Collector.E621.Services
                             if (!reject.IsSuccess)
                             {
                                 _log.LogWarning("Failed to push status report: {Reason}", reject.Error.Message);
+                                return reject;
                             }
 
                             continue;
@@ -154,7 +158,7 @@ namespace Argus.Collector.E621.Services
                         };
 
                         var client = _httpClientFactory.CreateClient();
-                        var bytes = await client.GetByteArrayAsync(post.File.Location, stoppingToken);
+                        var bytes = await client.GetByteArrayAsync(post.File.Location, ct);
 
                         var collectedImage = new CollectedImage
                         (
@@ -168,29 +172,38 @@ namespace Argus.Collector.E621.Services
                         if (!push.IsSuccess)
                         {
                             _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                            return push;
                         }
 
                         var collect = PushStatusReport(statusReport);
-                        if (!collect.IsSuccess)
+                        if (collect.IsSuccess)
                         {
-                            _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                            continue;
                         }
+
+                        _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                        return collect;
                     }
 
                     var mostRecentPost = page.OrderByDescending(p => p.Id).First();
                     currentPostId = mostRecentPost.Id;
 
-                    var setResume = await SetResumePointAsync(currentPostId.ToString(), stoppingToken);
-                    if (!setResume.IsSuccess)
+                    var setResume = await SetResumePointAsync(currentPostId.ToString(), ct);
+                    if (setResume.IsSuccess)
                     {
-                        _log.LogWarning("Failed to set resume point: {Reason}", setResume.Error.Message);
+                        continue;
                     }
+
+                    _log.LogWarning("Failed to set resume point: {Reason}", setResume.Error.Message);
+                    return setResume;
                 }
                 catch (Exception e)
                 {
-                    _log.LogError(e, "Error during collection loop");
+                    return e;
                 }
             }
+
+            return Result.FromSuccess();
         }
     }
 }

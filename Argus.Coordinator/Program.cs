@@ -36,6 +36,7 @@ using Microsoft.Extensions.Options;
 using Nest;
 using NetMQ;
 using Remora.Extensions.Options.Immutable;
+using Serilog;
 
 namespace Argus.Coordinator
 {
@@ -93,6 +94,12 @@ namespace Argus.Coordinator
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
             .UseConsoleLifetime()
+            .UseSerilog((_, logging) =>
+            {
+                logging
+                    .MinimumLevel.Information()
+                    .WriteTo.Console();
+            })
         #if DEBUG
             .UseEnvironment("Development")
         #else

@@ -31,6 +31,7 @@ using Argus.Common;
 using Argus.Common.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Remora.Results;
 
 namespace Argus.Collector.FList.Services
 {
@@ -60,7 +61,7 @@ namespace Argus.Collector.FList.Services
             FListAPI flistAPI,
             ILogger<FListCollectorService> log
         )
-            : base(options)
+            : base(options, log)
         {
             _log = log;
             _flistAPI = flistAPI;
@@ -68,13 +69,13 @@ namespace Argus.Collector.FList.Services
         }
 
         /// <inheritdoc />
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task<Result> CollectAsync(CancellationToken ct = default)
         {
-            var getResume = await GetResumePointAsync(stoppingToken);
+            var getResume = await GetResumePointAsync(ct);
             if (!getResume.IsSuccess)
             {
                 _log.LogWarning("Failed to get the resume point: {Reason}", getResume.Error.Message);
-                return;
+                return Result.FromError(getResume);
             }
 
             var resumePoint = getResume.Entity;
@@ -83,9 +84,9 @@ namespace Argus.Collector.FList.Services
                 currentCharacterId = 0;
             }
 
-            while (!stoppingToken.IsCancellationRequested)
+            while (!ct.IsCancellationRequested)
             {
-                var getCharacter = await _flistAPI.GetCharacterDataAsync(currentCharacterId, stoppingToken);
+                var getCharacter = await _flistAPI.GetCharacterDataAsync(currentCharacterId, ct);
                 if (!getCharacter.IsSuccess)
                 {
                     ++currentCharacterId;
@@ -103,7 +104,7 @@ namespace Argus.Collector.FList.Services
                 {
                     var client = _httpClientFactory.CreateClient();
                     var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
-                    var bytes = await client.GetByteArrayAsync(location, stoppingToken);
+                    var bytes = await client.GetByteArrayAsync(location, ct);
 
                     var collectedImage = new CollectedImage
                     (
@@ -127,17 +128,28 @@ namespace Argus.Collector.FList.Services
                     if (!push.IsSuccess)
                     {
                         _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                        return push;
                     }
 
                     var collect = PushStatusReport(statusReport);
-                    if (!collect.IsSuccess)
+                    if (collect.IsSuccess)
                     {
-                        _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                        continue;
                     }
+
+                    _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                    return collect;
                 }
 
                 ++currentCharacterId;
+                var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
+                if (!setResume.IsSuccess)
+                {
+                    return setResume;
+                }
             }
+
+            return Result.FromSuccess();
         }
     }
 }

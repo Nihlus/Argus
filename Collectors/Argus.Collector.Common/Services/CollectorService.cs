@@ -20,11 +20,13 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.Common.Configuration;
 using Argus.Common.Messages;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetMQ;
 using NetMQ.Sockets;
@@ -48,6 +50,11 @@ namespace Argus.Collector.Common.Services
         private readonly PushSocket _pushSocket;
 
         /// <summary>
+        /// Holds the logging instance.
+        /// </summary>
+        private readonly ILogger<CollectorService> _log;
+
+        /// <summary>
         /// Gets the name of the service.
         /// </summary>
         protected abstract string ServiceName { get; }
@@ -61,15 +68,41 @@ namespace Argus.Collector.Common.Services
         /// Initializes a new instance of the <see cref="CollectorService"/> class.
         /// </summary>
         /// <param name="options">The application options.</param>
-        protected CollectorService(IOptions<CollectorOptions> options)
+        /// <param name="log">The logging instance.</param>
+        protected CollectorService(IOptions<CollectorOptions> options, ILogger<CollectorService> log)
         {
             this.Options = options.Value;
+            _log = log;
+
             _requestSocket = new RequestSocket();
             _pushSocket = new PushSocket();
 
             _requestSocket.Connect(this.Options.CoordinatorEndpoint.ToString().TrimEnd('/'));
             _pushSocket.Connect(this.Options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
         }
+
+        /// <inheritdoc/>
+        protected sealed override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            try
+            {
+                var collection = await CollectAsync(stoppingToken);
+                if (!collection.IsSuccess && collection.Error is not ExceptionError { Exception: OperationCanceledException })
+                {
+                    _log.LogWarning("Error in collector: {Message}", collection.Error.Message);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        /// <summary>
+        /// Runs the main collection task.
+        /// </summary>
+        /// <param name="ct">The cancellation token for this operation.</param>
+        /// <returns>A result which may or may not have succeeded.</returns>
+        protected abstract Task<Result> CollectAsync(CancellationToken ct = default);
 
         /// <summary>
         /// Gets the resume point of the current collector.
