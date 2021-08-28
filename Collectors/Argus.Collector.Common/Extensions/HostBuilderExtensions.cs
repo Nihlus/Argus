@@ -52,11 +52,11 @@ namespace Argus.Collector.Common.Extensions
                         .MinimumLevel.Information()
                         .WriteTo.Console();
                 })
-                #if DEBUG
+            #if DEBUG
                 .UseEnvironment("Development")
-                #else
+            #else
                 .UseEnvironment("Production")
-                #endif
+            #endif
                 .UseConsoleLifetime()
                 .ConfigureServices((hostContext, services) =>
                 {

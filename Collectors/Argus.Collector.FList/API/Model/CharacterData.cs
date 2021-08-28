@@ -30,18 +30,18 @@ namespace Argus.Collector.FList.API.Model
     public class CharacterData
     {
         /// <summary>
-        /// Gets or sets the ID of the character.
+        /// Gets the ID of the character.
         /// </summary>
-        public int Id { get; set; }
+        public int Id { get; init; }
 
         /// <summary>
-        /// Gets or sets the name of the character.
+        /// Gets the name of the character.
         /// </summary>
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the images associated with the character.
+        /// Gets the images associated with the character.
         /// </summary>
-        public IReadOnlyCollection<CharacterImage> Images { get; set; } = new List<CharacterImage>();
+        public IReadOnlyCollection<CharacterImage> Images { get; init; } = new List<CharacterImage>();
     }
 }

@@ -30,11 +30,11 @@ namespace Argus.Collector.FList.API.Model
         /// <summary>
         /// Gets the ID of the image.
         /// </summary>
-        public string ImageId { get; } = string.Empty;
+        public string ImageId { get; init; } = string.Empty;
 
         /// <summary>
         /// Gets the file extension of the image.
         /// </summary>
-        public string Extension { get; } = string.Empty;
+        public string Extension { get; init; } = string.Empty;
     }
 }

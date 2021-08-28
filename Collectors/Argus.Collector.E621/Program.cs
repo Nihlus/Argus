@@ -41,22 +41,27 @@ namespace Argus.Collector.E621
     {
         private static void Main(string[] args)
         {
-            using var runtime = new NetMQRuntime();
             using var host = CreateHostBuilder(args).Build();
-
             var log = host.Services.GetRequiredService<ILogger<Program>>();
 
+            using var runtime = new NetMQRuntime();
             runtime.Run(host.RunAsync());
+
             log.LogInformation("Shutting down...");
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
             .UseCollector<E621CollectorService>()
-            .ConfigureAppConfiguration((_, configuration) =>
+            .ConfigureAppConfiguration((hostContext, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 var systemConfigFile = Path.Combine(configFolder, "argus", "collector.e621.json");
                 configuration.AddJsonFile(systemConfigFile, true);
+
+                if (hostContext.HostingEnvironment.IsDevelopment())
+                {
+                    configuration.AddUserSecrets<Program>();
+                }
             })
             .ConfigureServices((_, services) =>
             {

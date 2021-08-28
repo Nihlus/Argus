@@ -29,6 +29,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.FList.API.Model;
 using Microsoft.Extensions.Options;
+using Polly;
 using Remora.Results;
 
 namespace Argus.Collector.FList.API
@@ -76,11 +77,29 @@ namespace Argus.Collector.FList.API
             CancellationToken ct = default
         )
         {
+            if (string.IsNullOrWhiteSpace(account))
+            {
+                return new ArgumentOutOfRangeError(nameof(account), "The account name must be defined.");
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                return new ArgumentOutOfRangeError(nameof(password), "The account password must be defined.");
+            }
+
             try
             {
                 var client = _clientFactory.CreateClient();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, "https://www.f-list.net/json/getApiTicket.php");
+                var executionContext = new Context
+                {
+                    ["account"] = _account,
+                    ["ticket"] = _ticket
+                };
+
+                request.SetPolicyExecutionContext(executionContext);
+
                 var parameters = new Dictionary<string, string>
                 {
                     { nameof(account), account },
@@ -130,6 +149,14 @@ namespace Argus.Collector.FList.API
                 var client = _clientFactory.CreateClient(nameof(FListAPI));
 
                 var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
+                var executionContext = new Context
+                {
+                    ["account"] = _account,
+                    ["ticket"] = _ticket
+                };
+
+                request.SetPolicyExecutionContext(executionContext);
+
                 var parameters = new Dictionary<string, string>
                 {
                     { "account", _account },

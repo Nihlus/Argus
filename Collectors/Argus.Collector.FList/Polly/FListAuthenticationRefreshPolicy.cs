@@ -21,6 +21,8 @@
 //
 
 using System;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -67,12 +69,44 @@ namespace Argus.Collector.FList.Polly
             bool continueOnCapturedContext
         )
         {
-            var result = await _fListAPI.RefreshAPITicketAsync(_options.Username, _options.Password, cancellationToken);
-            if (!result.IsSuccess)
+            if (!string.IsNullOrWhiteSpace((string)context["ticket"]))
+            {
+                // We might have a good ticket
+                var result = await action(context, cancellationToken);
+
+                // stupid bloody api
+                var retries = new[]
+                {
+                    "{\"error\":\"Ticket or account missing",
+                    "{\"error\":\"Invalid ticket",
+                };
+
+                await result.Content.LoadIntoBufferAsync();
+                var contentStream = await result.Content.ReadAsStreamAsync(cancellationToken);
+                var reader = new StreamReader(contentStream);
+
+                var content = await reader.ReadToEndAsync();
+                contentStream.Seek(0, SeekOrigin.Begin);
+
+                if (!this.ResultPredicates.AnyMatch(result) && !retries.Any(content.StartsWith))
+                {
+                    return result;
+                }
+            }
+
+            var refreshResult = await _fListAPI.RefreshAPITicketAsync
+            (
+                _options.Username,
+                _options.Password,
+                cancellationToken
+            );
+
+            if (!refreshResult.IsSuccess)
             {
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
+            // Do it again
             return await action(context, cancellationToken);
         }
     }

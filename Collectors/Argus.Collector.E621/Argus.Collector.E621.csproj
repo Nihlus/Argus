@@ -6,6 +6,10 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <UserSecretsId>63c76c4e-758f-4055-90c2-92f6dbd42e00</UserSecretsId>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <Description>
             Serves as an image collector for E621.
         </Description>
@@ -16,7 +20,17 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
       <PackageReference Include="Noppes.E621Client" Version="0.6.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="appsettings.Development.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

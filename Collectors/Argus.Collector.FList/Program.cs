@@ -22,12 +22,14 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using Argus.Collector.Common.Extensions;
+using Argus.Collector.Common.Polly;
 using Argus.Collector.FList.API;
 using Argus.Collector.FList.Configuration;
 using Argus.Collector.FList.Json;
@@ -37,9 +39,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NetMQ;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
+using Polly.Retry;
 using Remora.Extensions.Options.Immutable;
 
 namespace Argus.Collector.FList
@@ -51,22 +55,27 @@ namespace Argus.Collector.FList
     {
         private static void Main(string[] args)
         {
-            using var runtime = new NetMQRuntime();
             using var host = CreateHostBuilder(args).Build();
-
             var log = host.Services.GetRequiredService<ILogger<Program>>();
 
+            using var runtime = new NetMQRuntime();
             runtime.Run(host.RunAsync());
+
             log.LogInformation("Shutting down...");
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
             .UseCollector<FListCollectorService>()
-            .ConfigureAppConfiguration((_, configuration) =>
+            .ConfigureAppConfiguration((hostContext, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 var systemConfigFile = Path.Combine(configFolder, "argus", "collector.flist.json");
                 configuration.AddJsonFile(systemConfigFile, true);
+
+                if (hostContext.HostingEnvironment.IsDevelopment())
+                {
+                    configuration.AddUserSecrets<Program>();
+                }
             })
             .ConfigureServices((hostContext, services) =>
             {
@@ -115,13 +124,23 @@ namespace Argus.Collector.FList
                     (
                         b => b
                             .WaitAndRetryAsync(retryDelay)
+                            .WrapAsync(new ThrottlingPolicy(1, TimeSpan.FromSeconds(1)))
                     )
                     .AddPolicyHandler
                     (
-                        (s, _) => Policy
-                            .HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
-                            .RetryAsync(1)
-                            .WrapAsync(s.GetRequiredService<FListAuthenticationRefreshPolicy>())
+                        (s, _) =>
+                        {
+                            var api = s.GetRequiredService<FListAPI>();
+                            var options = s.GetRequiredService<IOptions<FListOptions>>();
+
+                            return new FListAuthenticationRefreshPolicy
+                            (
+                                api,
+                                options,
+                                Policy<HttpResponseMessage>
+                                    .HandleResult(r => r.StatusCode == HttpStatusCode.Unauthorized)
+                            );
+                        }
                     );
             });
     }
