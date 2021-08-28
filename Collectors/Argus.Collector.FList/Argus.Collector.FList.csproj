@@ -6,7 +6,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+        <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj"/>
     </ItemGroup>
+
+    <Choose>
+        <When Condition="'$(RuntimeIdentifier)' != ''">
+            <PropertyGroup>
+                <PublishSingleFile>true</PublishSingleFile>
+                <PublishTrimmed>true</PublishTrimmed>
+                <TrimMode>link</TrimMode>
+                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+            </PropertyGroup>
+        </When>
+    </Choose>
 
 </Project>
