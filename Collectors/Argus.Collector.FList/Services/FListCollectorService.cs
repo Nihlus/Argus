@@ -21,12 +21,14 @@
 //
 
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Services;
 using Argus.Collector.FList.API;
+using Argus.Collector.FList.API.Model;
 using Argus.Common;
 using Argus.Common.Messages;
 using Microsoft.Extensions.Logging;
@@ -86,9 +88,25 @@ namespace Argus.Collector.FList.Services
 
             while (!ct.IsCancellationRequested)
             {
+                var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
+                if (!setResume.IsSuccess)
+                {
+                    return setResume;
+                }
+
                 var getCharacter = await _flistAPI.GetCharacterDataAsync(currentCharacterId, ct);
                 if (!getCharacter.IsSuccess)
                 {
+                    if (!getCharacter.Error.Message.Contains("Character not found"))
+                    {
+                        _log.LogWarning
+                        (
+                            "Failed to get data for character {ID}: {Reason}",
+                            currentCharacterId,
+                            getCharacter.Error.Message
+                        );
+                    }
+
                     ++currentCharacterId;
                     continue;
                 }
@@ -100,53 +118,57 @@ namespace Argus.Collector.FList.Services
                     continue;
                 }
 
-                foreach (var image in character.Images)
-                {
-                    var client = _httpClientFactory.CreateClient();
-                    var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
-                    var bytes = await client.GetByteArrayAsync(location, ct);
-
-                    var collectedImage = new CollectedImage
-                    (
-                        this.ServiceName,
-                        new Uri($"https://www.f-list.net/c/{character.Name}"),
-                        new Uri(location),
-                        bytes
-                    );
-
-                    var statusReport = new StatusReport
-                    (
-                        DateTimeOffset.UtcNow,
-                        this.ServiceName,
-                        collectedImage.Source,
-                        collectedImage.Image,
-                        ImageStatus.Collected,
-                        string.Empty
-                    );
-
-                    var push = PushCollectedImage(collectedImage);
-                    if (!push.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                        return push;
-                    }
-
-                    var collect = PushStatusReport(statusReport);
-                    if (collect.IsSuccess)
-                    {
-                        continue;
-                    }
-
-                    _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
-                    return collect;
-                }
+                var client = _httpClientFactory.CreateClient();
+                var collections = character.Images.Select(i => CollectImageAsync(character.Name, client, i, ct));
+                await Task.WhenAll(collections);
 
                 ++currentCharacterId;
-                var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
-                if (!setResume.IsSuccess)
-                {
-                    return setResume;
-                }
+            }
+
+            return Result.FromSuccess();
+        }
+
+        private async Task<Result> CollectImageAsync
+        (
+            string characterName,
+            HttpClient client,
+            CharacterImage image,
+            CancellationToken ct = default
+        )
+        {
+            var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
+            var bytes = await client.GetByteArrayAsync(location, ct);
+
+            var collectedImage = new CollectedImage
+            (
+                this.ServiceName,
+                new Uri($"https://www.f-list.net/c/{characterName}"),
+                new Uri(location),
+                bytes
+            );
+
+            var statusReport = new StatusReport
+            (
+                DateTimeOffset.UtcNow,
+                this.ServiceName,
+                collectedImage.Source,
+                collectedImage.Image,
+                ImageStatus.Collected,
+                string.Empty
+            );
+
+            var push = PushCollectedImage(collectedImage);
+            if (!push.IsSuccess)
+            {
+                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                return push;
+            }
+
+            var collect = PushStatusReport(statusReport);
+            if (!collect.IsSuccess)
+            {
+                _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                return collect;
             }
 
             return Result.FromSuccess();

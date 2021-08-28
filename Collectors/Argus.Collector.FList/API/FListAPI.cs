@@ -28,6 +28,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.FList.API.Model;
+using Argus.Collector.FList.Configuration;
 using Microsoft.Extensions.Options;
 using Polly;
 using Remora.Results;
@@ -41,6 +42,7 @@ namespace Argus.Collector.FList.API
     {
         private readonly IHttpClientFactory _clientFactory;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly FListOptions _options;
 
         private string _account;
         private string _ticket;
@@ -50,14 +52,17 @@ namespace Argus.Collector.FList.API
         /// </summary>
         /// <param name="clientFactory">The HTTP client factory.</param>
         /// <param name="jsonOptions">The JSON serializer options.</param>
+        /// <param name="options">The F-List options.</param>
         public FListAPI
         (
             IHttpClientFactory clientFactory,
-            IOptions<JsonSerializerOptions> jsonOptions
+            IOptions<JsonSerializerOptions> jsonOptions,
+            IOptions<FListOptions> options
         )
         {
             _clientFactory = clientFactory;
             _jsonOptions = jsonOptions.Value;
+            _options = options.Value;
 
             _account = string.Empty;
             _ticket = string.Empty;
@@ -112,14 +117,13 @@ namespace Argus.Collector.FList.API
                 var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
                 request.Content = content;
 
-                var result = await client.SendAsync(request, ct);
-                var ticket = await JsonSerializer.DeserializeAsync<APITicket>
-                (
-                    await result.Content.ReadAsStreamAsync(ct),
-                    _jsonOptions,
-                    ct
-                );
+                var getTicket = await DeserializePayload<APITicket>(await client.SendAsync(request, ct), ct);
+                if (!getTicket.IsSuccess)
+                {
+                    return Result.FromError(getTicket);
+                }
 
+                var ticket = getTicket.Entity;
                 if (ticket is null || ticket.Ticket == string.Empty)
                 {
                     throw new InvalidOperationException();
@@ -144,6 +148,15 @@ namespace Argus.Collector.FList.API
         /// <returns>The character data.</returns>
         public async Task<Result<CharacterData>> GetCharacterDataAsync(int id, CancellationToken ct = default)
         {
+            if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
+            {
+                var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
+                if (!refresh.IsSuccess)
+                {
+                    return Result<CharacterData>.FromError(refresh);
+                }
+            }
+
             try
             {
                 var client = _clientFactory.CreateClient(nameof(FListAPI));
@@ -167,25 +180,51 @@ namespace Argus.Collector.FList.API
                 var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
                 request.Content = content;
 
-                var result = await client.SendAsync(request, ct);
-                var characterData = await JsonSerializer.DeserializeAsync<CharacterData>
-                (
-                    await result.Content.ReadAsStreamAsync(ct),
-                    _jsonOptions,
-                    ct
-                );
-
-                if (characterData is null)
-                {
-                    throw new InvalidOperationException();
-                }
-
-                return characterData;
+                return await DeserializePayload<CharacterData>(await client.SendAsync(request, ct), ct);
             }
             catch (Exception e)
             {
                 return e;
             }
+        }
+
+        private async Task<Result<T>> DeserializePayload<T>
+        (
+            HttpResponseMessage responseMessage,
+            CancellationToken ct = default
+        )
+        {
+            var content = await responseMessage.Content.ReadAsStreamAsync(ct);
+            var json = await JsonDocument.ParseAsync(content, cancellationToken: ct);
+
+            if (json.RootElement.TryGetProperty("error", out var errorProperty) && !string.IsNullOrWhiteSpace(errorProperty.GetString()) )
+            {
+                var error = JsonSerializer.Deserialize<FListError>
+                (
+                    json.RootElement.ToString() ?? throw new InvalidOperationException(),
+                    _jsonOptions
+                );
+
+                if (error is null)
+                {
+                    return new InvalidOperationError();
+                }
+
+                return error;
+            }
+
+            var entity = JsonSerializer.Deserialize<T>
+            (
+                json.RootElement.ToString() ?? throw new InvalidOperationException(),
+                _jsonOptions
+            );
+
+            if (entity is null)
+            {
+                return new InvalidOperationError();
+            }
+
+            return entity;
         }
     }
 }

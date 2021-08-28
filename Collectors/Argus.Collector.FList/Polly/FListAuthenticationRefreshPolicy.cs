@@ -69,17 +69,17 @@ namespace Argus.Collector.FList.Polly
             bool continueOnCapturedContext
         )
         {
+            // stupid bloody api
+            var ticketRefreshIndicators = new[]
+            {
+                "{\"error\":\"Ticket or account missing",
+                "{\"error\":\"Invalid ticket"
+            };
+
             if (!string.IsNullOrWhiteSpace((string)context["ticket"]))
             {
                 // We might have a good ticket
                 var result = await action(context, cancellationToken);
-
-                // stupid bloody api
-                var retries = new[]
-                {
-                    "{\"error\":\"Ticket or account missing",
-                    "{\"error\":\"Invalid ticket",
-                };
 
                 await result.Content.LoadIntoBufferAsync();
                 var contentStream = await result.Content.ReadAsStreamAsync(cancellationToken);
@@ -88,7 +88,13 @@ namespace Argus.Collector.FList.Polly
                 var content = await reader.ReadToEndAsync();
                 contentStream.Seek(0, SeekOrigin.Begin);
 
-                if (!this.ResultPredicates.AnyMatch(result) && !retries.Any(content.StartsWith))
+                // Retry once if we get an account issue
+                if (content.StartsWith("{\"error\":\"This account may not"))
+                {
+                    result = await action(context, cancellationToken);
+                }
+
+                if (!this.ResultPredicates.AnyMatch(result) && !ticketRefreshIndicators.Any(content.StartsWith))
                 {
                     return result;
                 }
