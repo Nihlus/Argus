@@ -2,7 +2,9 @@
 
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace ImageScraper.Migrations
+#pragma warning disable CS1591
+
+namespace Argus.Coordinator.Migrations
 {
     public partial class InitialCreate : Migration
     {

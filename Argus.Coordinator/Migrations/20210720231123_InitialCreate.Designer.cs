@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace ImageScraper.Migrations
+#pragma warning disable CS1591
+
+namespace Argus.Coordinator.Migrations
 {
     [DbContext(typeof(CoordinatorContext))]
     [Migration("20210720231123_InitialCreate")]

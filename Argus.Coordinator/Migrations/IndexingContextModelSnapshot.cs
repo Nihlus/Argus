@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace ImageScraper.Migrations
+#pragma warning disable CS1591
+
+namespace Argus.Coordinator.Migrations
 {
     [DbContext(typeof(CoordinatorContext))]
     partial class IndexingContextModelSnapshot : ModelSnapshot
