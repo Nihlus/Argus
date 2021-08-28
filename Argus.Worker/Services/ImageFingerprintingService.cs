@@ -37,6 +37,7 @@ using NetMQ.Sockets;
 using Puzzle;
 using Remora.Results;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Argus.Worker.Services
 {
@@ -183,7 +184,7 @@ namespace Argus.Worker.Services
             try
             {
                 // CPU-intensive step 1
-                using var image = Image.Load(collectedImage.Data);
+                using var image = Image.Load<L8>(collectedImage.Data);
                 if (ct.IsCancellationRequested)
                 {
                     return new TaskCanceledException();
