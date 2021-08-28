@@ -26,6 +26,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Argus.Common;
 using Argus.Common.Messages;
 using Argus.Worker.Configuration;
@@ -82,17 +83,66 @@ namespace Argus.Worker.Services
         {
             _log.LogInformation("Started fingerprinting worker");
 
-            var limit = Environment.ProcessorCount;
-            var tasks = new Dictionary<CollectedImage, Task<Result<FingerprintedImage>>>(limit);
+            var blockOptions = new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount * _options.ParallelismMultiplier,
+                CancellationToken = stoppingToken,
+                SingleProducerConstrained = true,
+                BoundedCapacity = Environment.ProcessorCount * _options.ParallelismMultiplier,
+                EnsureOrdered = false
+            };
+
+            var transform = new TransformBlock<CollectedImage, (CollectedImage, Result<FingerprintedImage>)>
+            (
+                c => (c, FingerprintImage(c, stoppingToken)),
+                blockOptions
+            );
+
+            var send = new ActionBlock<(CollectedImage, Result<FingerprintedImage>)>
+            (
+                tuple =>
+                {
+                    var (request, result) = tuple;
+                    if (result.IsSuccess)
+                    {
+                        _log.LogInformation("Fingerprinted {Image} from {Source}", request.Image, request.Source);
+                        _outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+                    }
+                    else
+                    {
+                        _log.LogInformation
+                        (
+                            "Failed to fingerprint {Image} from {Source}: {Reason}",
+                            request.Image,
+                            request.Source,
+                            result.Error.Message
+                        );
+                    }
+
+                    // send status message
+                    var message = new StatusReport
+                    (
+                        DateTimeOffset.UtcNow,
+                        request.ServiceName,
+                        request.Source,
+                        request.Image,
+                        result.IsSuccess ? ImageStatus.Processed : ImageStatus.Faulted,
+                        result.IsSuccess ? string.Empty : result.Error.Message
+                    );
+
+                    _outgoingSocket.SendMultipartMessage(message.Serialize());
+                },
+                blockOptions
+            );
+
+            transform.LinkTo(send);
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
                     NetMQMessage? requestMessage = null;
-
-                    // Fill up as much as we can
-                    while (tasks.Count < limit && _incomingSocket.TryReceiveMultipartMessage(ref requestMessage, CollectedImage.FrameCount))
+                    while (_incomingSocket.TryReceiveMultipartMessage(ref requestMessage, CollectedImage.FrameCount))
                     {
                         if (!CollectedImage.TryParse(requestMessage, out var retrievedImage))
                         {
@@ -100,53 +150,10 @@ namespace Argus.Worker.Services
                             continue;
                         }
 
-                        tasks.Add(retrievedImage, Task.Run(() => FingerprintImage(retrievedImage), stoppingToken));
-                    }
-
-                    // Process finished tasks
-                    var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
-                    if (tasks.Count <= 0)
-                    {
-                        await timeout;
-                        continue;
-                    }
-
-                    await Task.WhenAny(Task.WhenAny(tasks.Values), timeout);
-
-                    var completedTasks = tasks.Where(t => t.Value.IsCompleted).ToList();
-                    foreach (var (request, finishedTask) in completedTasks)
-                    {
-                        var result = await finishedTask;
-                        if (result.IsSuccess)
+                        while (!await transform.SendAsync(retrievedImage, stoppingToken))
                         {
-                            _log.LogInformation("Fingerprinted {Image} from {Source}", request.Image, request.Source);
-                            _outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+                            await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
                         }
-                        else
-                        {
-                            _log.LogInformation
-                            (
-                                "Failed to fingerprint {Image} from {Source}: {Reason}",
-                                request.Image,
-                                request.Source,
-                                result.Error.Message
-                            );
-                        }
-
-                        // send status message
-                        var message = new StatusReport
-                        (
-                            DateTimeOffset.UtcNow,
-                            request.ServiceName,
-                            request.Source,
-                            request.Image,
-                            result.IsSuccess ? ImageStatus.Processed : ImageStatus.Faulted,
-                            result.IsSuccess ? string.Empty : result.Error.Message
-                        );
-
-                        _outgoingSocket.SendMultipartMessage(message.Serialize());
-
-                        tasks.Remove(request);
                     }
                 }
                 catch (OperationCanceledException)
