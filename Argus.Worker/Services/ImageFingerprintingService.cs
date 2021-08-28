@@ -216,16 +216,5 @@ namespace Argus.Worker.Services
                 return e;
             }
         }
-
-        /// <inheritdoc/>
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            _incomingSocket.Dispose();
-            _outgoingSocket.Dispose();
-
-            GC.SuppressFinalize(this);
-        }
     }
 }

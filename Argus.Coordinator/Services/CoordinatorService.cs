@@ -346,16 +346,5 @@ namespace Argus.Coordinator.Services
 
             return Result.FromSuccess();
         }
-
-        /// <inheritdoc />
-        public sealed override void Dispose()
-        {
-            base.Dispose();
-
-            _incomingSocket.Dispose();
-            _outgoingSocket.Dispose();
-
-            GC.SuppressFinalize(this);
-        }
     }
 }
