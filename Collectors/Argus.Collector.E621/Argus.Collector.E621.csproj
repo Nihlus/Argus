@@ -33,4 +33,16 @@
       </Content>
     </ItemGroup>
 
+    <Choose>
+        <When Condition="'$(RuntimeIdentifier)' != ''">
+            <PropertyGroup>
+                <PublishSingleFile>true</PublishSingleFile>
+                <PublishTrimmed>true</PublishTrimmed>
+                <TrimMode>link</TrimMode>
+                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+            </PropertyGroup>
+        </When>
+    </Choose>
+
 </Project>
