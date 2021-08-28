@@ -82,6 +82,8 @@ namespace Argus.Coordinator.Services
         /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _log.LogInformation("Started coordinator");
+
             var pullMessage = _incomingSocket.ReceiveMultipartMessageAsync
             (
                 cancellationToken: stoppingToken
@@ -147,6 +149,11 @@ namespace Argus.Coordinator.Services
                     var resumeResponse = new ResumeReply(resumePoint ?? string.Empty);
                     _responseSocket.SendMultipartMessage(resumeResponse.Serialize());
 
+                    _log.LogInformation
+                    (
+                        "Told collector for service \"{Service}\" its resume point",
+                        getResumeRequest.ServiceName
+                    );
                     break;
                 }
                 case var _ when messageType == SetResumeRequest.MessageType:
@@ -175,6 +182,13 @@ namespace Argus.Coordinator.Services
                     var resumePoint = serviceStatus.ResumePoint;
                     var resumeResponse = new ResumeReply(resumePoint ?? string.Empty);
                     _responseSocket.SendMultipartMessage(resumeResponse.Serialize());
+
+                    _log.LogInformation
+                    (
+                        "Set the resume point of the collector for service \"{Service}\" to \"{ResumePoint}\"",
+                        setResumeRequest.ServiceName,
+                        setResumeRequest.ResumePoint
+                    );
 
                     break;
                 }
@@ -217,6 +231,11 @@ namespace Argus.Coordinator.Services
                         _log.LogWarning("Failed to create status report: {Reason}", processing.Error.Message);
                     }
 
+                    _log.LogInformation
+                    (
+                        "Dispatched collected image from service \"{Service}\" to worker",
+                        collectedImage.ServiceName
+                    );
                     break;
                 }
                 case var _ when messageType == FingerprintedImage.MessageType:
@@ -238,6 +257,11 @@ namespace Argus.Coordinator.Services
                         _log.LogWarning("Failed to handle fingerprinted image: {Message}", result.Error.Message);
                     }
 
+                    _log.LogInformation
+                    (
+                        "Indexed fingerprinted image from service \"{Service}\"",
+                        fingerprintedImage.ServiceName
+                    );
                     break;
                 }
                 case var _ when messageType == StatusReport.MessageType:
@@ -259,6 +283,12 @@ namespace Argus.Coordinator.Services
                         _log.LogWarning("Failed to handle status report: {Message}", result.Error.Message);
                     }
 
+                    _log.LogInformation
+                    (
+                        "Logged status report regarding image {Image} from {Source}",
+                        statusReport.Image,
+                        statusReport.Source
+                    );
                     break;
                 }
             }
