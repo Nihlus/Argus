@@ -37,6 +37,7 @@ using Nest;
 using NetMQ;
 using Remora.Extensions.Options.Immutable;
 using Serilog;
+using Serilog.Events;
 
 namespace Argus.Coordinator
 {
@@ -98,6 +99,7 @@ namespace Argus.Coordinator
             {
                 logging
                     .MinimumLevel.Information()
+                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
                     .WriteTo.Console();
             })
         #if DEBUG

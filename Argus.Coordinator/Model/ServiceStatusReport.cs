@@ -36,9 +36,9 @@ namespace Argus.Coordinator.Model
         public int Id { get; init; }
 
         /// <summary>
-        /// Gets the report.
+        /// Gets or sets the report.
         /// </summary>
-        public StatusReport Report { get; init; } = null!;
+        public StatusReport Report { get; set; } = null!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceStatusReport"/> class. Required by EF Core.

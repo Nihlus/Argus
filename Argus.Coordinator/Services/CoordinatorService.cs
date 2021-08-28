@@ -23,6 +23,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Argus.Common;
 using Argus.Common.Messages;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.Model;
@@ -201,6 +202,23 @@ namespace Argus.Coordinator.Services
                     }
 
                     _outgoingSocket.SendMultipartMessage(collectedImage.Serialize());
+
+                    var statusReport = new StatusReport
+                    (
+                        DateTimeOffset.UtcNow,
+                        collectedImage.ServiceName,
+                        collectedImage.Source,
+                        collectedImage.Image,
+                        ImageStatus.Processing,
+                        string.Empty
+                    );
+
+                    var processing = await HandleStatusReportAsync(statusReport, ct);
+                    if (!processing.IsSuccess)
+                    {
+                        _log.LogWarning("Failed to create status report: {Reason}", processing.Error.Message);
+                    }
+
                     break;
                 }
                 case var _ when messageType == FingerprintedImage.MessageType:
@@ -276,8 +294,29 @@ namespace Argus.Coordinator.Services
             CancellationToken ct
         )
         {
-            // Save to database
-            return new NotImplementedException();
+            await using var db = _contextFactory.CreateDbContext();
+            var existingReport = await db.ServiceStatusReports.FirstOrDefaultAsync
+            (
+                r =>
+                    r.Report.ServiceName == statusReport.ServiceName &&
+                    r.Report.Source == statusReport.Source &&
+                    r.Report.Image == statusReport.Image,
+                ct
+            );
+
+            if (existingReport is null)
+            {
+                existingReport = new ServiceStatusReport(statusReport);
+            }
+            else
+            {
+                existingReport.Report = statusReport;
+            }
+
+            db.ServiceStatusReports.Update(existingReport);
+            await db.SaveChangesAsync(ct);
+
+            return Result.FromSuccess();
         }
 
         /// <inheritdoc />
