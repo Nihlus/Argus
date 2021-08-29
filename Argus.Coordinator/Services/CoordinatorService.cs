@@ -90,58 +90,32 @@ namespace Argus.Coordinator.Services
 
         private async Task RunResponsesAsync(CancellationToken ct = default)
         {
-            var runningTasks = new List<Task>();
             while (!ct.IsCancellationRequested)
             {
                 NetMQMessage? responseMessage = null;
                 if (_responseSocket.TryReceiveMultipartMessage(ref responseMessage))
                 {
-                    runningTasks.Add(HandleResponseMessageAsync(responseMessage, ct));
+                    await HandleResponseMessageAsync(responseMessage, ct);
                 }
-
-                var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), ct);
-                if (runningTasks.Count <= 0)
+                else
                 {
-                    await timeout;
-                    continue;
-                }
-
-                await Task.WhenAny(Task.WhenAny(runningTasks), timeout);
-
-                var completedTasks = runningTasks.Where(t => t.IsCompleted).ToList();
-                foreach (var completedTask in completedTasks)
-                {
-                    await completedTask;
-                    runningTasks.Remove(completedTask);
+                    await Task.Delay(TimeSpan.FromMilliseconds(100), ct);
                 }
             }
         }
 
         private async Task RunPullsAsync(CancellationToken ct = default)
         {
-            var runningTasks = new List<Task>();
             while (!ct.IsCancellationRequested)
             {
                 NetMQMessage? pullMessage = null;
                 if (_incomingSocket.TryReceiveMultipartMessage(ref pullMessage))
                 {
-                    runningTasks.Add(HandlePullMessageAsync(pullMessage, ct));
+                    await HandlePullMessageAsync(pullMessage, ct);
                 }
-
-                var timeout = Task.Delay(TimeSpan.FromMilliseconds(100), ct);
-                if (runningTasks.Count <= 0)
+                else
                 {
-                    await timeout;
-                    continue;
-                }
-
-                await Task.WhenAny(Task.WhenAny(runningTasks), timeout);
-
-                var completedTasks = runningTasks.Where(t => t.IsCompleted).ToList();
-                foreach (var completedTask in completedTasks)
-                {
-                    await completedTask;
-                    runningTasks.Remove(completedTask);
+                    await Task.Delay(TimeSpan.FromMilliseconds(100), ct);
                 }
             }
         }

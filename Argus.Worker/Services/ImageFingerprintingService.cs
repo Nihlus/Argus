@@ -81,7 +81,7 @@ namespace Argus.Worker.Services
         {
             _log.LogInformation("Started fingerprinting worker");
 
-            var blockOptions = new ExecutionDataflowBlockOptions
+            var transformOptions = new ExecutionDataflowBlockOptions
             {
                 MaxDegreeOfParallelism = Environment.ProcessorCount * _options.ParallelismMultiplier,
                 CancellationToken = stoppingToken,
@@ -93,8 +93,17 @@ namespace Argus.Worker.Services
             var transform = new TransformBlock<CollectedImage, (CollectedImage, Result<FingerprintedImage>)>
             (
                 c => (c, FingerprintImage(c, stoppingToken)),
-                blockOptions
+                transformOptions
             );
+
+            var sendOptions = new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = 1,
+                CancellationToken = stoppingToken,
+                SingleProducerConstrained = true,
+                BoundedCapacity = Environment.ProcessorCount * _options.ParallelismMultiplier,
+                EnsureOrdered = false
+            };
 
             var send = new ActionBlock<(CollectedImage, Result<FingerprintedImage>)>
             (
@@ -130,7 +139,7 @@ namespace Argus.Worker.Services
 
                     _outgoingSocket.SendMultipartMessage(message.Serialize());
                 },
-                blockOptions
+                sendOptions
             );
 
             transform.LinkTo(send);

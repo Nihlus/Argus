@@ -105,8 +105,84 @@ namespace Argus.Collector.E621.Services
                     }
 
                     var client = _httpClientFactory.CreateClient();
-                    var collections = page.Select(p => CollectImageAsync(client, p, ct));
-                    await Task.WhenAll(collections);
+                    foreach (var post in page)
+                    {
+                        var statusReport = new StatusReport
+                        (
+                            DateTimeOffset.UtcNow,
+                            this.ServiceName,
+                            new Uri($"{_e621Client.BaseUrl}/posts/{post.Id}"),
+                            new Uri("about:blank"),
+                            ImageStatus.Collected,
+                            string.Empty
+                        );
+
+                        if (post.File is null)
+                        {
+                            var rejectionReport = statusReport with
+                            {
+                                Status = ImageStatus.Rejected,
+                                Message = "No file"
+                            };
+
+                            var reject = PushStatusReport(rejectionReport);
+                            if (!reject.IsSuccess)
+                            {
+                                _log.LogWarning("Failed to push status report: {Reason}", reject.Error.Message);
+                                return reject;
+                            }
+
+                            return Result.FromSuccess();
+                        }
+
+                        if (post.File.FileExtension is "swf" or "gif")
+                        {
+                            var rejectionReport = statusReport with
+                            {
+                                Status = ImageStatus.Rejected,
+                                Image = post.File.Location,
+                                Message = "Animation"
+                            };
+
+                            var reject = PushStatusReport(rejectionReport);
+                            if (!reject.IsSuccess)
+                            {
+                                _log.LogWarning("Failed to push status report: {Reason}", reject.Error.Message);
+                                return reject;
+                            }
+
+                            return Result.FromSuccess();
+                        }
+
+                        statusReport = statusReport with
+                        {
+                            Image = post.File.Location
+                        };
+
+                        var bytes = await client.GetByteArrayAsync(post.File.Location, ct);
+
+                        var collectedImage = new CollectedImage
+                        (
+                            this.ServiceName,
+                            statusReport.Source,
+                            statusReport.Image,
+                            bytes
+                        );
+
+                        var push = PushCollectedImage(collectedImage);
+                        if (!push.IsSuccess)
+                        {
+                            _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                            return push;
+                        }
+
+                        var collect = PushStatusReport(statusReport);
+                        if (!collect.IsSuccess)
+                        {
+                            _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                            return collect;
+                        }
+                    }
 
                     var mostRecentPost = page.OrderByDescending(p => p.Id).First();
                     currentPostId = mostRecentPost.Id;
@@ -124,87 +200,6 @@ namespace Argus.Collector.E621.Services
                 {
                     return e;
                 }
-            }
-
-            return Result.FromSuccess();
-        }
-
-        private async Task<Result> CollectImageAsync(HttpClient client, Post post, CancellationToken ct = default)
-        {
-            var statusReport = new StatusReport
-            (
-                DateTimeOffset.UtcNow,
-                this.ServiceName,
-                new Uri($"{_e621Client.BaseUrl}/posts/{post.Id}"),
-                new Uri("about:blank"),
-                ImageStatus.Collected,
-                string.Empty
-            );
-
-            if (post.File is null)
-            {
-                var rejectionReport = statusReport with
-                {
-                    Status = ImageStatus.Rejected,
-                    Message = "No file"
-                };
-
-                var reject = PushStatusReport(rejectionReport);
-                if (!reject.IsSuccess)
-                {
-                    _log.LogWarning("Failed to push status report: {Reason}", reject.Error.Message);
-                    return reject;
-                }
-
-                return Result.FromSuccess();
-            }
-
-            if (post.File.FileExtension is "swf" or "gif")
-            {
-                var rejectionReport = statusReport with
-                {
-                    Status = ImageStatus.Rejected,
-                    Image = post.File.Location,
-                    Message = "Animation"
-                };
-
-                var reject = PushStatusReport(rejectionReport);
-                if (!reject.IsSuccess)
-                {
-                    _log.LogWarning("Failed to push status report: {Reason}", reject.Error.Message);
-                    return reject;
-                }
-
-                return Result.FromSuccess();
-            }
-
-            statusReport = statusReport with
-            {
-                Image = post.File.Location
-            };
-
-            var bytes = await client.GetByteArrayAsync(post.File.Location, ct);
-
-            var collectedImage = new CollectedImage
-            (
-                this.ServiceName,
-                statusReport.Source,
-                statusReport.Image,
-                bytes
-            );
-
-            var push = PushCollectedImage(collectedImage);
-            if (!push.IsSuccess)
-            {
-                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                return push;
-            }
-
-            var collect = PushStatusReport(statusReport);
-            if (!collect.IsSuccess)
-            {
-                _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
-                return collect;
             }
 
             return Result.FromSuccess();

@@ -119,8 +119,44 @@ namespace Argus.Collector.FList.Services
                 }
 
                 var client = _httpClientFactory.CreateClient();
+
                 var collections = character.Images.Select(i => CollectImageAsync(character.Name, client, i, ct));
-                await Task.WhenAll(collections);
+                var collectedImages = await Task.WhenAll(collections);
+
+                foreach (var imageCollection in collectedImages)
+                {
+                    if (!imageCollection.IsSuccess)
+                    {
+                        _log.LogWarning("Failed to collect image: {Reason}", imageCollection.Error.Message);
+                        continue;
+                    }
+
+                    var collectedImage = imageCollection.Entity;
+
+                    var statusReport = new StatusReport
+                    (
+                        DateTimeOffset.UtcNow,
+                        this.ServiceName,
+                        collectedImage.Source,
+                        collectedImage.Image,
+                        ImageStatus.Collected,
+                        string.Empty
+                    );
+
+                    var push = PushCollectedImage(collectedImage);
+                    if (!push.IsSuccess)
+                    {
+                        _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                        return push;
+                    }
+
+                    var collect = PushStatusReport(statusReport);
+                    if (!collect.IsSuccess)
+                    {
+                        _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
+                        return collect;
+                    }
+                }
 
                 ++currentCharacterId;
             }
@@ -128,7 +164,7 @@ namespace Argus.Collector.FList.Services
             return Result.FromSuccess();
         }
 
-        private async Task<Result> CollectImageAsync
+        private async Task<Result<CollectedImage>> CollectImageAsync
         (
             string characterName,
             HttpClient client,
@@ -136,42 +172,23 @@ namespace Argus.Collector.FList.Services
             CancellationToken ct = default
         )
         {
-            var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
-            var bytes = await client.GetByteArrayAsync(location, ct);
-
-            var collectedImage = new CollectedImage
-            (
-                this.ServiceName,
-                new Uri($"https://www.f-list.net/c/{characterName}"),
-                new Uri(location),
-                bytes
-            );
-
-            var statusReport = new StatusReport
-            (
-                DateTimeOffset.UtcNow,
-                this.ServiceName,
-                collectedImage.Source,
-                collectedImage.Image,
-                ImageStatus.Collected,
-                string.Empty
-            );
-
-            var push = PushCollectedImage(collectedImage);
-            if (!push.IsSuccess)
+            try
             {
-                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                return push;
-            }
+                var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
+                var bytes = await client.GetByteArrayAsync(location, ct);
 
-            var collect = PushStatusReport(statusReport);
-            if (!collect.IsSuccess)
+                return new CollectedImage
+                (
+                    this.ServiceName,
+                    new Uri($"https://www.f-list.net/c/{characterName}"),
+                    new Uri(location),
+                    bytes
+                );
+            }
+            catch (Exception e)
             {
-                _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
-                return collect;
+                return e;
             }
-
-            return Result.FromSuccess();
         }
     }
 }
