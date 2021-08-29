@@ -49,9 +49,6 @@ namespace Argus.Worker.Services
         private readonly SignatureGenerator _signatureGenerator;
         private readonly ILogger<ImageFingerprintingService> _log;
 
-        private readonly PullSocket _incomingSocket;
-        private readonly PushSocket _outgoingSocket;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFingerprintingService"/> class.
         /// </summary>
@@ -68,18 +65,18 @@ namespace Argus.Worker.Services
             _options = options.Value;
             _signatureGenerator = signatureGenerator;
             _log = log;
-
-            _incomingSocket = new PullSocket();
-            _outgoingSocket = new PushSocket();
-
-            _incomingSocket.Connect(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
-            _outgoingSocket.Connect(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
         }
 
         /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _log.LogInformation("Started fingerprinting worker");
+
+            var incomingSocket = new PullSocket();
+            var outgoingSocket = new PushSocket();
+
+            incomingSocket.Connect(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
+            outgoingSocket.Connect(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
 
             var transformOptions = new ExecutionDataflowBlockOptions
             {
@@ -113,7 +110,7 @@ namespace Argus.Worker.Services
                     if (result.IsSuccess)
                     {
                         _log.LogInformation("Fingerprinted {Image} from {Source}", request.Image, request.Source);
-                        _outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+                        outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
                     }
                     else
                     {
@@ -137,7 +134,7 @@ namespace Argus.Worker.Services
                         result.IsSuccess ? string.Empty : result.Error.Message
                     );
 
-                    _outgoingSocket.SendMultipartMessage(message.Serialize());
+                    outgoingSocket.SendMultipartMessage(message.Serialize());
                 },
                 sendOptions
             );
@@ -149,7 +146,7 @@ namespace Argus.Worker.Services
                 try
                 {
                     NetMQMessage? requestMessage = null;
-                    while (_incomingSocket.TryReceiveMultipartMessage(ref requestMessage, CollectedImage.FrameCount))
+                    while (incomingSocket.TryReceiveMultipartMessage(ref requestMessage, CollectedImage.FrameCount))
                     {
                         if (!CollectedImage.TryParse(requestMessage, out var retrievedImage))
                         {
