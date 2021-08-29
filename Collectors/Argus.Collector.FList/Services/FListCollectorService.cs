@@ -143,18 +143,18 @@ namespace Argus.Collector.FList.Services
                         string.Empty
                     );
 
+                    var report = PushStatusReport(statusReport);
+                    if (!report.IsSuccess)
+                    {
+                        _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
+                        return report;
+                    }
+
                     var push = PushCollectedImage(collectedImage);
                     if (!push.IsSuccess)
                     {
                         _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
                         return push;
-                    }
-
-                    var collect = PushStatusReport(statusReport);
-                    if (!collect.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
-                        return collect;
                     }
                 }
 
