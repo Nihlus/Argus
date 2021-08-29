@@ -21,8 +21,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Common;
@@ -49,9 +47,7 @@ namespace Argus.Coordinator.Services
         private readonly IDbContextFactory<CoordinatorContext> _contextFactory;
         private readonly ILogger<CoordinatorService> _log;
 
-        private readonly ResponseSocket _responseSocket;
-        private readonly PullSocket _incomingSocket;
-        private readonly PushSocket _outgoingSocket;
+        private readonly CoordinatorOptions _options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CoordinatorService"/> class.
@@ -68,17 +64,10 @@ namespace Argus.Coordinator.Services
             IDbContextFactory<CoordinatorContext> contextFactory
         )
         {
+            _options = options.Value;
             _nestService = nestService;
             _log = log;
             _contextFactory = contextFactory;
-
-            _responseSocket = new ResponseSocket();
-            _incomingSocket = new PullSocket();
-            _outgoingSocket = new PushSocket();
-
-            _responseSocket.Bind(options.Value.CoordinatorEndpoint.ToString().TrimEnd('/'));
-            _incomingSocket.Bind(options.Value.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
-            _outgoingSocket.Bind(options.Value.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
         }
 
         /// <inheritdoc />
@@ -90,12 +79,15 @@ namespace Argus.Coordinator.Services
 
         private async Task RunResponsesAsync(CancellationToken ct = default)
         {
+            var responseSocket = new ResponseSocket();
+            responseSocket.Bind(_options.CoordinatorEndpoint.ToString().TrimEnd('/'));
+
             while (!ct.IsCancellationRequested)
             {
                 NetMQMessage? responseMessage = null;
-                if (_responseSocket.TryReceiveMultipartMessage(ref responseMessage))
+                if (responseSocket.TryReceiveMultipartMessage(ref responseMessage))
                 {
-                    await HandleResponseMessageAsync(responseMessage, ct);
+                    await HandleResponseMessageAsync(responseMessage, responseSocket, ct);
                 }
                 else
                 {
@@ -106,12 +98,18 @@ namespace Argus.Coordinator.Services
 
         private async Task RunPullsAsync(CancellationToken ct = default)
         {
+            var incomingSocket = new PullSocket();
+            var outgoingSocket = new PushSocket();
+
+            incomingSocket.Bind(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
+            outgoingSocket.Bind(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
+
             while (!ct.IsCancellationRequested)
             {
                 NetMQMessage? pullMessage = null;
-                if (_incomingSocket.TryReceiveMultipartMessage(ref pullMessage))
+                if (incomingSocket.TryReceiveMultipartMessage(ref pullMessage))
                 {
-                    await HandlePullMessageAsync(pullMessage, ct);
+                    await HandlePullMessageAsync(pullMessage, outgoingSocket, ct);
                 }
                 else
                 {
@@ -120,7 +118,7 @@ namespace Argus.Coordinator.Services
             }
         }
 
-        private async Task HandleResponseMessageAsync(NetMQMessage incomingMessage, CancellationToken ct = default)
+        private async Task HandleResponseMessageAsync(NetMQMessage incomingMessage, ResponseSocket responseSocket, CancellationToken ct = default)
         {
             var messageType = incomingMessage.First.ConvertToString();
             switch (messageType)
@@ -147,7 +145,7 @@ namespace Argus.Coordinator.Services
 
                     var resumePoint = serviceStatus?.ResumePoint;
                     var resumeResponse = new ResumeReply(resumePoint ?? string.Empty);
-                    _responseSocket.SendMultipartMessage(resumeResponse.Serialize());
+                    responseSocket.SendMultipartMessage(resumeResponse.Serialize());
 
                     _log.LogInformation
                     (
@@ -181,7 +179,7 @@ namespace Argus.Coordinator.Services
 
                     var resumePoint = serviceStatus.ResumePoint;
                     var resumeResponse = new ResumeReply(resumePoint ?? string.Empty);
-                    _responseSocket.SendMultipartMessage(resumeResponse.Serialize());
+                    responseSocket.SendMultipartMessage(resumeResponse.Serialize());
 
                     _log.LogInformation
                     (
@@ -195,7 +193,7 @@ namespace Argus.Coordinator.Services
             }
         }
 
-        private async Task HandlePullMessageAsync(NetMQMessage incomingMessage, CancellationToken ct = default)
+        private async Task HandlePullMessageAsync(NetMQMessage incomingMessage, PushSocket outgoingSocket, CancellationToken ct = default)
         {
             var messageType = incomingMessage.First.ConvertToString();
             switch (messageType)
@@ -213,7 +211,7 @@ namespace Argus.Coordinator.Services
                         return;
                     }
 
-                    _outgoingSocket.SendMultipartMessage(collectedImage.Serialize());
+                    outgoingSocket.SendMultipartMessage(collectedImage.Serialize());
 
                     var statusReport = new StatusReport
                     (
