@@ -117,11 +117,11 @@ namespace Argus.Collector.E621.Services
 
                         var (statusReport, collectedImage) = collection.Entity;
 
-                        var collect = PushStatusReport(statusReport);
-                        if (!collect.IsSuccess)
+                        var report = PushStatusReport(statusReport);
+                        if (!report.IsSuccess)
                         {
-                            _log.LogWarning("Failed to push status report: {Reason}", collect.Error.Message);
-                            return collect;
+                            _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
+                            return report;
                         }
 
                         if (collectedImage is null)
