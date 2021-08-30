@@ -24,10 +24,13 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Common;
-using Argus.Common.Messages;
+using Argus.Common.Messages.BulkData;
+using Argus.Common.Messages.Replies;
+using Argus.Common.Messages.Requests;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.Model;
 using Argus.Coordinator.Services.Elasticsearch;
+using MessagePack;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -74,20 +77,67 @@ namespace Argus.Coordinator.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _log.LogInformation("Started coordinator");
-            await Task.WhenAll(RunResponsesAsync(stoppingToken), RunPullsAsync(stoppingToken));
+            await Task.WhenAll(RunRequestReplyHandlerAsync(stoppingToken), RunPullsAsync(stoppingToken));
         }
 
-        private async Task RunResponsesAsync(CancellationToken ct = default)
+        private async Task RunRequestReplyHandlerAsync(CancellationToken ct = default)
         {
             var responseSocket = new ResponseSocket();
             responseSocket.Bind(_options.CoordinatorEndpoint.ToString().TrimEnd('/'));
 
             while (!ct.IsCancellationRequested)
             {
-                NetMQMessage? responseMessage = null;
-                if (responseSocket.TryReceiveMultipartMessage(ref responseMessage))
+                if (responseSocket.TryReceiveFrameBytes(out var bytes))
                 {
-                    await HandleResponseMessageAsync(responseMessage, responseSocket, ct);
+                    var request = MessagePackSerializer.Deserialize<ICoordinatorRequest>(bytes, cancellationToken: ct);
+
+                    ICoordinatorReply reply;
+                    switch (request)
+                    {
+                        case GetResumeRequest getResumeRequest:
+                        {
+                            await using var db = _contextFactory.CreateDbContext();
+                            var serviceStatus = await db.ServiceStates.AsNoTracking().FirstOrDefaultAsync
+                            (
+                                s => s.Name == getResumeRequest.ServiceName,
+                                ct
+                            );
+
+                            var resumePoint = serviceStatus?.ResumePoint;
+                            reply = new ResumeReply(resumePoint ?? string.Empty);
+
+                            _log.LogInformation
+                            (
+                                "Told collector for service \"{Service}\" its resume point",
+                                getResumeRequest.ServiceName
+                            );
+                            break;
+                        }
+                        case SetResumeRequest setResumeRequest:
+                        {
+                            await using var db = _contextFactory.CreateDbContext();
+                            var serviceStatus = await db.ServiceStates.FirstOrDefaultAsync
+                            (
+                                s => s.Name == setResumeRequest.ServiceName,
+                                ct
+                            );
+
+                            serviceStatus.ResumePoint = setResumeRequest.ResumePoint;
+                            await db.SaveChangesAsync(ct);
+
+                            var resumePoint = serviceStatus.ResumePoint;
+                            reply = new ResumeReply(resumePoint ?? string.Empty);
+                            break;
+                        }
+                        default:
+                        {
+                            reply = new ErrorReply("Unknown request.");
+                            break;
+                        }
+                    }
+
+                    var response = MessagePackSerializer.Serialize(reply, cancellationToken: ct);
+                    responseSocket.SendFrame(response);
                 }
                 else
                 {
@@ -106,188 +156,83 @@ namespace Argus.Coordinator.Services
 
             while (!ct.IsCancellationRequested)
             {
-                NetMQMessage? pullMessage = null;
-                if (incomingSocket.TryReceiveMultipartMessage(ref pullMessage))
+                if (incomingSocket.TryReceiveFrameBytes(out var bytes))
                 {
-                    await HandlePullMessageAsync(pullMessage, outgoingSocket, ct);
+                    var inputMessage = MessagePackSerializer.Deserialize<ICoordinatorInputMessage>
+                    (
+                        bytes, cancellationToken: ct
+                    );
+
+                    switch (inputMessage)
+                    {
+                        case CollectedImage collectedImage:
+                        {
+                            outgoingSocket.SendFrame(bytes);
+
+                            var statusReport = new StatusReport
+                            (
+                                DateTimeOffset.UtcNow,
+                                collectedImage.ServiceName,
+                                collectedImage.Source,
+                                collectedImage.Image,
+                                ImageStatus.Processing,
+                                string.Empty
+                            );
+
+                            var processing = await HandleStatusReportAsync(statusReport, ct);
+                            if (!processing.IsSuccess)
+                            {
+                                _log.LogWarning("Failed to create status report: {Reason}", processing.Error.Message);
+                            }
+
+                            _log.LogInformation
+                            (
+                                "Dispatched collected image from service \"{Service}\" to worker",
+                                collectedImage.ServiceName
+                            );
+                            break;
+                        }
+                        case FingerprintedImage fingerprintedImage:
+                        {
+                            var result = await HandleFingerprintedImageAsync(fingerprintedImage, ct);
+                            if (!result.IsSuccess)
+                            {
+                                _log.LogWarning("Failed to handle fingerprinted image: {Message}", result.Error.Message);
+                            }
+
+                            _log.LogInformation
+                            (
+                                "Indexed fingerprinted image from service \"{Service}\"",
+                                fingerprintedImage.ServiceName
+                            );
+                            break;
+                        }
+                        case StatusReport statusReport:
+                        {
+                            var result = await HandleStatusReportAsync(statusReport, ct);
+                            if (!result.IsSuccess)
+                            {
+                                _log.LogWarning("Failed to handle status report: {Message}", result.Error.Message);
+                            }
+
+                            _log.LogInformation
+                            (
+                                "Logged status report regarding image {Image} from {Source}",
+                                statusReport.Image,
+                                statusReport.Source
+                            );
+                            break;
+                        }
+                        default:
+                        {
+                            _log.LogWarning("Failed to parse incoming message");
+                            break;
+                        }
+                    }
                 }
                 else
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(100), ct);
-                }
-            }
-        }
-
-        private async Task HandleResponseMessageAsync(NetMQMessage incomingMessage, ResponseSocket responseSocket, CancellationToken ct = default)
-        {
-            var messageType = incomingMessage.First.ConvertToString();
-            switch (messageType)
-            {
-                case var _ when messageType == GetResumeRequest.MessageType:
-                {
-                    if (!GetResumeRequest.TryParse(incomingMessage, out var getResumeRequest))
-                    {
-                        _log.LogWarning
-                        (
-                            "Failed to parse incoming message as a {Type}",
-                            CollectedImage.MessageType
-                        );
-
-                        return;
-                    }
-
-                    await using var db = _contextFactory.CreateDbContext();
-                    var serviceStatus = await db.ServiceStates.AsNoTracking().FirstOrDefaultAsync
-                    (
-                        s => s.Name == getResumeRequest.ServiceName,
-                        ct
-                    );
-
-                    var resumePoint = serviceStatus?.ResumePoint;
-                    var resumeResponse = new ResumeReply(resumePoint ?? string.Empty);
-                    responseSocket.SendMultipartMessage(resumeResponse.Serialize());
-
-                    _log.LogInformation
-                    (
-                        "Told collector for service \"{Service}\" its resume point",
-                        getResumeRequest.ServiceName
-                    );
-                    break;
-                }
-                case var _ when messageType == SetResumeRequest.MessageType:
-                {
-                    if (!SetResumeRequest.TryParse(incomingMessage, out var setResumeRequest))
-                    {
-                        _log.LogWarning
-                        (
-                            "Failed to parse incoming message as a {Type}",
-                            CollectedImage.MessageType
-                        );
-
-                        return;
-                    }
-
-                    await using var db = _contextFactory.CreateDbContext();
-                    var serviceStatus = await db.ServiceStates.FirstOrDefaultAsync
-                    (
-                        s => s.Name == setResumeRequest.ServiceName,
-                        ct
-                    );
-
-                    serviceStatus.ResumePoint = setResumeRequest.ResumePoint;
-                    await db.SaveChangesAsync(ct);
-
-                    var resumePoint = serviceStatus.ResumePoint;
-                    var resumeResponse = new ResumeReply(resumePoint ?? string.Empty);
-                    responseSocket.SendMultipartMessage(resumeResponse.Serialize());
-
-                    _log.LogInformation
-                    (
-                        "Set the resume point of the collector for service \"{Service}\" to \"{ResumePoint}\"",
-                        setResumeRequest.ServiceName,
-                        setResumeRequest.ResumePoint
-                    );
-
-                    break;
-                }
-            }
-        }
-
-        private async Task HandlePullMessageAsync(NetMQMessage incomingMessage, PushSocket outgoingSocket, CancellationToken ct = default)
-        {
-            var messageType = incomingMessage.First.ConvertToString();
-            switch (messageType)
-            {
-                case var _ when messageType == CollectedImage.MessageType:
-                {
-                    if (!CollectedImage.TryParse(incomingMessage, out var collectedImage))
-                    {
-                        _log.LogWarning
-                        (
-                            "Failed to parse incoming message as a {Type}",
-                            CollectedImage.MessageType
-                        );
-
-                        return;
-                    }
-
-                    outgoingSocket.SendMultipartMessage(collectedImage.Serialize());
-
-                    var statusReport = new StatusReport
-                    (
-                        DateTimeOffset.UtcNow,
-                        collectedImage.ServiceName,
-                        collectedImage.Source,
-                        collectedImage.Image,
-                        ImageStatus.Processing,
-                        string.Empty
-                    );
-
-                    var processing = await HandleStatusReportAsync(statusReport, ct);
-                    if (!processing.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to create status report: {Reason}", processing.Error.Message);
-                    }
-
-                    _log.LogInformation
-                    (
-                        "Dispatched collected image from service \"{Service}\" to worker",
-                        collectedImage.ServiceName
-                    );
-                    break;
-                }
-                case var _ when messageType == FingerprintedImage.MessageType:
-                {
-                    if (!FingerprintedImage.TryParse(incomingMessage, out var fingerprintedImage))
-                    {
-                        _log.LogWarning
-                        (
-                            "Failed to parse incoming message as a {Type}",
-                            FingerprintedImage.MessageType
-                        );
-
-                        return;
-                    }
-
-                    var result = await HandleFingerprintedImageAsync(fingerprintedImage, ct);
-                    if (!result.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to handle fingerprinted image: {Message}", result.Error.Message);
-                    }
-
-                    _log.LogInformation
-                    (
-                        "Indexed fingerprinted image from service \"{Service}\"",
-                        fingerprintedImage.ServiceName
-                    );
-                    break;
-                }
-                case var _ when messageType == StatusReport.MessageType:
-                {
-                    if (!StatusReport.TryParse(incomingMessage, out var statusReport))
-                    {
-                        _log.LogWarning
-                        (
-                            "Failed to parse incoming message as a {Type}",
-                            FingerprintedImage.MessageType
-                        );
-
-                        return;
-                    }
-
-                    var result = await HandleStatusReportAsync(statusReport, ct);
-                    if (!result.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to handle status report: {Message}", result.Error.Message);
-                    }
-
-                    _log.LogInformation
-                    (
-                        "Logged status report regarding image {Image} from {Source}",
-                        statusReport.Image,
-                        statusReport.Source
-                    );
-                    break;
                 }
             }
         }

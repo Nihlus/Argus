@@ -28,7 +28,7 @@ using System.Threading.Tasks;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Services;
 using Argus.Common;
-using Argus.Common.Messages;
+using Argus.Common.Messages.BulkData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Noppes.E621;

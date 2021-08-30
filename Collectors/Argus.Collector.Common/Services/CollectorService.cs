@@ -24,7 +24,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.Common.Configuration;
-using Argus.Common.Messages;
+using Argus.Common.Messages.BulkData;
+using Argus.Common.Messages.Replies;
+using Argus.Common.Messages.Requests;
+using MessagePack;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -112,15 +115,16 @@ namespace Argus.Collector.Common.Services
         protected async Task<Result<string>> GetResumePointAsync(CancellationToken ct = default)
         {
             var message = new GetResumeRequest(this.ServiceName);
-            _requestSocket.SendMultipartMessage(message.Serialize());
+            var serialized = MessagePackSerializer.Serialize(message, cancellationToken: ct);
+            _requestSocket.SendFrame(serialized);
 
-            var response = await _requestSocket.ReceiveMultipartMessageAsync(cancellationToken: ct);
-            if (!ResumeReply.TryParse(response, out var reply))
+            var (frame, _) = await _requestSocket.ReceiveFrameBytesAsync(ct);
+            var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
+            return response switch
             {
-                return new InvalidOperationError("Failed to parse the reply as a resume reply.");
-            }
-
-            return reply.ResumePoint;
+                ResumeReply resumeReply => resumeReply.ResumePoint,
+                _ => new InvalidOperationError("Unknown response.")
+            };
         }
 
         /// <summary>
@@ -132,17 +136,18 @@ namespace Argus.Collector.Common.Services
         protected async Task<Result> SetResumePointAsync(string resumePoint, CancellationToken ct = default)
         {
             var message = new SetResumeRequest(this.ServiceName, resumePoint);
-            _requestSocket.SendMultipartMessage(message.Serialize());
+            var serialized = MessagePackSerializer.Serialize(message, cancellationToken: ct);
+            _requestSocket.SendFrame(serialized);
 
-            var response = await _requestSocket.ReceiveMultipartMessageAsync(cancellationToken: ct);
-            if (!ResumeReply.TryParse(response, out var reply))
+            var (frame, _) = await _requestSocket.ReceiveFrameBytesAsync(ct);
+            var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
+            return response switch
             {
-                return new InvalidOperationError("Failed to parse the reply as a resume reply.");
-            }
-
-            return reply.ResumePoint == resumePoint
-                ? Result.FromSuccess()
-                : new InvalidOperationError("The new resume point did not match the requested value.");
+                ResumeReply resumeReply => resumeReply.ResumePoint == resumePoint
+                    ? Result.FromSuccess()
+                    : new InvalidOperationError("The new resume point did not match the requested value."),
+                _ => new InvalidOperationError("Unknown response.")
+            };
         }
 
         /// <summary>
@@ -152,7 +157,9 @@ namespace Argus.Collector.Common.Services
         /// <returns>A result which may or may not have succeeded.</returns>
         protected Result PushCollectedImage(CollectedImage collectedImage)
         {
-            _pushSocket.SendMultipartMessage(collectedImage.Serialize());
+            var serialized = MessagePackSerializer.Serialize(collectedImage);
+            _pushSocket.SendFrame(serialized);
+
             return Result.FromSuccess();
         }
 
@@ -163,7 +170,9 @@ namespace Argus.Collector.Common.Services
         /// <returns>A result which may or may not have succeeded.</returns>
         protected Result PushStatusReport(StatusReport statusReport)
         {
-            _pushSocket.SendMultipartMessage(statusReport.Serialize());
+            var serialized = MessagePackSerializer.Serialize(statusReport);
+            _pushSocket.SendFrame(serialized);
+
             return Result.FromSuccess();
         }
     }

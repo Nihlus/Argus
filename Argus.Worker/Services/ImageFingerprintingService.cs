@@ -26,8 +26,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Argus.Common;
-using Argus.Common.Messages;
+using Argus.Common.Messages.BulkData;
 using Argus.Worker.Configuration;
+using MessagePack;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -110,7 +111,9 @@ namespace Argus.Worker.Services
                     if (result.IsSuccess)
                     {
                         _log.LogInformation("Fingerprinted {Image} from {Source}", request.Image, request.Source);
-                        outgoingSocket.SendMultipartMessage(result.Entity.Serialize());
+
+                        var serialized = MessagePackSerializer.Serialize(result.Entity);
+                        outgoingSocket.SendFrame(serialized);
                     }
                     else
                     {
@@ -134,7 +137,8 @@ namespace Argus.Worker.Services
                         result.IsSuccess ? string.Empty : result.Error.Message
                     );
 
-                    outgoingSocket.SendMultipartMessage(message.Serialize());
+                    var serializedStatusReport = MessagePackSerializer.Serialize(message);
+                    outgoingSocket.SendFrame(serializedStatusReport);
                 },
                 sendOptions
             );
@@ -145,18 +149,30 @@ namespace Argus.Worker.Services
             {
                 try
                 {
-                    NetMQMessage? requestMessage = null;
-                    while (incomingSocket.TryReceiveMultipartMessage(ref requestMessage, CollectedImage.FrameCount))
+                    while (incomingSocket.TryReceiveFrameBytes(out var bytes))
                     {
-                        if (!CollectedImage.TryParse(requestMessage, out var retrievedImage))
-                        {
-                            _log.LogWarning("Failed to parse incoming message from the coordinator");
-                            continue;
-                        }
+                        var message = MessagePackSerializer.Deserialize<ICoordinatorOutputMessage>
+                        (
+                            bytes,
+                            cancellationToken: stoppingToken
+                        );
 
-                        while (!await transform.SendAsync(retrievedImage, stoppingToken))
+                        switch (message)
                         {
-                            await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                            case CollectedImage collectedImage:
+                            {
+                                while (!await transform.SendAsync(collectedImage, stoppingToken))
+                                {
+                                    await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                                }
+
+                                break;
+                            }
+                            default:
+                            {
+                                _log.LogWarning("Failed to parse incoming message from the coordinator");
+                                break;
+                            }
                         }
                     }
                 }

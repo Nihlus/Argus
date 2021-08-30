@@ -20,7 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using Argus.Common.Messages;
+using Argus.Common.Messages.BulkData;
 using JetBrains.Annotations;
 
 namespace Argus.Coordinator.Model

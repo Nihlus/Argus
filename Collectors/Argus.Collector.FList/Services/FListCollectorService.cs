@@ -30,7 +30,7 @@ using Argus.Collector.Common.Services;
 using Argus.Collector.FList.API;
 using Argus.Collector.FList.API.Model;
 using Argus.Common;
-using Argus.Common.Messages;
+using Argus.Common.Messages.BulkData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
