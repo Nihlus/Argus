@@ -20,10 +20,16 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using MessagePack;
+
 namespace Argus.Common.Messages.Replies
 {
     /// <summary>
     /// Represents a reply with a resume point.
     /// </summary>
-    public record ResumeReply(string ResumePoint) : ICoordinatorReply;
+    [MessagePackObject]
+    public record ResumeReply
+    (
+        [property: Key(0)] string ResumePoint
+    ) : ICoordinatorReply;
 }

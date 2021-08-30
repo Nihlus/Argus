@@ -21,6 +21,7 @@
 //
 
 using System;
+using MessagePack;
 
 namespace Argus.Common.Messages.BulkData
 {
@@ -33,13 +34,14 @@ namespace Argus.Common.Messages.BulkData
     /// <param name="Image">A direct link to the image.</param>
     /// <param name="Status">The status of the image.</param>
     /// <param name="Message">The status message.</param>
+    [MessagePackObject]
     public record StatusReport
     (
-        DateTimeOffset Timestamp,
-        string ServiceName,
-        Uri Source,
-        Uri Image,
-        ImageStatus Status,
-        string Message
+        [property: Key(0)] DateTimeOffset Timestamp,
+        [property: Key(1)] string ServiceName,
+        [property: Key(2)] Uri Source,
+        [property: Key(3)] Uri Image,
+        [property: Key(4)] ImageStatus Status,
+        [property: Key(5)] string Message
     ) : ICoordinatorInputMessage;
 }

@@ -20,11 +20,17 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using MessagePack;
+
 namespace Argus.Common.Messages.Replies
 {
     /// <summary>
     /// Represents a reply that signifies an error occurred.
     /// </summary>
     /// <param name="Message">The user-visible message to reply with.</param>
-    public record ErrorReply(string Message) : ICoordinatorReply;
+    [MessagePackObject]
+    public record ErrorReply
+    (
+        [property: Key(0)] string Message
+    ) : ICoordinatorReply;
 }

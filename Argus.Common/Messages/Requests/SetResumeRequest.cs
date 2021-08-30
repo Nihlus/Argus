@@ -20,10 +20,17 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using MessagePack;
+
 namespace Argus.Common.Messages.Requests
 {
     /// <summary>
     /// Represents a request to set the resume point of a collector.
     /// </summary>
-    public record SetResumeRequest(string ServiceName, string ResumePoint) : ICoordinatorRequest;
+    [MessagePackObject]
+    public record SetResumeRequest
+    (
+        [property: Key(0)] string ServiceName,
+        [property: Key(1)] string ResumePoint
+    ) : ICoordinatorRequest;
 }

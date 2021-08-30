@@ -1,5 +1,5 @@
 //
-//  FingerprintedImage.cs
+//  CollectedImage.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -21,25 +21,23 @@
 //
 
 using System;
-using System.Collections.Generic;
-using Puzzle;
+using MessagePack;
 
 namespace Argus.Common.Messages.BulkData
 {
     /// <summary>
-    /// Represents an image that has been fingerprinted by a worker.
+    /// Represents an image that has been retrieved by a service collector.
     /// </summary>
-    /// <param name="ServiceName">The name of the service the original collector retrieved the image from.</param>
+    /// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Image">A direct link to the image.</param>
-    /// <param name="Fingerprint">The image data.</param>
-    /// <param name="Hash">A SHA256 hash of the image data.</param>
-    public record FingerprintedImage
+    /// <param name="Data">The image data.</param>
+    [MessagePackObject]
+    public record CollectedImage
     (
-        string ServiceName,
-        Uri Source,
-        Uri Image,
-        IReadOnlyCollection<LuminosityLevel> Fingerprint,
-        string Hash
-    ) : ICoordinatorInputMessage;
+        [property: Key(0)] string ServiceName,
+        [property: Key(1)] Uri Source,
+        [property: Key(2)] Uri Image,
+        [property: Key(3)] byte[] Data
+    ) : ICoordinatorInputMessage, ICoordinatorOutputMessage;
 }
