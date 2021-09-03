@@ -22,10 +22,13 @@
 
 using System;
 using Argus.Collector.Common.Configuration;
+using Argus.Collector.Common.Polly;
 using Argus.Collector.Common.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Polly;
+using Polly.Contrib.WaitAndRetry;
 using Remora.Extensions.Options.Immutable;
 using Serilog;
 
@@ -75,6 +78,16 @@ namespace Argus.Collector.Common.Extensions
                     services
                         .AddHttpClient()
                         .AddMemoryCache();
+
+                    var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+                    services
+                        .AddHttpClient("BulkDownload")
+                        .AddTransientHttpErrorPolicy
+                        (
+                            b => b
+                                .WaitAndRetryAsync(retryDelay)
+                                .WrapAsync(new ThrottlingPolicy(25, TimeSpan.FromSeconds(1)))
+                        );
 
                     services.AddHostedService<TCollector>();
                 });
