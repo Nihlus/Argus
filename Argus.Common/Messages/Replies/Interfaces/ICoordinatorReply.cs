@@ -28,6 +28,7 @@ namespace Argus.Common.Messages.Replies
     /// Represents a marker interface for a reply made by the coordinator.
     /// </summary>
     [Union(0, typeof(ResumeReply))]
+    [Union(1, typeof(ErrorReply))]
     public interface ICoordinatorReply
     {
     }
