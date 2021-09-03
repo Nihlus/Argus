@@ -122,6 +122,12 @@ namespace Argus.Coordinator.Services
                                 ct
                             );
 
+                            if (serviceStatus is null)
+                            {
+                                serviceStatus = new ServiceState(setResumeRequest.ServiceName);
+                                db.Update(serviceStatus);
+                            }
+
                             serviceStatus.ResumePoint = setResumeRequest.ResumePoint;
                             await db.SaveChangesAsync(ct);
 
