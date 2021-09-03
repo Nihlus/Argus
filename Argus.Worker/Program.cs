@@ -27,6 +27,7 @@ using Argus.Worker.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using NetMQ;
 using Puzzle;
 using Remora.Extensions.Options.Immutable;
@@ -41,10 +42,13 @@ namespace Argus.Worker
     {
         private static void Main(string[] args)
         {
-            using var runtime = new NetMQRuntime();
             using var host = CreateHostBuilder(args).Build();
+            var log = host.Services.GetRequiredService<ILogger<Program>>();
 
+            using var runtime = new NetMQRuntime();
             runtime.Run(host.RunAsync());
+
+            log.LogInformation("Shutting down...");
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
