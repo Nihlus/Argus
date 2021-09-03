@@ -77,7 +77,11 @@ namespace Argus.Coordinator.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _log.LogInformation("Started coordinator");
-            await Task.WhenAll(RunRequestReplyHandlerAsync(stoppingToken), RunPullsAsync(stoppingToken));
+            await Task.WhenAll
+            (
+                Task.Run(() => RunRequestReplyHandlerAsync(stoppingToken), stoppingToken),
+                Task.Run(() => RunPullsAsync(stoppingToken), stoppingToken)
+            );
         }
 
         private async Task RunRequestReplyHandlerAsync(CancellationToken ct = default)
