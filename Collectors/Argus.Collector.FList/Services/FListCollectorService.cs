@@ -33,6 +33,7 @@ using Argus.Common;
 using Argus.Common.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenQA.Selenium;
 using Remora.Results;
 
 namespace Argus.Collector.FList.Services
@@ -86,8 +87,33 @@ namespace Argus.Collector.FList.Services
                 currentCharacterId = 0;
             }
 
+            int? latestCharacterId = null;
+
             while (!ct.IsCancellationRequested)
             {
+                if (currentCharacterId >= latestCharacterId || latestCharacterId is null)
+                {
+                    var getLatestName = _flistAPI.GetMostRecentlyCreatedCharacterAsync();
+                    if (!getLatestName.IsSuccess)
+                    {
+                        return Result.FromError(getLatestName);
+                    }
+
+                    var getLatestCharacter = await _flistAPI.GetCharacterDataAsync(getLatestName.Entity, ct);
+                    if (!getLatestCharacter.IsSuccess)
+                    {
+                        return Result.FromError(getLatestCharacter);
+                    }
+
+                    latestCharacterId = getLatestCharacter.Entity.Id;
+                    if (currentCharacterId >= latestCharacterId)
+                    {
+                        _log.LogInformation("Waiting for new characters to come in...");
+                        await Task.Delay(TimeSpan.FromHours(1), ct);
+                        continue;
+                    }
+                }
+
                 var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
                 if (!setResume.IsSuccess)
                 {

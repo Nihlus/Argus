@@ -26,6 +26,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Argus.Collector.Common.Extensions;
 using Argus.Collector.Common.Json;
@@ -40,6 +41,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetMQ;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Firefox;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Remora.Extensions.Options.Immutable;
@@ -87,59 +90,65 @@ namespace Argus.Collector.FList
 
                 var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
 
-                services
-                    .Configure<JsonSerializerOptions>
-                    (
-                        o =>
-                        {
-                            o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
-                            o.PropertyNameCaseInsensitive = true;
-                        }
-                    );
+                services.Configure<JsonSerializerOptions>(o =>
+                {
+                    o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                    o.PropertyNameCaseInsensitive = true;
+                });
 
                 services
                     .AddSingleton<FListAPI>()
                     .AddSingleton<FListAuthenticationRefreshPolicy>();
 
-                services
-                    .AddHttpClient
-                    (
-                        nameof(FListAPI),
-                        (_, client) =>
-                        {
-                            var assemblyName = Assembly.GetExecutingAssembly().GetName();
-                            var name = assemblyName.Name ?? "Indexer";
-                            var version = assemblyName.Version ?? new Version(1, 0, 0);
+                services.AddHttpClient(nameof(FListAPI), (_, client) =>
+                {
+                    var assemblyName = Assembly.GetExecutingAssembly().GetName();
+                    var name = assemblyName.Name ?? "Indexer";
+                    var version = assemblyName.Version ?? new Version(1, 0, 0);
 
-                            client.BaseAddress = new Uri("https://www.f-list.net");
-                            client.DefaultRequestHeaders.UserAgent.Add
-                            (
-                                new ProductInfoHeaderValue(name, version.ToString())
-                            );
-                        }
-                    )
-                    .AddTransientHttpErrorPolicy
+                    client.BaseAddress = new Uri("https://www.f-list.net");
+                    client.DefaultRequestHeaders.UserAgent.Add
                     (
-                        b => b
-                            .WaitAndRetryAsync(retryDelay)
-                            .WrapAsync(new ThrottlingPolicy(1, TimeSpan.FromSeconds(1)))
-                    )
-                    .AddPolicyHandler
-                    (
-                        (s, _) =>
-                        {
-                            var api = s.GetRequiredService<FListAPI>();
-                            var options = s.GetRequiredService<IOptions<FListOptions>>();
-
-                            return new FListAuthenticationRefreshPolicy
-                            (
-                                api,
-                                options,
-                                Policy<HttpResponseMessage>
-                                    .HandleResult(r => r.StatusCode == HttpStatusCode.Unauthorized)
-                            );
-                        }
+                        new ProductInfoHeaderValue(name, version.ToString())
                     );
+                })
+                .AddTransientHttpErrorPolicy
+                (
+                    b => b
+                        .WaitAndRetryAsync(retryDelay)
+                        .WrapAsync(new ThrottlingPolicy(1, TimeSpan.FromSeconds(1)))
+                )
+                .AddPolicyHandler((s, _) =>
+                {
+                    var api = s.GetRequiredService<FListAPI>();
+                    var options = s.GetRequiredService<IOptions<FListOptions>>();
+
+                    return new FListAuthenticationRefreshPolicy
+                    (
+                        api,
+                        options,
+                        Policy<HttpResponseMessage>
+                            .HandleResult(r => r.StatusCode == HttpStatusCode.Unauthorized)
+                    );
+                });
+
+                CodePagesEncodingProvider.Instance.GetEncoding(437);
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+                // Selenium
+                services.Configure<FirefoxProfile>(p => p.DeleteAfterUse = true);
+                services.Configure<FirefoxOptions>(o => o.AddArgument("--headless"));
+
+                services.AddTransient<IWebDriver>(s => s.GetRequiredService<FirefoxDriver>());
+                services.AddTransient(s =>
+                {
+                    var profile = s.GetRequiredService<IOptions<FirefoxProfile>>().Value;
+                    var options = s.GetRequiredService<IOptions<FirefoxOptions>>().Value;
+
+                    options.Profile = profile;
+
+                    return new FirefoxDriver(options);
+                });
             });
     }
 }
