@@ -143,7 +143,7 @@ namespace Argus.Collector.FList.Services
                     continue;
                 }
 
-                var client = _httpClientFactory.CreateClient();
+                var client = _httpClientFactory.CreateClient("BulkDownload");
 
                 var collections = character.Images.Select(i => CollectImageAsync(character.Name, client, i, ct));
                 var collectedImages = await Task.WhenAll(collections);

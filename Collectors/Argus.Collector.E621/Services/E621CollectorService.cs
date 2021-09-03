@@ -104,7 +104,7 @@ namespace Argus.Collector.E621.Services
                         continue;
                     }
 
-                    var client = _httpClientFactory.CreateClient();
+                    var client = _httpClientFactory.CreateClient("BulkDownload");
                     var collections = await Task.WhenAll(page.Select(p => CollectImageAsync(client, p, ct)));
 
                     foreach (var collection in collections)

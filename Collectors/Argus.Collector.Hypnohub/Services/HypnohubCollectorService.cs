@@ -107,7 +107,7 @@ namespace Argus.Collector.Hypnohub.Services
                         continue;
                     }
 
-                    var client = _httpClientFactory.CreateClient();
+                    var client = _httpClientFactory.CreateClient("BulkDownload");
                     var collections = await Task.WhenAll(posts.Select(p => CollectImageAsync(client, p, ct)));
 
                     foreach (var collection in collections)
