@@ -33,7 +33,6 @@ using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OpenQA.Selenium;
 using Remora.Results;
 
 namespace Argus.Collector.FList.Services
