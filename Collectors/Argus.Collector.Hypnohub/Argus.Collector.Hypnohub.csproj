@@ -11,12 +11,18 @@
 
     <PropertyGroup>
         <Description>
-            Serves as an image collector for F-List.
+            Serves as an image collector for Hypnohub.
         </Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+      <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="BooruDex" Version="2.3.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
+      <PackageReference Include="morelinq" Version="3.3.2" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,18 +32,6 @@
       <Content Include="appsettings.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
-    </ItemGroup>
-    
-    <ItemGroup>
-        <Content Include="Content/**/*.*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
-      <PackageReference Include="Selenium.WebDriver" Version="3.141.0" />
     </ItemGroup>
 
     <Choose>
