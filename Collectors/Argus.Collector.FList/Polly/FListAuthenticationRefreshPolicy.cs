@@ -73,7 +73,8 @@ namespace Argus.Collector.FList.Polly
             var ticketRefreshIndicators = new[]
             {
                 "{\"error\":\"Ticket or account missing",
-                "{\"error\":\"Invalid ticket"
+                "{\"error\":\"Invalid ticket",
+                "{\"error\":\"Your login ticket has expired",
             };
 
             if (!string.IsNullOrWhiteSpace((string)context["ticket"]))

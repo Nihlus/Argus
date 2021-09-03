@@ -9,6 +9,12 @@
         <UserSecretsId>63c76c4e-758f-4055-90c2-92f6dbd42e00</UserSecretsId>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <Description>
+            Serves as an image collector for F-List.
+        </Description>
+    </PropertyGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
     </ItemGroup>
