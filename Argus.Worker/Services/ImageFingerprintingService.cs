@@ -112,7 +112,7 @@ namespace Argus.Worker.Services
                     {
                         _log.LogInformation("Fingerprinted {Image} from {Source}", request.Image, request.Source);
 
-                        var serialized = MessagePackSerializer.Serialize(result.Entity);
+                        var serialized = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(result.Entity);
                         outgoingSocket.SendFrame(serialized);
                     }
                     else
@@ -137,7 +137,7 @@ namespace Argus.Worker.Services
                         result.IsSuccess ? string.Empty : result.Error.Message
                     );
 
-                    var serializedStatusReport = MessagePackSerializer.Serialize(message);
+                    var serializedStatusReport = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(message);
                     outgoingSocket.SendFrame(serializedStatusReport);
                 },
                 sendOptions

@@ -115,7 +115,7 @@ namespace Argus.Collector.Common.Services
         protected async Task<Result<string>> GetResumePointAsync(CancellationToken ct = default)
         {
             var message = new GetResumeRequest(this.ServiceName);
-            var serialized = MessagePackSerializer.Serialize(message, cancellationToken: ct);
+            var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
             _requestSocket.SendFrame(serialized);
 
             var (frame, _) = await _requestSocket.ReceiveFrameBytesAsync(ct);
@@ -136,7 +136,7 @@ namespace Argus.Collector.Common.Services
         protected async Task<Result> SetResumePointAsync(string resumePoint, CancellationToken ct = default)
         {
             var message = new SetResumeRequest(this.ServiceName, resumePoint);
-            var serialized = MessagePackSerializer.Serialize(message, cancellationToken: ct);
+            var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
             _requestSocket.SendFrame(serialized);
 
             var (frame, _) = await _requestSocket.ReceiveFrameBytesAsync(ct);
@@ -157,7 +157,7 @@ namespace Argus.Collector.Common.Services
         /// <returns>A result which may or may not have succeeded.</returns>
         protected Result PushCollectedImage(CollectedImage collectedImage)
         {
-            var serialized = MessagePackSerializer.Serialize(collectedImage);
+            var serialized = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(collectedImage);
             _pushSocket.SendFrame(serialized);
 
             return Result.FromSuccess();
@@ -170,7 +170,7 @@ namespace Argus.Collector.Common.Services
         /// <returns>A result which may or may not have succeeded.</returns>
         protected Result PushStatusReport(StatusReport statusReport)
         {
-            var serialized = MessagePackSerializer.Serialize(statusReport);
+            var serialized = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(statusReport);
             _pushSocket.SendFrame(serialized);
 
             return Result.FromSuccess();
