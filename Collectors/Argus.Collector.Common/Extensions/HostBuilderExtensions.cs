@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.IO;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Polly;
 using Argus.Collector.Common.Services;
@@ -61,6 +62,12 @@ namespace Argus.Collector.Common.Extensions
                 .UseEnvironment("Production")
             #endif
                 .UseConsoleLifetime()
+                .ConfigureAppConfiguration((_, configuration) =>
+                {
+                    var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    var systemConfigFile = Path.Combine(configFolder, "argus", "collector.json");
+                    configuration.AddJsonFile(systemConfigFile, true);
+                })
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.Configure(() =>
