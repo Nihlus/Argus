@@ -145,7 +145,6 @@ namespace Argus.Collector.Hypnohub.Services
                     var mostRecentPost = posts.OrderByDescending(p => p.ID).First();
                     currentPostId = mostRecentPost.ID;
 
-                    // TODO: This hangs
                     var setResume = await SetResumePointAsync(currentPostId.ToString(), ct);
                     if (setResume.IsSuccess)
                     {
@@ -166,56 +165,63 @@ namespace Argus.Collector.Hypnohub.Services
 
         private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync(HttpClient client, Post post, CancellationToken ct = default)
         {
-            var statusReport = new StatusReport
-            (
-                DateTimeOffset.UtcNow,
-                this.ServiceName,
-                new Uri($"{_hypnohubAPI.BaseUrl}post/show/{post.PostUrl}"),
-                new Uri("about:blank"),
-                ImageStatus.Collected,
-                string.Empty
-            );
-
-            if (string.IsNullOrWhiteSpace(post.FileUrl))
+            try
             {
-                var rejectionReport = statusReport with
+                var statusReport = new StatusReport
+                (
+                    DateTimeOffset.UtcNow,
+                    this.ServiceName,
+                    new Uri($"{_hypnohubAPI.BaseUrl}post/show/{post.PostUrl}"),
+                    new Uri("about:blank"),
+                    ImageStatus.Collected,
+                    string.Empty
+                );
+
+                if (string.IsNullOrWhiteSpace(post.FileUrl))
                 {
-                    Status = ImageStatus.Rejected,
-                    Message = "No file"
+                    var rejectionReport = statusReport with
+                    {
+                        Status = ImageStatus.Rejected,
+                        Message = "No file"
+                    };
+
+                    return (rejectionReport, null);
+                }
+
+                var fileExtension = Path.GetExtension(post.FileUrl);
+                if (fileExtension is ".swf" or ".gif")
+                {
+                    var rejectionReport = statusReport with
+                    {
+                        Status = ImageStatus.Rejected,
+                        Image = new Uri(post.FileUrl),
+                        Message = "Animation"
+                    };
+
+                    return (rejectionReport, null);
+                }
+
+                statusReport = statusReport with
+                {
+                    Image = new Uri(post.FileUrl)
                 };
 
-                return (rejectionReport, null);
+                var bytes = await client.GetByteArrayAsync(post.FileUrl, ct);
+
+                var collectedImage = new CollectedImage
+                (
+                    this.ServiceName,
+                    statusReport.Source,
+                    statusReport.Image,
+                    bytes
+                );
+
+                return (statusReport, collectedImage);
             }
-
-            var fileExtension = Path.GetExtension(post.FileUrl);
-            if (fileExtension is ".swf" or ".gif")
+            catch (Exception e)
             {
-                var rejectionReport = statusReport with
-                {
-                    Status = ImageStatus.Rejected,
-                    Image = new Uri(post.FileUrl),
-                    Message = "Animation"
-                };
-
-                return (rejectionReport, null);
+                return e;
             }
-
-            statusReport = statusReport with
-            {
-                Image = new Uri(post.FileUrl)
-            };
-
-            var bytes = await client.GetByteArrayAsync(post.FileUrl, ct);
-
-            var collectedImage = new CollectedImage
-            (
-                this.ServiceName,
-                statusReport.Source,
-                statusReport.Image,
-                bytes
-            );
-
-            return (statusReport, collectedImage);
         }
     }
 }
