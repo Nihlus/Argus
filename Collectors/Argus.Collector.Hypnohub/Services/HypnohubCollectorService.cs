@@ -23,6 +23,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -165,18 +166,18 @@ namespace Argus.Collector.Hypnohub.Services
 
         private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync(HttpClient client, Post post, CancellationToken ct = default)
         {
+            var statusReport = new StatusReport
+            (
+                DateTimeOffset.UtcNow,
+                this.ServiceName,
+                new Uri($"{_hypnohubAPI.BaseUrl}post/show/{post.PostUrl}"),
+                new Uri("about:blank"),
+                ImageStatus.Collected,
+                string.Empty
+            );
+
             try
             {
-                var statusReport = new StatusReport
-                (
-                    DateTimeOffset.UtcNow,
-                    this.ServiceName,
-                    new Uri($"{_hypnohubAPI.BaseUrl}post/show/{post.PostUrl}"),
-                    new Uri("about:blank"),
-                    ImageStatus.Collected,
-                    string.Empty
-                );
-
                 if (string.IsNullOrWhiteSpace(post.FileUrl))
                 {
                     var rejectionReport = statusReport with
@@ -217,6 +218,16 @@ namespace Argus.Collector.Hypnohub.Services
                 );
 
                 return (statusReport, collectedImage);
+            }
+            catch (HttpRequestException hex) when (hex.StatusCode is HttpStatusCode.NotFound)
+            {
+                var rejectionReport = statusReport with
+                {
+                    Status = ImageStatus.Rejected,
+                    Message = "File not found (deleted?)"
+                };
+
+                return (rejectionReport, null);
             }
             catch (Exception e)
             {
