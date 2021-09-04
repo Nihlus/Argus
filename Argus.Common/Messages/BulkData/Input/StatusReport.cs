@@ -37,7 +37,7 @@ namespace Argus.Common.Messages.BulkData
     [MessagePackObject]
     public record StatusReport
     (
-        [property: Key(0)] DateTimeOffset Timestamp,
+        [property: Key(0)] DateTime Timestamp,
         [property: Key(1)] string ServiceName,
         [property: Key(2)] Uri Source,
         [property: Key(3)] Uri Image,

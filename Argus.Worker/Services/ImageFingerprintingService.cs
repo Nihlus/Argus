@@ -129,7 +129,7 @@ namespace Argus.Worker.Services
                     // send status message
                     var message = new StatusReport
                     (
-                        DateTimeOffset.UtcNow,
+                        DateTime.UtcNow,
                         request.ServiceName,
                         request.Source,
                         request.Image,

@@ -142,12 +142,13 @@ namespace Argus.Coordinator.Services
                         }
                         case GetImagesToRetryRequest getImagesRequest:
                         {
-                            var now = DateTimeOffset.UtcNow;
+                            var now = DateTime.UtcNow;
                             var then = now - TimeSpan.FromHours(1);
 
                             await using var db = _contextFactory.CreateDbContext();
                             var reports = await db.ServiceStatusReports.AsNoTracking()
                                 .Select(r => r.Report)
+                                .OrderBy(r => r.Timestamp)
                                 .Where(r => r.Timestamp < then)
                                 .Where
                                 (
@@ -203,7 +204,7 @@ namespace Argus.Coordinator.Services
 
                             var statusReport = new StatusReport
                             (
-                                DateTimeOffset.UtcNow,
+                                DateTime.UtcNow,
                                 collectedImage.ServiceName,
                                 collectedImage.Source,
                                 collectedImage.Image,
