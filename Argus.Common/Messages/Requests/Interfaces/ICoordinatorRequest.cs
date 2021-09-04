@@ -29,6 +29,7 @@ namespace Argus.Common.Messages.Requests
     /// </summary>
     [Union(0, typeof(GetResumeRequest))]
     [Union(1, typeof(SetResumeRequest))]
+    [Union(2, typeof(GetImagesToRetryRequest))]
     public interface ICoordinatorRequest
     {
     }

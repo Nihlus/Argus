@@ -31,6 +31,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Collectors", "Collectors", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Hypnohub", "Collectors\Argus.Collector.Hypnohub\Argus.Collector.Hypnohub.csproj", "{41199F4D-B683-4BF3-8C16-D51FB3D64E32}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Retry", "Collectors\Argus.Collector.Retry\Argus.Collector.Retry.csproj", "{E597285A-18D7-4FA2-AB9E-059718E2378C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,6 +82,12 @@ Global
 		{41199F4D-B683-4BF3-8C16-D51FB3D64E32}.Debug|x86.Build.0 = Debug|Any CPU
 		{41199F4D-B683-4BF3-8C16-D51FB3D64E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{41199F4D-B683-4BF3-8C16-D51FB3D64E32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E597285A-18D7-4FA2-AB9E-059718E2378C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E597285A-18D7-4FA2-AB9E-059718E2378C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E597285A-18D7-4FA2-AB9E-059718E2378C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E597285A-18D7-4FA2-AB9E-059718E2378C}.Debug|x86.Build.0 = Debug|Any CPU
+		{E597285A-18D7-4FA2-AB9E-059718E2378C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E597285A-18D7-4FA2-AB9E-059718E2378C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,5 +97,6 @@ Global
 		{E0980C43-16DA-4EAC-AA44-99C0FFB16975} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
 		{AE802FD0-F56F-4555-9711-5D110279E7FD} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
 		{41199F4D-B683-4BF3-8C16-D51FB3D64E32} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
+		{E597285A-18D7-4FA2-AB9E-059718E2378C} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
 	EndGlobalSection
 EndGlobal

@@ -1,5 +1,5 @@
 //
-//  ICoordinatorReply.cs
+//  RetryOptions.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,17 +20,13 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
+using System;
 
-namespace Argus.Common.Messages.Replies
+namespace Argus.Collector.Retry.Configuration
 {
     /// <summary>
-    /// Represents a marker interface for a reply made by the coordinator.
+    /// Represents collector-specific configuration.
     /// </summary>
-    [Union(0, typeof(ResumeReply))]
-    [Union(1, typeof(ErrorReply))]
-    [Union(2, typeof(ImagesToRetryReply))]
-    public interface ICoordinatorReply
-    {
-    }
+    /// <param name="PageSize">The size of a single page of images to retry, requested from the coordinator.</param>
+    public record RetryOptions(int PageSize = 100);
 }

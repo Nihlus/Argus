@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Common;
@@ -137,6 +138,27 @@ namespace Argus.Coordinator.Services
 
                             var resumePoint = serviceStatus.ResumePoint;
                             reply = new ResumeReply(resumePoint ?? string.Empty);
+                            break;
+                        }
+                        case GetImagesToRetryRequest getImagesRequest:
+                        {
+                            var now = DateTimeOffset.UtcNow;
+                            var then = now - TimeSpan.FromHours(1);
+
+                            await using var db = _contextFactory.CreateDbContext();
+                            var reports = await db.ServiceStatusReports.AsNoTracking()
+                                .Select(r => r.Report)
+                                .Where(r => r.Timestamp < then)
+                                .Where
+                                (
+                                    r =>
+                                        r.Status == ImageStatus.Collected ||
+                                        r.Status == ImageStatus.Processing
+                                )
+                                .Take(getImagesRequest.MaxCount)
+                                .ToListAsync(ct);
+
+                            reply = new ImagesToRetryReply(reports);
                             break;
                         }
                         default:

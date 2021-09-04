@@ -43,11 +43,6 @@ namespace Argus.Collector.Common.Services
     public abstract class CollectorService : BackgroundService
     {
         /// <summary>
-        /// Holds the request socket used for communication with the coordinator.
-        /// </summary>
-        private readonly RequestSocket _requestSocket;
-
-        /// <summary>
         /// Holds the push socket used for data output.
         /// </summary>
         private readonly PushSocket _pushSocket;
@@ -56,6 +51,11 @@ namespace Argus.Collector.Common.Services
         /// Holds the logging instance.
         /// </summary>
         private readonly ILogger<CollectorService> _log;
+
+        /// <summary>
+        /// Gets the request socket used for communication with the coordinator.
+        /// </summary>
+        protected RequestSocket RequestSocket { get; }
 
         /// <summary>
         /// Gets the name of the service.
@@ -77,10 +77,10 @@ namespace Argus.Collector.Common.Services
             this.Options = options.Value;
             _log = log;
 
-            _requestSocket = new RequestSocket();
+            this.RequestSocket = new RequestSocket();
             _pushSocket = new PushSocket();
 
-            _requestSocket.Connect(this.Options.CoordinatorEndpoint.ToString().TrimEnd('/'));
+            this.RequestSocket.Connect(this.Options.CoordinatorEndpoint.ToString().TrimEnd('/'));
             _pushSocket.Connect(this.Options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
         }
 
@@ -116,9 +116,9 @@ namespace Argus.Collector.Common.Services
         {
             var message = new GetResumeRequest(this.ServiceName);
             var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
-            _requestSocket.SendFrame(serialized);
+            this.RequestSocket.SendFrame(serialized);
 
-            var (frame, _) = await _requestSocket.ReceiveFrameBytesAsync(ct);
+            var (frame, _) = await this.RequestSocket.ReceiveFrameBytesAsync(ct);
             var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
             return response switch
             {
@@ -137,9 +137,9 @@ namespace Argus.Collector.Common.Services
         {
             var message = new SetResumeRequest(this.ServiceName, resumePoint);
             var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
-            _requestSocket.SendFrame(serialized);
+            this.RequestSocket.SendFrame(serialized);
 
-            var (frame, _) = await _requestSocket.ReceiveFrameBytesAsync(ct);
+            var (frame, _) = await this.RequestSocket.ReceiveFrameBytesAsync(ct);
             var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
             return response switch
             {

@@ -1,5 +1,5 @@
 //
-//  ICoordinatorReply.cs
+//  GetImagesToRetryRequest.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -22,15 +22,12 @@
 
 using MessagePack;
 
-namespace Argus.Common.Messages.Replies
+namespace Argus.Common.Messages.Requests
 {
     /// <summary>
-    /// Represents a marker interface for a reply made by the coordinator.
+    /// Represents a request for a set of images to retry collection of.
     /// </summary>
-    [Union(0, typeof(ResumeReply))]
-    [Union(1, typeof(ErrorReply))]
-    [Union(2, typeof(ImagesToRetryReply))]
-    public interface ICoordinatorReply
-    {
-    }
+    /// <param name="MaxCount">The maximum number of images to receive.</param>
+    [MessagePackObject]
+    public record GetImagesToRetryRequest([property: Key(0)] int MaxCount) : ICoordinatorRequest;
 }

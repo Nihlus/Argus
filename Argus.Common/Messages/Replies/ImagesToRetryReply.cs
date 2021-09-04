@@ -1,5 +1,5 @@
 //
-//  ICoordinatorReply.cs
+//  ImagesToRetryReply.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,17 +20,19 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System.Collections.Generic;
+using Argus.Common.Messages.BulkData;
 using MessagePack;
 
 namespace Argus.Common.Messages.Replies
 {
     /// <summary>
-    /// Represents a marker interface for a reply made by the coordinator.
+    /// Represents a response with a set of images to retry.
     /// </summary>
-    [Union(0, typeof(ResumeReply))]
-    [Union(1, typeof(ErrorReply))]
-    [Union(2, typeof(ImagesToRetryReply))]
-    public interface ICoordinatorReply
-    {
-    }
+    /// <param name="ImagesToRetry">The images to retry.</param>
+    [MessagePackObject]
+    public record ImagesToRetryReply
+    (
+        [property: Key(0)] IReadOnlyCollection<StatusReport> ImagesToRetry
+    ) : ICoordinatorReply;
 }
