@@ -20,7 +20,6 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -152,10 +151,10 @@ namespace Argus.Coordinator.Services.Elasticsearch
                     (
                         d =>
                         {
-                            var left = signatureArray.AsSpan();
-                            var right = d.Signature.ToArray().AsSpan();
+                            var left = signatureArray;
+                            var right = d.Signature.ToArray();
 
-                            return (Similarity: SignatureComparison.CompareTo(left, right), Image: d);
+                            return (Similarity: left.CompareTo(right), Image: d);
                         }
                     )
                     .OrderByDescending(x => x)

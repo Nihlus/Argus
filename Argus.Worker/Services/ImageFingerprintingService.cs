@@ -211,7 +211,7 @@ namespace Argus.Worker.Services
                 var hashString = BitConverter.ToString(hash).ToLowerInvariant();
 
                 // CPU-intensive step 3
-                var signature = _signatureGenerator.GenerateSignature(image).ToArray();
+                var signature = _signatureGenerator.GenerateSignature(image);
                 return new FingerprintedImage
                 (
                     collectedImage.ServiceName,
