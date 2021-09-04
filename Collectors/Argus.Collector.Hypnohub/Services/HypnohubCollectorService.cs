@@ -168,7 +168,7 @@ namespace Argus.Collector.Hypnohub.Services
         {
             var statusReport = new StatusReport
             (
-                DateTimeOffset.UtcNow,
+                DateTime.UtcNow,
                 this.ServiceName,
                 new Uri($"{_hypnohubAPI.BaseUrl}post/show/{post.PostUrl}"),
                 new Uri("about:blank"),

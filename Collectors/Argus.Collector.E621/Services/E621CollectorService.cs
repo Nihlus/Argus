@@ -171,7 +171,7 @@ namespace Argus.Collector.E621.Services
             {
                 var statusReport = new StatusReport
                 (
-                    DateTimeOffset.UtcNow,
+                    DateTime.UtcNow,
                     this.ServiceName,
                     new Uri($"{_e621Client.BaseUrl}/posts/{post.Id}"),
                     new Uri("about:blank"),

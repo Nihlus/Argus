@@ -160,7 +160,7 @@ namespace Argus.Collector.FList.Services
 
                     var statusReport = new StatusReport
                     (
-                        DateTimeOffset.UtcNow,
+                        DateTime.UtcNow,
                         this.ServiceName,
                         collectedImage.Source,
                         collectedImage.Image,
