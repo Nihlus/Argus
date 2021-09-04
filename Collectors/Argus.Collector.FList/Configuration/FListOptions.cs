@@ -27,5 +27,8 @@ namespace Argus.Collector.FList.Configuration
     /// </summary>
     /// <param name="Username">The username to log in with.</param>
     /// <param name="Password">The password to log in with.</param>
-    public record FListOptions(string Username, string Password);
+    /// <param name="RateLimit">
+    /// The rate limit to use for API requests, measured in requests per second.
+    /// </param>
+    public record FListOptions(string Username, string Password, int RateLimit = 1);
 }

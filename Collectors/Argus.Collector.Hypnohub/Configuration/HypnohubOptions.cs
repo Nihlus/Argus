@@ -1,5 +1,5 @@
 //
-//  CollectorOptions.cs
+//  HypnohubOptions.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,22 +20,13 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-
-namespace Argus.Collector.Common.Configuration
+namespace Argus.Collector.Hypnohub.Configuration
 {
     /// <summary>
-    /// Represents the application configuration.
+    /// Represents collector-specific configuration.
     /// </summary>
-    /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorInputEndpoint">The input endpoint of the cluster coordinator.</param>
-    /// <param name="BulkDownloadRateLimit">
-    /// The rate limit to use for bulk downloads, measured in requests per second.
+    /// <param name="RateLimit">
+    /// The rate limit to use for API requests, measured in requests per second.
     /// </param>
-    public record CollectorOptions
-    (
-        Uri CoordinatorEndpoint,
-        Uri CoordinatorInputEndpoint,
-        int BulkDownloadRateLimit = 25
-    );
+    public record HypnohubOptions(int RateLimit = 1);
 }

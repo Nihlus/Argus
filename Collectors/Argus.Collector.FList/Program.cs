@@ -100,6 +100,15 @@ namespace Argus.Collector.FList
                     .AddSingleton<FListAPI>()
                     .AddSingleton<FListAuthenticationRefreshPolicy>();
 
+                var rateLimit = hostContext.Configuration
+                    .GetSection(nameof(FListOptions))
+                    .GetValue<int>(nameof(FListOptions.RateLimit));
+
+                if (rateLimit == 0)
+                {
+                    rateLimit = 1;
+                }
+
                 services.AddHttpClient(nameof(FListAPI), (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
@@ -116,7 +125,7 @@ namespace Argus.Collector.FList
                 (
                     b => b
                         .WaitAndRetryAsync(retryDelay)
-                        .WrapAsync(new ThrottlingPolicy(1, TimeSpan.FromSeconds(1)))
+                        .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
                 )
                 .AddPolicyHandler((s, _) =>
                 {

@@ -86,6 +86,15 @@ namespace Argus.Collector.Common.Extensions
                         .AddHttpClient()
                         .AddMemoryCache();
 
+                    var rateLimit = hostContext.Configuration
+                        .GetSection(nameof(CollectorOptions))
+                        .GetValue<int>(nameof(CollectorOptions.BulkDownloadRateLimit));
+
+                    if (rateLimit == 0)
+                    {
+                        rateLimit = 25;
+                    }
+
                     var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
                     services
                         .AddHttpClient("BulkDownload")
@@ -93,7 +102,7 @@ namespace Argus.Collector.Common.Extensions
                         (
                             b => b
                                 .WaitAndRetryAsync(retryDelay)
-                                .WrapAsync(new ThrottlingPolicy(25, TimeSpan.FromSeconds(1)))
+                                .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
                         );
 
                     services.AddHostedService<TCollector>();

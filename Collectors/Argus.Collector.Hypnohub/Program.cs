@@ -25,6 +25,7 @@ using System.IO;
 using System.Net.Http;
 using Argus.Collector.Common.Extensions;
 using Argus.Collector.Common.Polly;
+using Argus.Collector.Hypnohub.Configuration;
 using Argus.Collector.Hypnohub.Implementations;
 using Argus.Collector.Hypnohub.Services;
 using Microsoft.Extensions.Configuration;
@@ -34,6 +35,7 @@ using Microsoft.Extensions.Logging;
 using NetMQ;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
+using Remora.Extensions.Options.Immutable;
 
 namespace Argus.Collector.Hypnohub
 {
@@ -66,9 +68,26 @@ namespace Argus.Collector.Hypnohub
                     configuration.AddUserSecrets<Program>();
                 }
             })
-            .ConfigureServices((_, services) =>
+            .ConfigureServices((hostContext, services) =>
             {
+                services.Configure(() =>
+                {
+                    var options = new HypnohubOptions();
+
+                    hostContext.Configuration.Bind(nameof(HypnohubOptions), options);
+                    return options;
+                });
+
                 var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+
+                var rateLimit = hostContext.Configuration
+                    .GetSection(nameof(HypnohubOptions))
+                    .GetValue<int>(nameof(HypnohubOptions.RateLimit));
+
+                if (rateLimit == 0)
+                {
+                    rateLimit = 1;
+                }
 
                 services
                     .AddHttpClient<HypnohubAPI>()
@@ -76,7 +95,7 @@ namespace Argus.Collector.Hypnohub
                     (
                         b => b
                             .WaitAndRetryAsync(retryDelay)
-                            .WrapAsync(new ThrottlingPolicy(1, TimeSpan.FromSeconds(1)))
+                            .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
                     );
 
                 services
