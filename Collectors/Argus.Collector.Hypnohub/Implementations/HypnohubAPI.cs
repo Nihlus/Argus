@@ -64,7 +64,7 @@ namespace Argus.Collector.Hypnohub.Implementations
             var tags = new[]
             {
                 "order:id",
-                $"{(after.HasValue ? $"id:>={after}" : string.Empty)}"
+                $"{(after.HasValue ? $"id:>{after}" : string.Empty)}"
             };
 
             try
