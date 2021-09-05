@@ -13,6 +13,12 @@
         <PackageReference Include="NetMQ" Version="4.0.1.6" />
         <PackageReference Include="Puzzle" Version="3.0.0" />
         <PackageReference Include="Remora.Results" Version="6.1.0" />
+        <PackageReference Include="NEST" Version="7.14.1" />
+        <PackageReference Include="morelinq" Version="3.3.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Services" />
     </ItemGroup>
 
 </Project>

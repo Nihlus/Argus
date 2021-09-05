@@ -23,7 +23,7 @@
 using Elasticsearch.Net;
 using Remora.Results;
 
-namespace Argus.Coordinator.Results
+namespace Argus.Common.Results
 {
     /// <summary>
     /// Represents an error resulting from Elasticsearch.

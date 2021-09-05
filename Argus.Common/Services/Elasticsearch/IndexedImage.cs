@@ -24,7 +24,7 @@ using System;
 using System.Collections.Generic;
 using Puzzle;
 
-namespace Argus.Coordinator.Services.Elasticsearch
+namespace Argus.Common.Services.Elasticsearch
 {
     /// <summary>
     /// Represents an indexed image.

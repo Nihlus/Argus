@@ -24,12 +24,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Argus.Coordinator.Results;
+using Argus.Common.Results;
 using Nest;
 using Puzzle;
 using Result = Remora.Results.Result;
 
-namespace Argus.Coordinator.Services.Elasticsearch
+namespace Argus.Common.Services.Elasticsearch
 {
     /// <summary>
     /// Represents an interface with Elasticsearch.

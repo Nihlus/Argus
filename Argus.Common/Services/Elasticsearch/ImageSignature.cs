@@ -25,7 +25,7 @@ using System.Linq;
 using MoreLinq;
 using Puzzle;
 
-namespace Argus.Coordinator.Services.Elasticsearch
+namespace Argus.Common.Services.Elasticsearch
 {
     /// <summary>
     /// Represents the signature of an indexed image in Elasticsearch.

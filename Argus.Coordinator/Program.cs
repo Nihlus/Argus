@@ -23,10 +23,10 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.Model;
 using Argus.Coordinator.Services;
-using Argus.Coordinator.Services.Elasticsearch;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
