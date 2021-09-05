@@ -63,7 +63,7 @@ namespace Argus.Collector.Weasyl
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.retry.json");
+                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.weasyl.json");
                 configuration.AddJsonFile(systemConfigFile, true);
 
                 if (hostContext.HostingEnvironment.IsDevelopment())
