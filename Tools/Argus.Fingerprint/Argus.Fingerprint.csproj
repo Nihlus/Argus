@@ -5,6 +5,12 @@
         <TargetFramework>net5.0</TargetFramework>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <Description>
+            Creates portable fingerprints.
+        </Description>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="CommandLineParser" Version="2.8.0" />
       <PackageReference Include="Puzzle" Version="3.0.0" />
@@ -16,4 +22,16 @@
       <ProjectReference Include="..\..\Collectors\Argus.Collector.Common\Argus.Collector.Common.csproj" />
     </ItemGroup>
 
+    <Choose>
+        <When Condition="'$(RuntimeIdentifier)' != ''">
+            <PropertyGroup>
+                <PublishSingleFile>true</PublishSingleFile>
+                <PublishTrimmed>true</PublishTrimmed>
+                <TrimMode>link</TrimMode>
+                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+            </PropertyGroup>
+        </When>
+    </Choose>
+    
 </Project>
