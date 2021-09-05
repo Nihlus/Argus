@@ -20,15 +20,20 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System.Text.Json;
+using System;
+using Argus.API.Configuration;
 using Argus.Common.Json;
+using Argus.Common.Services.Elasticsearch;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using Nest;
 using Puzzle;
+using Remora.Extensions.Options.Immutable;
 
 namespace Argus.API
 {
@@ -69,6 +74,40 @@ namespace Argus.API
             });
 
             services.AddSingleton<SignatureGenerator>();
+
+            services.Configure(() =>
+            {
+                var options = new APIOptions
+                (
+                    new Uri("about:blank"),
+                    string.Empty,
+                    string.Empty
+                );
+
+                this.Configuration.Bind(nameof(APIOptions), options);
+                return options;
+            });
+
+            // Elasticsearch services
+            services
+                .AddTransient
+                (
+                    transientServices =>
+                    {
+                        var (node, username, password) = transientServices
+                            .GetRequiredService<IOptions<APIOptions>>().Value;
+
+                        var settings = new ConnectionSettings(node);
+
+                        settings.BasicAuthentication(username, password);
+
+                        settings.DefaultIndex("images");
+
+                        return settings;
+                    }
+                )
+                .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
+                .AddTransient<NESTService>();
         }
 
         /// <summary>

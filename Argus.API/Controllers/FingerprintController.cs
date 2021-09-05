@@ -41,6 +41,7 @@ namespace Argus.API.Controllers
     /// </summary>
     [Route("api/fingerprint")]
     [ApiController]
+    [Produces("application/json")]
     public class FingerprintController : ControllerBase
     {
         private readonly SignatureGenerator _signatureGenerator;
