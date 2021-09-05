@@ -40,6 +40,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{A2C11622
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Fingerprint", "Tools\Argus.Fingerprint\Argus.Fingerprint.csproj", "{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.API", "Argus.API\Argus.API.csproj", "{0AD4D033-E57E-43C7-872C-CC668447FCC2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -107,6 +109,12 @@ Global
 		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Debug|x86.Build.0 = Debug|Any CPU
 		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AD4D033-E57E-43C7-872C-CC668447FCC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AD4D033-E57E-43C7-872C-CC668447FCC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AD4D033-E57E-43C7-872C-CC668447FCC2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0AD4D033-E57E-43C7-872C-CC668447FCC2}.Debug|x86.Build.0 = Debug|Any CPU
+		{0AD4D033-E57E-43C7-872C-CC668447FCC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AD4D033-E57E-43C7-872C-CC668447FCC2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
