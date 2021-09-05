@@ -136,7 +136,7 @@ namespace Argus.Collector.Weasyl.Services
                         continue;
                     }
 
-                    if (getSubmission.Error is not NotFoundError)
+                    if (getSubmission.Error is not NotFoundError or WeasylError { StatusCode: HttpStatusCode.NotFound })
                     {
                         _log.LogWarning
                         (

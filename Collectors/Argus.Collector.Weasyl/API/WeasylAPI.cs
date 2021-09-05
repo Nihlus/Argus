@@ -91,12 +91,37 @@ namespace Argus.Collector.Weasyl.API
                     );
                 }
 
-                if (response.StatusCode is HttpStatusCode.NotFound)
+                var document = await JsonDocument.ParseAsync
+                (
+                    await response.Content.ReadAsStreamAsync(ct),
+                    cancellationToken: ct
+                );
+
+                if (!document.RootElement.TryGetProperty("error", out var errorProperty))
                 {
-                    return new NotFoundError();
+                    if (response.StatusCode is HttpStatusCode.NotFound)
+                    {
+                        return new NotFoundError();
+                    }
+
+                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
                 }
 
-                return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
+                var errorJson = errorProperty.ToString();
+                if (errorJson is null)
+                {
+                    if (response.StatusCode is HttpStatusCode.NotFound)
+                    {
+                        return new NotFoundError();
+                    }
+
+                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
+                }
+
+                var error = JsonSerializer.Deserialize<WeasylError>(errorJson, _jsonOptions)
+                            ?? throw new InvalidOperationException();
+
+                return error with { StatusCode = response.StatusCode };
             }
             catch (Exception e)
             {
@@ -128,17 +153,47 @@ namespace Argus.Collector.Weasyl.API
                 request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
 
                 var response = await client.SendAsync(request, ct);
-                if (!response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
+                    return await JsonSerializer.DeserializeAsync<List<WeasylSubmission>>
+                    (
+                        await response.Content.ReadAsStreamAsync(ct),
+                        _jsonOptions,
+                        ct
+                    );
+                }
+
+                var document = await JsonDocument.ParseAsync
+                (
+                    await response.Content.ReadAsStreamAsync(ct),
+                    cancellationToken: ct
+                );
+
+                if (!document.RootElement.TryGetProperty("error", out var errorProperty))
+                {
+                    if (response.StatusCode is HttpStatusCode.NotFound)
+                    {
+                        return new NotFoundError();
+                    }
+
                     return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
                 }
 
-                return await JsonSerializer.DeserializeAsync<List<WeasylSubmission>>
-                (
-                    await response.Content.ReadAsStreamAsync(ct),
-                    _jsonOptions,
-                    ct
-                );
+                var errorJson = errorProperty.ToString();
+                if (errorJson is null)
+                {
+                    if (response.StatusCode is HttpStatusCode.NotFound)
+                    {
+                        return new NotFoundError();
+                    }
+
+                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
+                }
+
+                var error = JsonSerializer.Deserialize<WeasylError>(errorJson, _jsonOptions)
+                            ?? throw new InvalidOperationException();
+
+                return error with { StatusCode = response.StatusCode };
             }
             catch (Exception e)
             {
