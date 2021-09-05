@@ -27,7 +27,6 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Argus.Collector.Common.Json;
 using Argus.Common.Json;
 using Argus.Common.Portable;
 using CommandLine;

@@ -25,7 +25,7 @@ using System.Text;
 using System.Text.Json;
 using JetBrains.Annotations;
 
-namespace Argus.Collector.Common.Json
+namespace Argus.Common.Json
 {
     /// <summary>
     /// Represents a snake_case naming policy.
