@@ -35,6 +35,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Retry", "Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Weasyl", "Collectors\Argus.Collector.Weasyl\Argus.Collector.Weasyl.csproj", "{06383965-77C1-4807-8101-70506F1AB995}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{A2C11622-CD77-4758-BCF2-44134ECD1A19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Fingerprint", "Tools\Argus.Fingerprint\Argus.Fingerprint.csproj", "{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,6 +100,12 @@ Global
 		{06383965-77C1-4807-8101-70506F1AB995}.Debug|x86.Build.0 = Debug|Any CPU
 		{06383965-77C1-4807-8101-70506F1AB995}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06383965-77C1-4807-8101-70506F1AB995}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Debug|x86.Build.0 = Debug|Any CPU
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -107,5 +117,6 @@ Global
 		{41199F4D-B683-4BF3-8C16-D51FB3D64E32} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
 		{E597285A-18D7-4FA2-AB9E-059718E2378C} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
 		{06383965-77C1-4807-8101-70506F1AB995} = {D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}
+		{84D6EFE3-C53B-4D95-AF63-5E55C6E8B9F7} = {A2C11622-CD77-4758-BCF2-44134ECD1A19}
 	EndGlobalSection
 EndGlobal
