@@ -20,8 +20,10 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using MoreLinq;
 using Puzzle;
 
@@ -35,40 +37,62 @@ namespace Argus.Common.Services.Elasticsearch
         /// <summary>
         /// Gets the raw signature of the image.
         /// </summary>
-        public IReadOnlyCollection<LuminosityLevel> Signature { get; }
+        public LuminosityLevel[] Signature { get; }
 
         /// <summary>
         /// Gets a composite signature, used for rapid full-text search.
         /// </summary>
-        public IReadOnlyCollection<int> Words { get; }
+        public int[] Words { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageSignature"/> class.
         /// </summary>
         /// <param name="signature">The raw signature to wrap.</param>
-        public ImageSignature(IReadOnlyCollection<LuminosityLevel> signature)
+        public ImageSignature(LuminosityLevel[] signature)
         {
+            const int wordSize = 16;
+            const int wordCount = 63;
+
             this.Signature = signature;
 
-            this.Words = this.Signature
-                .Batch(3)
-                .Select
-                (
-                    wa =>
-                    {
-                        var word = 0;
+            var words = new List<int>();
+            Span<sbyte> word = stackalloc sbyte[wordSize];
 
-                        var i = 0;
-                        foreach (var syllable in wa)
-                        {
-                            word |= (sbyte)syllable << (i * 8);
-                            ++i;
-                        }
+            for (var i = 0; i < wordCount; i++)
+            {
+                word.Fill(0);
 
-                        return word;
-                    }
-                )
-                .ToList();
+                var slice = signature.AsSpan().Slice(i, wordSize);
+                var asByte = MemoryMarshal.Cast<LuminosityLevel, sbyte>(slice);
+                asByte.CopyTo(word);
+
+                // See https://github.com/ProvenanceLabs/image-match/blob/master/image_match/signature_database_base.py#L124
+                var sum = 0;
+                for (var index = 0; index < word.Length; index++)
+                {
+                    var syllable = word[index];
+
+                    // Squish the contrast range
+                    var squishedSyllable = syllable > 0
+                        ? 1
+                        : syllable < 0
+                            ? -1
+                            : 0;
+
+                    // Convert the syllable into a positive number
+                    var a = squishedSyllable + 1;
+
+                    // Compute the rolling coding vector value
+                    var b = (byte)Math.Pow(3, index);
+
+                    // Then push the value into the rolling dot product
+                    sum += a * b;
+                }
+
+                words.Add(sum);
+            }
+
+            this.Words = words.ToArray();
         }
     }
 }

@@ -33,10 +33,10 @@ namespace Argus.Common.Json
     /// <summary>
     /// Converts a fingerprint to and from a base64 encoded string.
     /// </summary>
-    public class Base64FingerprintConverter : JsonConverter<IReadOnlyList<LuminosityLevel>>
+    public class Base64FingerprintConverter : JsonConverter<LuminosityLevel[]>
     {
         /// <inheritdoc />
-        public override IReadOnlyList<LuminosityLevel> Read
+        public override LuminosityLevel[] Read
         (
             ref Utf8JsonReader reader,
             Type typeToConvert,
@@ -51,11 +51,12 @@ namespace Argus.Common.Json
         public override void Write
         (
             Utf8JsonWriter writer,
-            IReadOnlyList<LuminosityLevel> value,
+            LuminosityLevel[] value,
             JsonSerializerOptions options
         )
         {
-            writer.WriteBase64StringValue(value.Select(l => (byte)l).ToArray());
+            var span = MemoryMarshal.Cast<LuminosityLevel, byte>(value);
+            writer.WriteBase64StringValue(span);
         }
     }
 }

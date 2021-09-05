@@ -41,7 +41,7 @@ namespace Argus.Common.Messages.BulkData
         [property: Key(0)] string ServiceName,
         [property: Key(1)] Uri Source,
         [property: Key(2)] Uri Image,
-        [property: Key(3)] IReadOnlyCollection<LuminosityLevel> Fingerprint,
+        [property: Key(3)] LuminosityLevel[] Fingerprint,
         [property: Key(4)] string Hash
     ) : ICoordinatorInputMessage;
 }

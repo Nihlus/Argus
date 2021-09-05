@@ -20,11 +20,14 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Common.Results;
+using Argus.Common.Services.Elasticsearch.Search;
 using Nest;
 using Puzzle;
 using Result = Remora.Results.Result;
@@ -45,33 +48,6 @@ namespace Argus.Common.Services.Elasticsearch
         public NESTService(ElasticClient client)
         {
             _client = client;
-        }
-
-        private ISearchRequest BuildQuery(SearchDescriptor<IndexedImage> q, IEnumerable<int> searchWords)
-        {
-            q = q.Index("images")
-                .Query(qu =>
-                {
-                    return qu.Bool(bu =>
-                    {
-                        bu.Should(sh =>
-                        {
-                            var composite = sh.Term(t => t.Field(i => i.Words).Value(searchWords.First()));
-                            foreach (var searchWord in searchWords.Skip(1))
-                            {
-                                composite = composite || sh.Term(t => t.Field(i => i.Words).Value(searchWord));
-                            }
-
-                            return composite;
-                        });
-
-                        return bu;
-                    });
-                });
-
-            q = q.Source(so => so.Excludes(fs => fs.Field(i => i.Words)));
-
-            return q;
         }
 
         /// <summary>
@@ -127,49 +103,104 @@ namespace Argus.Common.Services.Elasticsearch
         /// Searches the database for matching images.
         /// </summary>
         /// <param name="signature">The signature to search for.</param>
+        /// <param name="after">The index after which the search should start returning results.</param>
+        /// <param name="limit">The maximum number of records to return. Maximum 100.</param>
+        /// <param name="ct">The cancellation token for this operation.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public async Task<IReadOnlyCollection<(SignatureSimilarity Similarity, IndexedImage Image)>> SearchAsync
+        public async IAsyncEnumerable<SearchResult> SearchAsync
         (
-            ImageSignature signature
+            ImageSignature signature,
+            uint after = 0,
+            uint limit = 100,
+            [EnumeratorCancellation] CancellationToken ct = default
         )
         {
-            var hits = new List<(SignatureSimilarity, IndexedImage)>();
-
-            var offset = 0;
-            var hasRelevantResult = true;
-            while (hasRelevantResult)
+            if (limit > 100)
             {
-                var offsetCopy = offset;
-                var searchResponse = await _client.SearchAsync<IndexedImage>
-                (
-                    s => BuildQuery(s.From(offsetCopy).Size(8), signature.Words)
-                ).ConfigureAwait(false);
-
-                var signatureArray = signature.Signature.ToArray();
-                var dists = searchResponse.Documents
-                    .Select
-                    (
-                        d =>
-                        {
-                            var left = signatureArray;
-                            var right = d.Signature.ToArray();
-
-                            return (Similarity: left.CompareTo(right), Image: d);
-                        }
-                    )
-                    .OrderByDescending(x => x)
-                    .ToList();
-
-                if (!dists.Any(x => x.Similarity is SignatureSimilarity.Similar or SignatureSimilarity.Identical))
-                {
-                    hasRelevantResult = false;
-                }
-
-                hits.AddRange(dists);
-                offset += 8;
+                limit = 100;
             }
 
-            return hits;
+            const int pageSize = 10;
+
+            var foundResults = 0;
+            while (true)
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
+                var offsetCopy = after;
+                var searchResponse = await _client.SearchAsync<IndexedImage>
+                (
+                    s => BuildQuery(s.From((int)offsetCopy).Size(pageSize), signature.Words), ct
+                ).ConfigureAwait(false);
+
+                var stillFindingResults = false;
+                foreach (var hit in searchResponse.Documents)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        yield break;
+                    }
+
+                    var similarity = signature.Signature.CompareTo(hit.Signature);
+
+                    if (similarity is not (SignatureSimilarity.Similar or SignatureSimilarity.Identical))
+                    {
+                        continue;
+                    }
+
+                    var imageInformation = new ImageInformation
+                    (
+                        hit.IndexedAt,
+                        hit.Service,
+                        new Uri(hit.Source),
+                        new Uri(hit.Link)
+                    );
+
+                    stillFindingResults = true;
+                    yield return new SearchResult(similarity, imageInformation);
+
+                    ++foundResults;
+                    if (foundResults >= limit)
+                    {
+                        yield break;
+                    }
+                }
+
+                if (!stillFindingResults)
+                {
+                    yield break;
+                }
+
+                after += pageSize;
+            }
+        }
+
+        private ISearchRequest BuildQuery(SearchDescriptor<IndexedImage> q, int[] searchWords)
+        {
+            q = q.Index("images")
+                .Query(query =>
+                {
+                    return query.Bool(boolQuery =>
+                    {
+                        boolQuery.Should(shouldQuery =>
+                        {
+                            return searchWords[1..].Aggregate
+                            (
+                                shouldQuery.Term(t => t.Field(i => i.Words).Value(searchWords[0])),
+                                (current, word) => current || shouldQuery.Term(t => t.Field(i => i.Words).Value(word))
+                            );
+                        });
+
+                        return boolQuery;
+                    });
+                });
+
+            q = q.Source(so => so.Excludes(fs => fs.Field(i => i.Words)));
+
+            return q;
         }
     }
 }

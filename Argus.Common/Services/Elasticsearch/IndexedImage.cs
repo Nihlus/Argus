@@ -21,7 +21,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using Puzzle;
 
 namespace Argus.Common.Services.Elasticsearch
@@ -54,12 +53,12 @@ namespace Argus.Common.Services.Elasticsearch
         /// <summary>
         /// Gets the image's calculated signature.
         /// </summary>
-        public IReadOnlyCollection<LuminosityLevel> Signature { get; init; }
+        public LuminosityLevel[] Signature { get; init; }
 
         /// <summary>
         /// Gets the words that compose the signature. This field is used for search performance.
         /// </summary>
-        public IReadOnlyCollection<int> Words { get; init; }
+        public int[] Words { get; init; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexedImage"/> class.
@@ -76,8 +75,8 @@ namespace Argus.Common.Services.Elasticsearch
             DateTimeOffset indexedAt,
             string source,
             string link,
-            IReadOnlyCollection<LuminosityLevel> signature,
-            IReadOnlyCollection<int> words
+            LuminosityLevel[] signature,
+            int[] words
         )
         {
             this.Service = service;

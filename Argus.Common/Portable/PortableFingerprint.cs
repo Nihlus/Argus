@@ -20,7 +20,6 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System.Collections.Generic;
 using Puzzle;
 
 namespace Argus.Common.Portable
@@ -35,6 +34,6 @@ namespace Argus.Common.Portable
     (
         string Filename,
         string Hash,
-        IReadOnlyList<LuminosityLevel> Fingerprint
+        LuminosityLevel[] Fingerprint
     );
 }
