@@ -56,13 +56,13 @@ namespace Argus.Collector.Hypnohub
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<HypnohubCollectorService>()
+            .UseCollector<HypnohubCollectorService, HypnohubOptions>
+            (
+                "hypnohub",
+                () => new HypnohubOptions()
+            )
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
-                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.hypnohub.json");
-                configuration.AddJsonFile(systemConfigFile, true);
-
                 if (hostContext.HostingEnvironment.IsDevelopment())
                 {
                     configuration.AddUserSecrets<Program>();
@@ -70,14 +70,6 @@ namespace Argus.Collector.Hypnohub
             })
             .ConfigureServices((hostContext, services) =>
             {
-                services.Configure(() =>
-                {
-                    var options = new HypnohubOptions();
-
-                    hostContext.Configuration.Bind(nameof(HypnohubOptions), options);
-                    return options;
-                });
-
                 var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
 
                 var rateLimit = hostContext.Configuration

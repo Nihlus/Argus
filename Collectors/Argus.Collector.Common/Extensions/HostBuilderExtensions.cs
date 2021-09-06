@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Polly;
 using Argus.Collector.Common.Services;
@@ -44,9 +45,69 @@ namespace Argus.Collector.Common.Extensions
         /// Adds and configures the given collector service.
         /// </summary>
         /// <param name="hostBuilder">The host builder.</param>
+        /// <param name="serviceName">The name of the service.</param>
+        /// <param name="optionsFactory">The options factory.</param>
+        /// <typeparam name="TCollector">The collector service.</typeparam>
+        /// <typeparam name="TCollectorOptions">The options type.</typeparam>
+        /// <returns>The configured host builder.</returns>
+        public static IHostBuilder UseCollector<TCollector, TCollectorOptions>
+        (
+            this IHostBuilder hostBuilder,
+            string serviceName,
+            Func<TCollectorOptions> optionsFactory
+        )
+            where TCollector : CollectorService
+            where TCollectorOptions : class
+        {
+            hostBuilder.UseCollector<TCollector>();
+
+            hostBuilder.ConfigureAppConfiguration((_, configuration) =>
+            {
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Add a set of config files for the /etc directory
+                    var systemConfigFolder = "/etc";
+
+                    var systemServiceConfigFile = Path.Combine
+                    (
+                        systemConfigFolder,
+                        "argus",
+                        $"collector.{serviceName}.json"
+                    );
+
+                    configuration.AddJsonFile(systemServiceConfigFile, true);
+                }
+
+                // equivalent to /home/someone/.config
+                var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+                var localServiceConfigFile = Path.Combine(localConfigFolder, "argus", $"collector.{serviceName}.json");
+                configuration.AddJsonFile(localServiceConfigFile, true);
+            });
+
+            return hostBuilder.ConfigureServices((hostContext, services) =>
+            {
+                // Configure app-specific options
+                services.Configure(() =>
+                {
+                    var options = optionsFactory();
+
+                    hostContext.Configuration.Bind(typeof(TCollectorOptions).Name, options);
+                    return options;
+                });
+            });
+        }
+
+        /// <summary>
+        /// Adds and configures the given collector service.
+        /// </summary>
+        /// <param name="hostBuilder">The host builder.</param>
         /// <typeparam name="TCollector">The collector service.</typeparam>
         /// <returns>The configured host builder.</returns>
-        public static IHostBuilder UseCollector<TCollector>(this IHostBuilder hostBuilder)
+        public static IHostBuilder UseCollector<TCollector>
+        (
+            this IHostBuilder hostBuilder
+        )
             where TCollector : CollectorService
         {
             hostBuilder
@@ -64,9 +125,20 @@ namespace Argus.Collector.Common.Extensions
                 .UseConsoleLifetime()
                 .ConfigureAppConfiguration((_, configuration) =>
                 {
-                    var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    var systemConfigFile = Path.Combine(configFolder, "argus", "collector.json");
-                    configuration.AddJsonFile(systemConfigFile, true);
+                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        // Add a set of config files for the /etc directory
+                        var systemConfigFolder = "/etc";
+
+                        var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "collector.json");
+                        configuration.AddJsonFile(systemConfigFile, true);
+                    }
+
+                    // equivalent to /home/someone/.config
+                    var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+                    var localConfigFile = Path.Combine(localConfigFolder, "argus", "collector.json");
+                    configuration.AddJsonFile(localConfigFile, true);
                 })
                 .ConfigureServices((hostContext, services) =>
                 {

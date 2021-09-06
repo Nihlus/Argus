@@ -54,10 +54,6 @@ namespace Argus.Collector.E621
             .UseCollector<E621CollectorService>()
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
-                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.e621.json");
-                configuration.AddJsonFile(systemConfigFile, true);
-
                 if (hostContext.HostingEnvironment.IsDevelopment())
                 {
                     configuration.AddUserSecrets<Program>();

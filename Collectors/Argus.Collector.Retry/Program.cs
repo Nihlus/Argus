@@ -51,27 +51,17 @@ namespace Argus.Collector.Retry
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<RetryCollectorService>()
+            .UseCollector<RetryCollectorService, RetryOptions>
+            (
+                "retry",
+                () => new RetryOptions()
+            )
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
-                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.retry.json");
-                configuration.AddJsonFile(systemConfigFile, true);
-
                 if (hostContext.HostingEnvironment.IsDevelopment())
                 {
                     configuration.AddUserSecrets<Program>();
                 }
-            })
-            .ConfigureServices((hostContext, services) =>
-            {
-                services.Configure(() =>
-                {
-                    var options = new RetryOptions();
-
-                    hostContext.Configuration.Bind(nameof(RetryOptions), options);
-                    return options;
-                });
             });
     }
 }

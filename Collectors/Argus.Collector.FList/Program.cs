@@ -66,13 +66,13 @@ namespace Argus.Collector.FList
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<FListCollectorService>()
+            .UseCollector<FListCollectorService, FListOptions>
+            (
+                "f-list",
+                () => new FListOptions(string.Empty, string.Empty)
+            )
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
-                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "collector.flist.json");
-                configuration.AddJsonFile(systemConfigFile, true);
-
                 if (hostContext.HostingEnvironment.IsDevelopment())
                 {
                     configuration.AddUserSecrets<Program>();
@@ -80,14 +80,6 @@ namespace Argus.Collector.FList
             })
             .ConfigureServices((hostContext, services) =>
             {
-                services.Configure(() =>
-                {
-                    var options = new FListOptions(string.Empty, string.Empty);
-
-                    hostContext.Configuration.Bind(nameof(FListOptions), options);
-                    return options;
-                });
-
                 var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
 
                 services.Configure<JsonSerializerOptions>(o =>
