@@ -28,6 +28,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Common.Portable;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Puzzle;
@@ -39,6 +40,7 @@ namespace Argus.API.Controllers
     /// <summary>
     /// Controls fingerprinting requests.
     /// </summary>
+    [Authorize]
     [Route("api/fingerprint")]
     [ApiController]
     [Produces("application/json")]

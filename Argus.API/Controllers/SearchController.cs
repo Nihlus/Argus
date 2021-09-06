@@ -27,6 +27,7 @@ using System.Threading;
 using Argus.Common.Portable;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Common.Services.Elasticsearch.Search;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Argus.API.Controllers
@@ -34,6 +35,7 @@ namespace Argus.API.Controllers
     /// <summary>
     /// Controls search requests.
     /// </summary>
+    [Authorize]
     [Route("api/search")]
     [ApiController]
     [Produces("application/json")]

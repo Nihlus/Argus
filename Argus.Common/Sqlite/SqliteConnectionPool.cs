@@ -24,11 +24,11 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.IO;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-namespace Argus.Coordinator.Model
+namespace Argus.Common.Sqlite
 {
     /// <summary>
     /// Connection pooling for SQLite. Based on https://github.com/dotnet/efcore/issues/13837#issuecomment-821717602.
@@ -40,9 +40,9 @@ namespace Argus.Coordinator.Model
         /// </summary>
         private const int PoolSize = 10;
 
+        private readonly SqliteConnectionOptions _options;
         private readonly object _lock = new();
         private readonly ILogger<SqliteConnectionPool> _log;
-        private readonly string _dbPath;
 
         private readonly List<DbConnection> _availableConnections;
         private readonly List<DbConnection> _leasedConnections;
@@ -56,20 +56,20 @@ namespace Argus.Coordinator.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="SqliteConnectionPool"/> class.
         /// </summary>
+        /// <param name="options">The options.</param>
         /// <param name="log">The logging instance.</param>
-        public SqliteConnectionPool(ILogger<SqliteConnectionPool> log)
+        public SqliteConnectionPool
+        (
+            IOptions<SqliteConnectionOptions> options,
+            ILogger<SqliteConnectionPool> log
+        )
         {
+            _options = options.Value;
             _log = log;
 
             _availableConnections = new List<DbConnection>(PoolSize);
             _leasedConnections = new List<DbConnection>(PoolSize);
             _additionalConnections = new List<DbConnection>();
-
-            var cacheFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var applicationName = "image-indexer";
-
-            _dbPath = Path.Combine(cacheFolder, applicationName, "indexer.sqlite");
-            Directory.CreateDirectory(Path.GetDirectoryName(_dbPath) ?? throw new InvalidOperationException());
         }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace Argus.Coordinator.Model
             // create connection string
             var connectionString = new SqliteConnectionStringBuilder
             {
-                DataSource = _dbPath,
+                DataSource = _options.Database,
                 Mode = SqliteOpenMode.ReadWriteCreate,
             };
 

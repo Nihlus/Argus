@@ -1,5 +1,5 @@
 //
-//  CoordinatorContext.cs
+//  ArgusAPIContext.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -21,38 +21,34 @@
 //
 
 using System.Threading.Tasks;
+using Argus.API.Database.Model;
 using Argus.Common.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
-namespace Argus.Coordinator.Model
+namespace Argus.API.Database
 {
     /// <summary>
-    /// Represents the database context for the coordinator.
+    /// Represents the database context for the REST API.
     /// </summary>
-    public class CoordinatorContext : DbContext
+    public class ArgusAPIContext : DbContext
     {
         private readonly SqliteConnectionPool _connectionPool;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CoordinatorContext"/> class.
+        /// Initializes a new instance of the <see cref="ArgusAPIContext"/> class.
         /// </summary>
         /// <param name="options">The context options.</param>
         /// <param name="connectionPool">The connection pool.</param>
-        public CoordinatorContext(DbContextOptions options, SqliteConnectionPool connectionPool)
+        public ArgusAPIContext(DbContextOptions options, SqliteConnectionPool connectionPool)
             : base(options)
         {
             _connectionPool = connectionPool;
         }
 
         /// <summary>
-        /// Gets the service states.
+        /// Gets the API keys in the database.
         /// </summary>
-        public DbSet<ServiceState> ServiceStates => Set<ServiceState>();
-
-        /// <summary>
-        /// Gets received status reports.
-        /// </summary>
-        public DbSet<ServiceStatusReport> ServiceStatusReports => Set<ServiceStatusReport>();
+        public DbSet<APIKey> APIKeys => Set<APIKey>();
 
         /// <inheritdoc />
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
@@ -62,33 +58,21 @@ namespace Argus.Coordinator.Model
         /// <inheritdoc />
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<ServiceState>()
-                .HasIndex(s => s.Id)
+            modelBuilder.Entity<APIKey>()
+                .HasIndex(k => k.ID)
                 .IsUnique();
 
-            modelBuilder.Entity<ServiceState>()
-                .HasIndex(s => s.Name)
+            modelBuilder.Entity<APIKey>()
+                .Property(k => k.CreatedAt)
+                .IsRequired();
+
+            modelBuilder.Entity<APIKey>()
+                .Property(k => k.Key)
+                .IsRequired();
+
+            modelBuilder.Entity<APIKey>()
+                .HasIndex(k => k.Key)
                 .IsUnique();
-
-            modelBuilder.Entity<ServiceStatusReport>()
-                .HasIndex(s => s.Id)
-                .IsUnique();
-
-            var ownedReport = modelBuilder.Entity<ServiceStatusReport>()
-                .OwnsOne(s => s.Report);
-
-            ownedReport
-                .HasIndex(s => s.ServiceName);
-
-            ownedReport
-                .HasIndex(s => s.Source);
-
-            ownedReport
-                .HasIndex(s => s.Image);
-
-            ownedReport.WithOwner();
         }
 
         /// <inheritdoc/>

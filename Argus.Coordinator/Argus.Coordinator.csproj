@@ -50,7 +50,7 @@
         <When Condition="$(RuntimeIdentifier.Contains('linux'))">
             <ItemGroup>
                 <PackageReference Remove="SQLitePCLRaw.lib.e_sqlite3" />
-                <DebDotNetDependencies Include="libsqlite3-0"/>
+                <DebDotNetDependencies Include="libsqlite3-0" />
             </ItemGroup>
         </When>
     </Choose>

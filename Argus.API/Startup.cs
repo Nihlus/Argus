@@ -21,11 +21,18 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.IO;
+using Argus.API.Authentication;
 using Argus.API.Configuration;
+using Argus.API.Database;
 using Argus.Common.Json;
 using Argus.Common.Services.Elasticsearch;
+using Argus.Common.Sqlite;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -71,6 +78,35 @@ namespace Argus.API
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Argus.API", Version = "v1" });
+
+                var securityScheme = new OpenApiSecurityScheme
+                {
+                    BearerFormat = "guid",
+                    Description = "Simple API key authorization",
+                    In = ParameterLocation.Header,
+                    Name = "Authorization",
+                    Scheme = "Bearer",
+                    Type = SecuritySchemeType.Http
+                };
+
+                c.AddSecurityDefinition("Argus API Key", securityScheme);
+
+                var securityRequirement = new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Argus API Key"
+                            }
+                        },
+                        new List<string>()
+                    }
+                };
+
+                c.AddSecurityRequirement(securityRequirement);
             });
 
             services.AddSingleton<SignatureGenerator>();
@@ -87,6 +123,11 @@ namespace Argus.API
                 this.Configuration.Bind(nameof(APIOptions), options);
                 return options;
             });
+
+            // Authentication
+            services
+                .AddAuthentication("Key")
+                .AddScheme<AuthenticationSchemeOptions, APIKeyAuthenticationHandler>("Key", null);
 
             // Elasticsearch services
             services
@@ -108,6 +149,22 @@ namespace Argus.API
                 )
                 .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
                 .AddTransient<NESTService>();
+
+            // Database
+            services.Configure(() =>
+            {
+                var cacheFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var applicationName = "argus";
+
+                var dbPath = Path.Combine(cacheFolder, applicationName, "api.sqlite");
+                Directory.CreateDirectory(Path.GetDirectoryName(dbPath) ?? throw new InvalidOperationException());
+
+                return new SqliteConnectionOptions(dbPath);
+            });
+
+            services
+                .AddDbContextFactory<ArgusAPIContext>()
+                .AddSingleton<SqliteConnectionPool>();
         }
 
         /// <summary>
@@ -128,9 +185,16 @@ namespace Argus.API
 
             app.UseRouting();
 
-            app.UseAuthorization();
+            app
+                .UseAuthentication()
+                .UseAuthorization();
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+
+            // Perform migrations
+            var contextFactory = app.ApplicationServices.GetRequiredService<IDbContextFactory<ArgusAPIContext>>();
+            using var db = contextFactory.CreateDbContext();
+            db.Database.Migrate();
         }
     }
 }
