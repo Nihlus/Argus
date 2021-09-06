@@ -41,6 +41,7 @@ namespace Argus.API.Controllers
     /// Controls fingerprinting requests.
     /// </summary>
     [Authorize]
+    [RequireHttps]
     [Route("api/fingerprint")]
     [ApiController]
     [Produces("application/json")]

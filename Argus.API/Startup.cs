@@ -168,14 +168,6 @@ namespace Argus.API
             services
                 .AddDbContextFactory<ArgusAPIContext>()
                 .AddSingleton<SqliteConnectionPool>();
-
-            // Header forwarding
-            services.Configure<ForwardedHeadersOptions>(options =>
-            {
-                options.ForwardedHeaders = ForwardedHeaders.All;
-                options.KnownProxies.Add(IPAddress.Loopback);
-                options.KnownProxies.Add(IPAddress.IPv6Loopback);
-            });
         }
 
         /// <summary>
@@ -185,6 +177,12 @@ namespace Argus.API
         /// <param name="env">The environment builder.</param>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseForwardedHeaders(new()
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+                KnownProxies = { IPAddress.Loopback, IPAddress.IPv6Loopback }
+            });
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -192,7 +190,6 @@ namespace Argus.API
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Argus.API v1"));
             }
 
-            app.UseForwardedHeaders();
             app.UseRouting();
 
             app

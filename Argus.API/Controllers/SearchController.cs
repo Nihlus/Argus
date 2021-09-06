@@ -36,6 +36,7 @@ namespace Argus.API.Controllers
     /// Controls search requests.
     /// </summary>
     [Authorize]
+    [RequireHttps]
     [Route("api/search")]
     [ApiController]
     [Produces("application/json")]
