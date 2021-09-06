@@ -146,7 +146,7 @@ namespace Argus.Common.Services.Elasticsearch
 
                     var similarity = signature.Signature.CompareTo(hit.Signature);
 
-                    if (similarity is not (SignatureSimilarity.Similar or SignatureSimilarity.Identical))
+                    if (similarity is not (SignatureSimilarity.Same or SignatureSimilarity.Identical))
                     {
                         continue;
                     }
