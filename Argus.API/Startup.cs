@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using Argus.API.Authentication;
 using Argus.API.Configuration;
 using Argus.API.Database;
@@ -32,6 +33,8 @@ using Argus.Common.Sqlite;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -165,6 +168,14 @@ namespace Argus.API
             services
                 .AddDbContextFactory<ArgusAPIContext>()
                 .AddSingleton<SqliteConnectionPool>();
+
+            // Header forwarding
+            services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.All;
+                options.KnownProxies.Add(IPAddress.Loopback);
+                options.KnownProxies.Add(IPAddress.IPv6Loopback);
+            });
         }
 
         /// <summary>
@@ -181,8 +192,7 @@ namespace Argus.API
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Argus.API v1"));
             }
 
-            app.UseHttpsRedirection();
-
+            app.UseForwardedHeaders();
             app.UseRouting();
 
             app
