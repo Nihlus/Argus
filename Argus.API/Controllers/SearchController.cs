@@ -21,6 +21,7 @@
 //
 
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Argus.Common.Portable;
@@ -60,9 +61,9 @@ namespace Argus.API.Controllers
         [HttpPost]
         public async IAsyncEnumerable<SearchResult> GetSearchAsync
         (
-            PortableFingerprint fingerprint,
+            [Required] PortableFingerprint fingerprint,
             uint after = 0,
-            uint limit = 100,
+            [Range(1, 100)] uint limit = 100,
             [EnumeratorCancellation] CancellationToken ct = default
         )
         {
