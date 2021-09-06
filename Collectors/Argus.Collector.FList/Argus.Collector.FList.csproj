@@ -11,7 +11,9 @@
 
     <PropertyGroup>
         <Description>
-            Serves as an image collector for F-List.
+            Argus collector for F-List
+
+            Collects images from https://www.f-list.net, handing them to the coordinator.
         </Description>
     </PropertyGroup>
 
@@ -27,7 +29,7 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
-    
+
     <ItemGroup>
         <Content Include="Content/**/*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -39,17 +41,5 @@
       <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
       <PackageReference Include="Selenium.WebDriver" Version="3.141.0" />
     </ItemGroup>
-
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
 
 </Project>

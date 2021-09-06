@@ -65,10 +65,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Packaging.Targets">
-            <Version>0.1.189-*</Version>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
         <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.312" PrivateAssets="all" />
         <PackageReference Include="Nullable" Version="1.3.0" PrivateAssets="all" />
         <PackageReference Include="IsExternalInit" Version="1.0.1" PrivateAssets="all" />
@@ -88,4 +84,18 @@
     <ItemGroup>
         <PackageReference Include="MessagePackAnalyzer" Version="2.3.75" PrivateAssets="all" />
     </ItemGroup>
+
+    <PropertyGroup>
+        <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Packaging.Targets">
+            <Version>0.1.189-*</Version>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+
+        <DebDotNetDependencies Include="dotnet-runtime-5.0"/>
+    </ItemGroup>
+
 </Project>

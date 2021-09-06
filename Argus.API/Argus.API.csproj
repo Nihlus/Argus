@@ -2,21 +2,25 @@
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
-      <UserSecretsId>c19a83fa-11a6-4dc5-aa7a-1a75d43c145b</UserSecretsId>
-  </PropertyGroup>
+        <UserSecretsId>c19a83fa-11a6-4dc5-aa7a-1a75d43c145b</UserSecretsId>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Description>
+            REST API for Argus
+
+            The REST API exposes a simple REST+JSON API for generating fingerprints and searching the database.
+        </Description>
+    </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
-        <PackageReference Include="Remora.Extensions.Options.Immutable" Version="1.0.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
+        <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2"/>
+        <PackageReference Include="Remora.Extensions.Options.Immutable" Version="1.0.0"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Controllers" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Argus.Common\Argus.Common.csproj" />
+        <ProjectReference Include="..\Argus.Common\Argus.Common.csproj"/>
     </ItemGroup>
 
 </Project>

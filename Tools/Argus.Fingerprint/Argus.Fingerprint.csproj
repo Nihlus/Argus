@@ -8,7 +8,10 @@
     <PropertyGroup>
         <Version>1.0.0</Version>
         <Description>
-            Creates portable fingerprints.
+            Creates portable Argus fingerprints
+
+            The fingerprinting tool can generate fingerprints locally, avoiding having to upload the actual image files
+            to the search API.
         </Description>
     </PropertyGroup>
 
@@ -23,16 +26,4 @@
       <ProjectReference Include="..\..\Collectors\Argus.Collector.Common\Argus.Collector.Common.csproj" />
     </ItemGroup>
 
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
-    
 </Project>

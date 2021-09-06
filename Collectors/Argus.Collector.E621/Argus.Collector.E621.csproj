@@ -11,7 +11,9 @@
 
     <PropertyGroup>
         <Description>
-            Serves as an image collector for E621.
+            Argus collector for E621
+
+            Collects images from https://www.e621.net, handing them to the coordinator.
         </Description>
     </PropertyGroup>
 
@@ -32,17 +34,5 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
-
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
 
 </Project>

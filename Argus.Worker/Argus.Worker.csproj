@@ -7,7 +7,10 @@
 
     <PropertyGroup>
         <Description>
-            Serves as a cluster worker, fingerprinting incoming images.
+            Cluster coordinator for Argus
+
+            The cluster worker pulls images from the coordinator, generating their fingerprints and returning them for
+            indexing.
         </Description>
     </PropertyGroup>
 
@@ -33,17 +36,5 @@
     <ItemGroup>
         <ProjectReference Include="..\Argus.Common\Argus.Common.csproj"/>
     </ItemGroup>
-
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
 
 </Project>

@@ -11,7 +11,9 @@
 
     <PropertyGroup>
         <Description>
-            Serves as an image collector for failed or interrupted images, retrying them after some time.
+            Argus collector for failed images
+
+            Redownloads interrupted or failed images, retrying them after some time.
         </Description>
     </PropertyGroup>
 
@@ -31,17 +33,5 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
-
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
 
 </Project>

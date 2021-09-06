@@ -11,7 +11,9 @@
 
     <PropertyGroup>
         <Description>
-            Serves as an image collector for Weasyl.
+            Argus collector for Weasyl
+
+            Collects images from https://www.weasyl.com, handing them to the coordinator.
         </Description>
     </PropertyGroup>
 
@@ -31,17 +33,5 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
-
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
 
 </Project>

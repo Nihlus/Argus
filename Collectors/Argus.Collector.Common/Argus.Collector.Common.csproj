@@ -5,9 +5,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <Description>
-            Defines common types and functionality for collectors.
-        </Description>
+        <Description>Defines common types and functionality for collectors.</Description>
     </PropertyGroup>
 
     <ItemGroup>
@@ -23,17 +21,5 @@
         <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
         <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
     </ItemGroup>
-
-    <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
-        </When>
-    </Choose>
 
 </Project>

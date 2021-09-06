@@ -11,8 +11,12 @@
 
     <PropertyGroup>
         <Description>
-            Serves as a cluster coordinator, load-balancing incoming images across available workers, as well as
-            tracking the state of units of work.
+            Cluster coordinator for Argus
+
+            The cluster coordinator load-balances incoming images across available workers, as well as tracking the 
+            state of units of work.
+
+            Test line.
         </Description>
     </PropertyGroup>
 
@@ -43,16 +47,13 @@
     <ItemGroup>
         <ProjectReference Include="..\Argus.Common\Argus.Common.csproj" />
     </ItemGroup>
-
+    
     <Choose>
-        <When Condition="'$(RuntimeIdentifier)' != ''">
-            <PropertyGroup>
-                <PublishSingleFile>true</PublishSingleFile>
-                <PublishTrimmed>true</PublishTrimmed>
-                <TrimMode>link</TrimMode>
-                <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-                <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-            </PropertyGroup>
+        <When Condition="$(RuntimeIdentifier.Contains('linux'))">
+            <ItemGroup>
+                <PackageReference Remove="SQLitePCLRaw.lib.e_sqlite3" />
+                <DebDotNetDependencies Include="libsqlite3-0"/>
+            </ItemGroup>
         </When>
     </Choose>
 
