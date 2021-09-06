@@ -32,6 +32,12 @@ function main() {
     done
 
     # Deploy
+    aptly repo add argus-release "${OUTPUT}" || true # suppress errors from adding existing packages
+    aptly snapshot create "argus-$(date +"%Y-%m-%d:%H:%M:%S")" from repo argus-release
+    aptly publish update focal :argus
+    aptly publish update bullseye :argus
+
+    scp -r "${HOME}/.aptly/public/argus/dists" "${HOME}/.aptly/public/argus/pool" jax@192.168.0.11:/var/www/repo/
 }
 
 main "${@}"
