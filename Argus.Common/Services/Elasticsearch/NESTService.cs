@@ -136,7 +136,6 @@ namespace Argus.Common.Services.Elasticsearch
                     s => BuildQuery(s.From((int)offsetCopy).Size(pageSize), signature.Words), ct
                 ).ConfigureAwait(false);
 
-                var stillFindingResults = false;
                 foreach (var hit in searchResponse.Documents)
                 {
                     if (ct.IsCancellationRequested)
@@ -148,7 +147,7 @@ namespace Argus.Common.Services.Elasticsearch
 
                     if (similarity is not (SignatureSimilarity.Same or SignatureSimilarity.Identical))
                     {
-                        continue;
+                        yield break;
                     }
 
                     var imageInformation = new ImageInformation
@@ -159,7 +158,6 @@ namespace Argus.Common.Services.Elasticsearch
                         new Uri(hit.Link)
                     );
 
-                    stillFindingResults = true;
                     yield return new SearchResult(similarity, imageInformation);
 
                     ++foundResults;
@@ -167,11 +165,6 @@ namespace Argus.Common.Services.Elasticsearch
                     {
                         yield break;
                     }
-                }
-
-                if (!stillFindingResults)
-                {
-                    yield break;
                 }
 
                 after += pageSize;
