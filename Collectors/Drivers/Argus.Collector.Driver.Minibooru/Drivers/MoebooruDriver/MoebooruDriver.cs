@@ -21,6 +21,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Web;
@@ -33,31 +35,37 @@ namespace Argus.Collector.Driver.Minibooru
     /// <summary>
     /// Implements Moebooru-specific driver functionality.
     /// </summary>
-    public class MoebooruDriver : AbstractBooruDriver<MoebooruPost>
+    public class MoebooruDriver : AbstractBooruDriver<IReadOnlyList<MoebooruPost>>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="MoebooruDriver"/> class.
         /// </summary>
-        /// <param name="httpClient">The HTTP client to use.</param>
+        /// <param name="clientFactory">The HTTP client to use.</param>
         /// <param name="jsonOptions">The JSON serializer options.</param>
         /// <param name="driverOptions">The driver options.</param>
         public MoebooruDriver
         (
-            HttpClient httpClient,
+            IHttpClientFactory clientFactory,
             IOptionsMonitor<JsonSerializerOptions> jsonOptions,
             IOptionsMonitor<BooruDriverOptions> driverOptions
         )
-            : base(httpClient, jsonOptions, driverOptions)
+            : base(clientFactory, jsonOptions, driverOptions)
         {
         }
 
         /// <inheritdoc />
-        protected override Result<BooruPost> MapInternalPost(MoebooruPost internalPost)
+        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(IReadOnlyList<MoebooruPost> internalPage)
         {
-            var (id, fileUrl) = internalPost;
+            return internalPage.Select
+            (
+                post =>
+                {
+                    var (id, fileUrl) = post;
 
-            var postUrl = new Uri(this.DriverOptions.BaseUrl, $"post/show/{id}");
-            return new BooruPost(id, fileUrl, postUrl);
+                    var postUrl = new Uri(this.DriverOptions.BaseUrl, $"post/show/{id}");
+                    return new BooruPost(id, fileUrl, postUrl);
+                }
+            ).ToList();
         }
 
         /// <inheritdoc />

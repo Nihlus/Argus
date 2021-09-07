@@ -1,5 +1,5 @@
 //
-//  E621File.cs
+//  E621Page.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,17 +20,17 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Argus.Collector.E621.Drivers
 {
     /// <summary>
-    /// Represents an E621 file.
+    /// Represents a page of results.
     /// </summary>
-    /// <param name="Url">The full URL to the file.</param>
-    public record E621File
+    /// <param name="Posts">The posts in the page.</param>
+    public record E621Page
     (
-        [property: JsonPropertyName("url")] Uri? Url
+        [property: JsonPropertyName("posts")] IReadOnlyList<E621Post> Posts
     );
 }

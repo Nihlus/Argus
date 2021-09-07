@@ -22,11 +22,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
-using System.Web;
 using Argus.Collector.Driver.Minibooru;
 using Argus.Collector.Driver.Minibooru.Model;
 using Microsoft.Extensions.Options;
@@ -37,7 +37,7 @@ namespace Argus.Collector.E621.Drivers
     /// <summary>
     /// Implements E621-specific driver functionality.
     /// </summary>
-    public class E621Driver : AbstractBooruDriver<E621Post>
+    public class E621Driver : AbstractBooruDriver<E621Page>
     {
         /// <inheritdoc />
         protected override IReadOnlyList<ProductInfoHeaderValue> UserAgent => new[]
@@ -49,26 +49,32 @@ namespace Argus.Collector.E621.Drivers
         /// <summary>
         /// Initializes a new instance of the <see cref="E621Driver"/> class.
         /// </summary>
-        /// <param name="httpClient">The HTTP client to use.</param>
+        /// <param name="clientFactory">The HTTP client to use.</param>
         /// <param name="jsonOptions">The JSON serializer options.</param>
         /// <param name="driverOptions">The driver options.</param>
         public E621Driver
         (
-            HttpClient httpClient,
+            IHttpClientFactory clientFactory,
             IOptionsMonitor<JsonSerializerOptions> jsonOptions,
             IOptionsMonitor<BooruDriverOptions> driverOptions
         )
-            : base(httpClient, jsonOptions, driverOptions)
+            : base(clientFactory, jsonOptions, driverOptions)
         {
         }
 
         /// <inheritdoc />
-        protected override Result<BooruPost> MapInternalPost(E621Post internalPost)
+        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(E621Page internalPage)
         {
-            var (id, file) = internalPost;
+            return internalPage.Posts.Select
+            (
+                post =>
+                {
+                    var (id, file) = post;
 
-            var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
-            return new BooruPost(id, file.Url.ToString(), postUrl);
+                    var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
+                    return new BooruPost(id, file.Url?.ToString(), postUrl);
+                }
+            ).ToList();
         }
 
         /// <inheritdoc />

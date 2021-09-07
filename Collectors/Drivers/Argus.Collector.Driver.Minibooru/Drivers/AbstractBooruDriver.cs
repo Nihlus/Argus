@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -36,10 +37,10 @@ namespace Argus.Collector.Driver.Minibooru
     /// <summary>
     /// Serves as an abstract base for Booru drivers.
     /// </summary>
-    /// <typeparam name="TInternalPost">The internal post format.</typeparam>
-    public abstract class AbstractBooruDriver<TInternalPost> : IBooruDriver
+    /// <typeparam name="TInternalPage">The internal page format.</typeparam>
+    public abstract class AbstractBooruDriver<TInternalPage> : IBooruDriver
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _clientFactory;
         private readonly JsonSerializerOptions _jsonOptions;
 
         /// <summary>
@@ -50,22 +51,22 @@ namespace Argus.Collector.Driver.Minibooru
         /// <summary>
         /// Gets the user agent to use.
         /// </summary>
-        protected virtual IReadOnlyList<ProductInfoHeaderValue>? UserAgent { get; }
+        protected virtual IReadOnlyCollection<ProductInfoHeaderValue>? UserAgent { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AbstractBooruDriver{TInternalPost}"/> class.
         /// </summary>
-        /// <param name="httpClient">The HTTP client to use.</param>
+        /// <param name="clientFactory">The HTTP client factory.</param>
         /// <param name="jsonOptions">The JSON serializer options.</param>
         /// <param name="driverOptions">The driver options.</param>
         protected AbstractBooruDriver
         (
-            HttpClient httpClient,
+            IHttpClientFactory clientFactory,
             IOptionsMonitor<JsonSerializerOptions> jsonOptions,
             IOptionsMonitor<BooruDriverOptions> driverOptions
         )
         {
-            _httpClient = httpClient;
+            _clientFactory = clientFactory;
             _jsonOptions = jsonOptions.Get(GetType().Name);
 
             this.DriverOptions = driverOptions.Get(GetType().Name);
@@ -74,9 +75,9 @@ namespace Argus.Collector.Driver.Minibooru
         /// <summary>
         /// Maps the Booru's internal post representation to the public API surface.
         /// </summary>
-        /// <param name="internalPost">The internal post.</param>
+        /// <param name="internalPage">The internal page.</param>
         /// <returns>The public post.</returns>
-        protected abstract Result<BooruPost> MapInternalPost(TInternalPost internalPost);
+        protected abstract Result<IReadOnlyList<BooruPost>> MapInternalPage(TInternalPage internalPage);
 
         /// <summary>
         /// Gets the search URL for the given parameters.
@@ -96,6 +97,7 @@ namespace Argus.Collector.Driver.Minibooru
         {
             try
             {
+                var client = _clientFactory.CreateClient(GetType().Name);
                 var searchUrl = GetSearchUrl(after, limit);
 
                 var request = new HttpRequestMessage(HttpMethod.Get, searchUrl);
@@ -107,36 +109,24 @@ namespace Argus.Collector.Driver.Minibooru
                     }
                 }
 
-                var response = await _httpClient.GetAsync(searchUrl, ct);
+                var response = await client.SendAsync(request, ct);
 
                 response.EnsureSuccessStatusCode();
 
                 await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-                var posts = await JsonSerializer.DeserializeAsync<IReadOnlyList<TInternalPost>>
+                var internalPage = await JsonSerializer.DeserializeAsync<TInternalPage>
                 (
                     contentStream,
                     _jsonOptions,
                     ct
                 );
 
-                if (posts is null)
+                if (internalPage is null)
                 {
                     throw new InvalidOperationException();
                 }
 
-                var mappedPosts = new List<BooruPost>();
-                foreach (var internalPost in posts)
-                {
-                    var mapPost = MapInternalPost(internalPost);
-                    if (!mapPost.IsSuccess)
-                    {
-                        return Result<IReadOnlyList<BooruPost>>.FromError(mapPost);
-                    }
-
-                    mappedPosts.Add(mapPost.Entity);
-                }
-
-                return mappedPosts;
+                return MapInternalPage(internalPage);
             }
             catch (Exception e)
             {

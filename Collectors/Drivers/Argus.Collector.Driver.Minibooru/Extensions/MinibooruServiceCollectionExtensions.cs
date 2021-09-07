@@ -58,7 +58,7 @@ namespace Argus.Collector.Driver.Minibooru.Extensions
                 .AddSingleton<TBooruDriver>()
                 .AddSingleton<IBooruDriver, TBooruDriver>(s => s.GetRequiredService<TBooruDriver>())
                 .Configure(typeof(TBooruDriver).Name, () => new BooruDriverOptions(new Uri(baseUrl)))
-                .AddHttpClient<TBooruDriver>()
+                .AddHttpClient(typeof(TBooruDriver).Name)
                 .AddTransientHttpErrorPolicy
                 (
                     b => b

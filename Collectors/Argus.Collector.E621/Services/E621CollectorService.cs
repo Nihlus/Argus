@@ -187,7 +187,7 @@ namespace Argus.Collector.E621.Services
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Message = "No file"
+                        Message = "No file (login required)"
                     };
 
                     return (rejectionReport, null);

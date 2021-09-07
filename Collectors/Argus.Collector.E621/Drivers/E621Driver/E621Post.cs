@@ -20,7 +20,18 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System.Text.Json.Serialization;
+
 namespace Argus.Collector.E621.Drivers
 {
-    public record E621Post(ulong ID, E621File File);
+    /// <summary>
+    /// Represents an E621 post.
+    /// </summary>
+    /// <param name="ID">The ID of the post.</param>
+    /// <param name="File">The file associated with the post.</param>
+    public record E621Post
+    (
+        [property: JsonPropertyName("id")] ulong ID,
+        [property: JsonPropertyName("file")] E621File File
+    );
 }
