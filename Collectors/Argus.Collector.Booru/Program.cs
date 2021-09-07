@@ -53,7 +53,7 @@ namespace Argus.Collector.Booru
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
             .UseCollector<BooruCollectorService, BooruOptions>
             (
-                "hypnohub",
+                "booru",
                 () => new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"))
             )
             .ConfigureAppConfiguration((hostContext, configuration) =>
