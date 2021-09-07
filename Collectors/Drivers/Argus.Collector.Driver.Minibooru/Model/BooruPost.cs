@@ -1,5 +1,5 @@
 //
-//  HypnohubOptions.cs
+//  BooruPost.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,13 +20,15 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.Hypnohub.Configuration
+using System;
+
+namespace Argus.Collector.Driver.Minibooru.Model
 {
     /// <summary>
-    /// Represents collector-specific configuration.
+    /// Represents minimal information about a Booru post.
     /// </summary>
-    /// <param name="RateLimit">
-    /// The rate limit to use for API requests, measured in requests per second.
-    /// </param>
-    public record HypnohubOptions(int RateLimit = 1);
+    /// <param name="ID">The numeric ID of the post.</param>
+    /// <param name="File">The full URL to the image file, or null if none was available.</param>
+    /// <param name="Post">The full URL to the source post.</param>
+    public record BooruPost(ulong ID, string? File, Uri Post);
 }

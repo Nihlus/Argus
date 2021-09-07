@@ -11,18 +11,18 @@
 
     <PropertyGroup>
         <Description>
-            Argus collector for Hypnohub
+            Argus collector for Booru sites
 
-            Collects images from https://www.hypnohub.net, handing them to the coordinator.
+            Collects images from Booru sites, handing them to the coordinator.
         </Description>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+      <ProjectReference Include="..\Drivers\Argus.Collector.Driver.Minibooru\Argus.Collector.Driver.Minibooru.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="BooruDex" Version="2.3.0" />
       <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
       <PackageReference Include="morelinq" Version="3.3.2" />
     </ItemGroup>

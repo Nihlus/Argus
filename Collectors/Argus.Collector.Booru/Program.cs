@@ -21,23 +21,18 @@
 //
 
 using System;
-using System.IO;
-using System.Net.Http;
+using Argus.Collector.Booru.Configuration;
+using Argus.Collector.Booru.Services;
 using Argus.Collector.Common.Extensions;
-using Argus.Collector.Common.Polly;
-using Argus.Collector.Hypnohub.Configuration;
-using Argus.Collector.Hypnohub.Implementations;
-using Argus.Collector.Hypnohub.Services;
+using Argus.Collector.Driver.Minibooru;
+using Argus.Collector.Driver.Minibooru.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetMQ;
-using Polly;
-using Polly.Contrib.WaitAndRetry;
-using Remora.Extensions.Options.Immutable;
 
-namespace Argus.Collector.Hypnohub
+namespace Argus.Collector.Booru
 {
     /// <summary>
     /// The main class of the program.
@@ -56,10 +51,10 @@ namespace Argus.Collector.Hypnohub
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<HypnohubCollectorService, HypnohubOptions>
+            .UseCollector<BooruCollectorService, BooruOptions>
             (
-                "hypnohub",
-                () => new HypnohubOptions()
+                "booru",
+                () => new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"))
             )
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
@@ -70,35 +65,32 @@ namespace Argus.Collector.Hypnohub
             })
             .ConfigureServices((hostContext, services) =>
             {
-                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+                var options = new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"));
+                hostContext.Configuration.Bind(nameof(BooruOptions), options);
 
-                var rateLimit = hostContext.Configuration
-                    .GetSection(nameof(HypnohubOptions))
-                    .GetValue<int>(nameof(HypnohubOptions.RateLimit));
-
+                var rateLimit = options.RateLimit;
                 if (rateLimit == 0)
                 {
                     rateLimit = 1;
                 }
 
-                services
-                    .AddHttpClient<HypnohubAPI>()
-                    .AddTransientHttpErrorPolicy
-                    (
-                        b => b
-                            .WaitAndRetryAsync(retryDelay)
-                            .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
-                    );
-
-                services
-                    .AddSingleton
-                    (
-                        s =>
-                        {
-                            var clientFactory = s.GetRequiredService<IHttpClientFactory>();
-                            return new HypnohubAPI(clientFactory.CreateClient(nameof(HypnohubAPI)));
-                        }
-                    );
+                switch (options.DriverName)
+                {
+                    case "moebooru":
+                    {
+                        services.AddBooruDriver<MoebooruDriver>(options.BaseUrl.ToString(), rateLimit);
+                        break;
+                    }
+                    case "ouroboros":
+                    {
+                        services.AddBooruDriver<OuroborosDriver>(options.BaseUrl.ToString(), rateLimit);
+                        break;
+                    }
+                    default:
+                    {
+                        throw new ArgumentOutOfRangeException($"Unknown driver name \"{options.DriverName}\"");
+                    }
+                }
             });
     }
 }

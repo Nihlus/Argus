@@ -1,5 +1,5 @@
 //
-//  E621CollectorService.cs
+//  BooruCollectorService.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -21,50 +21,58 @@
 //
 
 using System;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Argus.Collector.Booru.Configuration;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Services;
+using Argus.Collector.Driver.Minibooru;
+using Argus.Collector.Driver.Minibooru.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Noppes.E621;
 using Remora.Results;
 
-namespace Argus.Collector.E621.Services
+namespace Argus.Collector.Booru.Services
 {
     /// <summary>
-    /// Collects images from E621.
+    /// Collects images from a Booru.
     /// </summary>
-    public class E621CollectorService : CollectorService
+    public class BooruCollectorService : CollectorService
     {
         /// <inheritdoc />
-        protected override string ServiceName => "e621";
+        protected override string ServiceName => _options.ServiceName;
 
-        private readonly IE621Client _e621Client;
+        private readonly BooruOptions _options;
+        private readonly IBooruDriver _booruDriver;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<E621CollectorService> _log;
+        private readonly ILogger<BooruCollectorService> _log;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="E621CollectorService"/> class.
+        /// Initializes a new instance of the <see cref="BooruCollectorService"/> class.
         /// </summary>
+        /// <param name="booruOptions">The collector-specific options.</param>
         /// <param name="options">The application options.</param>
-        /// <param name="e621Client">The E621 client.</param>
+        /// <param name="booruDriver">The Booru driver.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="log">The logging instance.</param>
-        public E621CollectorService
+        public BooruCollectorService
         (
+            IOptions<BooruOptions> booruOptions,
             IOptions<CollectorOptions> options,
-            IE621Client e621Client,
+            IBooruDriver booruDriver,
             IHttpClientFactory httpClientFactory,
-            ILogger<E621CollectorService> log
+            ILogger<BooruCollectorService> log
         )
             : base(options, log)
         {
-            _e621Client = e621Client;
+            _options = booruOptions.Value;
+            _booruDriver = booruDriver;
             _httpClientFactory = httpClientFactory;
             _log = log;
         }
@@ -80,7 +88,7 @@ namespace Argus.Collector.E621.Services
             }
 
             var resumePoint = getResume.Entity;
-            if (!int.TryParse(resumePoint, out var currentPostId))
+            if (!ulong.TryParse(resumePoint, out var currentPostId))
             {
                 currentPostId = 0;
             }
@@ -89,14 +97,14 @@ namespace Argus.Collector.E621.Services
             {
                 try
                 {
-                    var page = await _e621Client.GetPostsAsync
-                    (
-                        currentPostId,
-                        Position.After,
-                        E621Constants.PostsMaximumLimit
-                    );
+                    var getPosts = await _booruDriver.GetPostsAsync(currentPostId, ct: ct);
+                    if (!getPosts.IsSuccess)
+                    {
+                        return Result.FromError(getPosts);
+                    }
 
-                    if (page.Count <= 0)
+                    var posts = getPosts.Entity;
+                    if (posts.Count <= 0)
                     {
                         _log.LogInformation("Waiting for new posts to come in...");
 
@@ -105,7 +113,7 @@ namespace Argus.Collector.E621.Services
                     }
 
                     var client = _httpClientFactory.CreateClient("BulkDownload");
-                    var collections = await Task.WhenAll(page.Select(p => CollectImageAsync(client, p, ct)));
+                    var collections = await Task.WhenAll(posts.Select(p => CollectImageAsync(client, p, ct)));
 
                     foreach (var collection in collections)
                     {
@@ -139,8 +147,8 @@ namespace Argus.Collector.E621.Services
                         return push;
                     }
 
-                    var mostRecentPost = page.OrderByDescending(p => p.Id).First();
-                    currentPostId = mostRecentPost.Id;
+                    var mostRecentPost = posts.OrderByDescending(p => p.ID).First();
+                    currentPostId = mostRecentPost.ID;
 
                     var setResume = await SetResumePointAsync(currentPostId.ToString(), ct);
                     if (setResume.IsSuccess)
@@ -163,39 +171,42 @@ namespace Argus.Collector.E621.Services
         private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync
         (
             HttpClient client,
-            Post post,
+            BooruPost post,
             CancellationToken ct = default
         )
         {
+            var (_, file, source) = post;
+
+            var statusReport = new StatusReport
+            (
+                DateTime.UtcNow,
+                this.ServiceName,
+                source,
+                new Uri("about:blank"),
+                ImageStatus.Collected,
+                string.Empty
+            );
+
             try
             {
-                var statusReport = new StatusReport
-                (
-                    DateTime.UtcNow,
-                    this.ServiceName,
-                    new Uri($"{_e621Client.BaseUrl}/posts/{post.Id}"),
-                    new Uri("about:blank"),
-                    ImageStatus.Collected,
-                    string.Empty
-                );
-
-                if (post.File is null)
+                if (string.IsNullOrWhiteSpace(file))
                 {
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Message = "No file"
+                        Message = "No file (deleted or login required)"
                     };
 
                     return (rejectionReport, null);
                 }
 
-                if (post.File.FileExtension is "swf" or "gif")
+                var fileExtension = Path.GetExtension(file);
+                if (fileExtension is ".swf" or ".gif")
                 {
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Image = post.File.Location,
+                        Image = new Uri(file),
                         Message = "Animation"
                     };
 
@@ -204,10 +215,10 @@ namespace Argus.Collector.E621.Services
 
                 statusReport = statusReport with
                 {
-                    Image = post.File.Location
+                    Image = new Uri(file)
                 };
 
-                var bytes = await client.GetByteArrayAsync(post.File.Location, ct);
+                var bytes = await client.GetByteArrayAsync(file, ct);
 
                 var collectedImage = new CollectedImage
                 (
@@ -218,6 +229,16 @@ namespace Argus.Collector.E621.Services
                 );
 
                 return (statusReport, collectedImage);
+            }
+            catch (HttpRequestException hex) when (hex.StatusCode is HttpStatusCode.NotFound)
+            {
+                var rejectionReport = statusReport with
+                {
+                    Status = ImageStatus.Rejected,
+                    Message = "File not found (deleted?)"
+                };
+
+                return (rejectionReport, null);
             }
             catch (Exception e)
             {
