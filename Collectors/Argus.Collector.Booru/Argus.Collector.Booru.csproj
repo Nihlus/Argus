@@ -11,9 +11,9 @@
 
     <PropertyGroup>
         <Description>
-            Argus collector for Hypnohub
+            Argus collector for Booru sites
 
-            Collects images from https://www.hypnohub.net, handing them to the coordinator.
+            Collects images from Booru sites, handing them to the coordinator.
         </Description>
     </PropertyGroup>
 
