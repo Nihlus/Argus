@@ -37,7 +37,7 @@ function main() {
     aptly publish update focal :argus
     aptly publish update bullseye :argus
 
-    scp -r "${HOME}/.aptly/public/argus/dists" "${HOME}/.aptly/public/argus/pool" jax@192.168.0.11:/var/www/repo/
+    scp -r -P 21122 "${HOME}/.aptly/public/argus/dists" "${HOME}/.aptly/public/argus/pool" jax@algiz.nu:/var/www/repo/
 }
 
 main "${@}"
