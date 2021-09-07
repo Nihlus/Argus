@@ -20,22 +20,16 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-using System.IO;
-using System.Net.Http;
 using Argus.Collector.Common.Extensions;
-using Argus.Collector.Common.Polly;
+using Argus.Collector.Driver.Minibooru;
+using Argus.Collector.Driver.Minibooru.Extensions;
 using Argus.Collector.Hypnohub.Configuration;
-using Argus.Collector.Hypnohub.Implementations;
 using Argus.Collector.Hypnohub.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetMQ;
-using Polly;
-using Polly.Contrib.WaitAndRetry;
-using Remora.Extensions.Options.Immutable;
 
 namespace Argus.Collector.Hypnohub
 {
@@ -70,8 +64,6 @@ namespace Argus.Collector.Hypnohub
             })
             .ConfigureServices((hostContext, services) =>
             {
-                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
-
                 var rateLimit = hostContext.Configuration
                     .GetSection(nameof(HypnohubOptions))
                     .GetValue<int>(nameof(HypnohubOptions.RateLimit));
@@ -81,24 +73,7 @@ namespace Argus.Collector.Hypnohub
                     rateLimit = 1;
                 }
 
-                services
-                    .AddHttpClient<HypnohubAPI>()
-                    .AddTransientHttpErrorPolicy
-                    (
-                        b => b
-                            .WaitAndRetryAsync(retryDelay)
-                            .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
-                    );
-
-                services
-                    .AddSingleton
-                    (
-                        s =>
-                        {
-                            var clientFactory = s.GetRequiredService<IHttpClientFactory>();
-                            return new HypnohubAPI(clientFactory.CreateClient(nameof(HypnohubAPI)));
-                        }
-                    );
+                services.AddBooruDriver<MoebooruDriver>("https://hypnohub.net", rateLimit);
             });
     }
 }

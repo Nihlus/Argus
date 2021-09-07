@@ -29,10 +29,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Services;
-using Argus.Collector.Hypnohub.Implementations;
+using Argus.Collector.Driver.Minibooru;
+using Argus.Collector.Driver.Minibooru.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
-using BooruDex.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -47,7 +47,7 @@ namespace Argus.Collector.Hypnohub.Services
         /// <inheritdoc />
         protected override string ServiceName => "hypnohub";
 
-        private readonly HypnohubAPI _hypnohubAPI;
+        private readonly IBooruDriver _booruDriver;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<HypnohubCollectorService> _log;
 
@@ -55,19 +55,19 @@ namespace Argus.Collector.Hypnohub.Services
         /// Initializes a new instance of the <see cref="HypnohubCollectorService"/> class.
         /// </summary>
         /// <param name="options">The application options.</param>
-        /// <param name="hypnohubAPI">The Hypnohub API.</param>
+        /// <param name="booruDriver">The Hypnohub Booru driver.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="log">The logging instance.</param>
         public HypnohubCollectorService
         (
             IOptions<CollectorOptions> options,
-            HypnohubAPI hypnohubAPI,
+            IBooruDriver booruDriver,
             IHttpClientFactory httpClientFactory,
             ILogger<HypnohubCollectorService> log
         )
             : base(options, log)
         {
-            _hypnohubAPI = hypnohubAPI;
+            _booruDriver = booruDriver;
             _httpClientFactory = httpClientFactory;
             _log = log;
         }
@@ -83,7 +83,7 @@ namespace Argus.Collector.Hypnohub.Services
             }
 
             var resumePoint = getResume.Entity;
-            if (!uint.TryParse(resumePoint, out var currentPostId))
+            if (!ulong.TryParse(resumePoint, out var currentPostId))
             {
                 currentPostId = 0;
             }
@@ -92,8 +92,7 @@ namespace Argus.Collector.Hypnohub.Services
             {
                 try
                 {
-                    _hypnohubAPI.HttpClient = _httpClientFactory.CreateClient(nameof(HypnohubAPI));
-                    var getPosts = await _hypnohubAPI.GetPostsAsync(after: currentPostId);
+                    var getPosts = await _booruDriver.GetPostsAsync(currentPostId, ct: ct);
                     if (!getPosts.IsSuccess)
                     {
                         return Result.FromError(getPosts);
@@ -164,13 +163,20 @@ namespace Argus.Collector.Hypnohub.Services
             return Result.FromSuccess();
         }
 
-        private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync(HttpClient client, Post post, CancellationToken ct = default)
+        private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync
+        (
+            HttpClient client,
+            BooruPost post,
+            CancellationToken ct = default
+        )
         {
+            var (_, file, source) = post;
+
             var statusReport = new StatusReport
             (
                 DateTime.UtcNow,
                 this.ServiceName,
-                new Uri($"{_hypnohubAPI.BaseUrl}post/show/{post.PostUrl}"),
+                source,
                 new Uri("about:blank"),
                 ImageStatus.Collected,
                 string.Empty
@@ -178,7 +184,7 @@ namespace Argus.Collector.Hypnohub.Services
 
             try
             {
-                if (string.IsNullOrWhiteSpace(post.FileUrl))
+                if (string.IsNullOrWhiteSpace(file))
                 {
                     var rejectionReport = statusReport with
                     {
@@ -189,13 +195,13 @@ namespace Argus.Collector.Hypnohub.Services
                     return (rejectionReport, null);
                 }
 
-                var fileExtension = Path.GetExtension(post.FileUrl);
+                var fileExtension = Path.GetExtension(file);
                 if (fileExtension is ".swf" or ".gif")
                 {
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Image = new Uri(post.FileUrl),
+                        Image = new Uri(file),
                         Message = "Animation"
                     };
 
@@ -204,10 +210,10 @@ namespace Argus.Collector.Hypnohub.Services
 
                 statusReport = statusReport with
                 {
-                    Image = new Uri(post.FileUrl)
+                    Image = new Uri(file)
                 };
 
-                var bytes = await client.GetByteArrayAsync(post.FileUrl, ct);
+                var bytes = await client.GetByteArrayAsync(file, ct);
 
                 var collectedImage = new CollectedImage
                 (

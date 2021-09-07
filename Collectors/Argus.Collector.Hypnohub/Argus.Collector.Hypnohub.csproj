@@ -19,10 +19,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+      <ProjectReference Include="..\Drivers\Argus.Collector.Driver.Minibooru\Argus.Collector.Driver.Minibooru.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="BooruDex" Version="2.3.0" />
       <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
       <PackageReference Include="morelinq" Version="3.3.2" />
     </ItemGroup>
