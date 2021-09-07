@@ -21,17 +21,19 @@
 //
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Services;
+using Argus.Collector.Driver.Minibooru;
+using Argus.Collector.Driver.Minibooru.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Noppes.E621;
 using Remora.Results;
 
 namespace Argus.Collector.E621.Services
@@ -44,7 +46,7 @@ namespace Argus.Collector.E621.Services
         /// <inheritdoc />
         protected override string ServiceName => "e621";
 
-        private readonly IE621Client _e621Client;
+        private readonly IBooruDriver _booruDriver;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<E621CollectorService> _log;
 
@@ -52,19 +54,19 @@ namespace Argus.Collector.E621.Services
         /// Initializes a new instance of the <see cref="E621CollectorService"/> class.
         /// </summary>
         /// <param name="options">The application options.</param>
-        /// <param name="e621Client">The E621 client.</param>
+        /// <param name="booruDriver">The E621 client.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="log">The logging instance.</param>
         public E621CollectorService
         (
             IOptions<CollectorOptions> options,
-            IE621Client e621Client,
+            IBooruDriver booruDriver,
             IHttpClientFactory httpClientFactory,
             ILogger<E621CollectorService> log
         )
             : base(options, log)
         {
-            _e621Client = e621Client;
+            _booruDriver = booruDriver;
             _httpClientFactory = httpClientFactory;
             _log = log;
         }
@@ -80,7 +82,7 @@ namespace Argus.Collector.E621.Services
             }
 
             var resumePoint = getResume.Entity;
-            if (!int.TryParse(resumePoint, out var currentPostId))
+            if (!ulong.TryParse(resumePoint, out var currentPostId))
             {
                 currentPostId = 0;
             }
@@ -89,13 +91,13 @@ namespace Argus.Collector.E621.Services
             {
                 try
                 {
-                    var page = await _e621Client.GetPostsAsync
-                    (
-                        currentPostId,
-                        Position.After,
-                        E621Constants.PostsMaximumLimit
-                    );
+                    var getPage = await _booruDriver.GetPostsAsync(currentPostId, 320, ct);
+                    if (!getPage.IsSuccess)
+                    {
+                        return Result.FromError(getPage);
+                    }
 
+                    var page = getPage.Entity;
                     if (page.Count <= 0)
                     {
                         _log.LogInformation("Waiting for new posts to come in...");
@@ -139,8 +141,7 @@ namespace Argus.Collector.E621.Services
                         return push;
                     }
 
-                    var mostRecentPost = page.OrderByDescending(p => p.Id).First();
-                    currentPostId = mostRecentPost.Id;
+                    currentPostId = page.Select(p => p.ID).Max();
 
                     var setResume = await SetResumePointAsync(currentPostId.ToString(), ct);
                     if (setResume.IsSuccess)
@@ -163,23 +164,25 @@ namespace Argus.Collector.E621.Services
         private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync
         (
             HttpClient client,
-            Post post,
+            BooruPost post,
             CancellationToken ct = default
         )
         {
             try
             {
+                var (_, file, source) = post;
+
                 var statusReport = new StatusReport
                 (
                     DateTime.UtcNow,
                     this.ServiceName,
-                    new Uri($"{_e621Client.BaseUrl}/posts/{post.Id}"),
+                    source,
                     new Uri("about:blank"),
                     ImageStatus.Collected,
                     string.Empty
                 );
 
-                if (post.File is null)
+                if (file is null)
                 {
                     var rejectionReport = statusReport with
                     {
@@ -190,12 +193,13 @@ namespace Argus.Collector.E621.Services
                     return (rejectionReport, null);
                 }
 
-                if (post.File.FileExtension is "swf" or "gif")
+                var fileExtension = Path.GetExtension(file);
+                if (fileExtension is "swf" or "gif")
                 {
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Image = post.File.Location,
+                        Image = new Uri(file),
                         Message = "Animation"
                     };
 
@@ -204,10 +208,10 @@ namespace Argus.Collector.E621.Services
 
                 statusReport = statusReport with
                 {
-                    Image = post.File.Location
+                    Image = new Uri(file),
                 };
 
-                var bytes = await client.GetByteArrayAsync(post.File.Location, ct);
+                var bytes = await client.GetByteArrayAsync(file, ct);
 
                 var collectedImage = new CollectedImage
                 (

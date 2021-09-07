@@ -19,11 +19,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Argus.Collector.Common\Argus.Collector.Common.csproj" />
+      <ProjectReference Include="..\Drivers\Argus.Collector.Driver.Minibooru\Argus.Collector.Driver.Minibooru.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
-      <PackageReference Include="Noppes.E621Client" Version="0.7.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,6 +33,10 @@
       <Content Include="appsettings.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Drivers" />
     </ItemGroup>
 
 </Project>

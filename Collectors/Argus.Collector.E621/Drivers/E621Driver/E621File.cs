@@ -1,5 +1,5 @@
 //
-//  MoebooruPost.cs
+//  E621File.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -23,16 +23,14 @@
 using System;
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Driver.Minibooru
+namespace Argus.Collector.E621.Drivers
 {
     /// <summary>
-    /// Represents the internal post representation of the Moebooru driver.
+    /// Represents an E621 file.
     /// </summary>
-    /// <param name="ID">The ID of the post.</param>
-    /// <param name="FileUrl">The full URL to the image file.</param>
-    public record MoebooruPost
+    /// <param name="Url">The full URL to the file.</param>
+    public record E621File
     (
-        [property: JsonPropertyName("id")] ulong ID,
-        [property: JsonPropertyName("file_url")] string? FileUrl
+        [property: JsonPropertyName("url")] Uri Url
     );
 }

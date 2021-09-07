@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,6 +46,11 @@ namespace Argus.Collector.Driver.Minibooru
         /// Gets the driver options.
         /// </summary>
         protected BooruDriverOptions DriverOptions { get; }
+
+        /// <summary>
+        /// Gets the user agent to use.
+        /// </summary>
+        protected virtual IReadOnlyList<ProductInfoHeaderValue>? UserAgent { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AbstractBooruDriver{TInternalPost}"/> class.
@@ -91,6 +97,16 @@ namespace Argus.Collector.Driver.Minibooru
             try
             {
                 var searchUrl = GetSearchUrl(after, limit);
+
+                var request = new HttpRequestMessage(HttpMethod.Get, searchUrl);
+                if (this.UserAgent is not null)
+                {
+                    foreach (var headerValue in this.UserAgent)
+                    {
+                        request.Headers.UserAgent.Add(headerValue);
+                    }
+                }
+
                 var response = await _httpClient.GetAsync(searchUrl, ct);
 
                 response.EnsureSuccessStatusCode();

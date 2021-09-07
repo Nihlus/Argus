@@ -20,17 +20,15 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-using System.IO;
-using System.Reflection;
 using Argus.Collector.Common.Extensions;
+using Argus.Collector.Driver.Minibooru.Extensions;
+using Argus.Collector.E621.Drivers;
 using Argus.Collector.E621.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetMQ;
-using Noppes.E621;
 
 namespace Argus.Collector.E621
 {
@@ -61,20 +59,7 @@ namespace Argus.Collector.E621
             })
             .ConfigureServices((_, services) =>
             {
-                services
-                    .AddSingleton
-                    (
-                        _ =>
-                        {
-                            var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0";
-                            var builder = new E621ClientBuilder()
-                                .WithUserAgent("ImageIndexer", version, "Jax#7487", "Discord")
-                                .WithMaximumConnections(E621Constants.MaximumConnectionsLimit)
-                                .WithRequestInterval(E621Constants.MinimumRequestInterval);
-
-                            return builder.Build();
-                        }
-                    );
+                services.AddBooruDriver<E621Driver>("https://www.e621.net", 2);
             });
     }
 }

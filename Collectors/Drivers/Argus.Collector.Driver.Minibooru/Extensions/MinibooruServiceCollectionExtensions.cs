@@ -58,10 +58,6 @@ namespace Argus.Collector.Driver.Minibooru.Extensions
                 .AddSingleton<TBooruDriver>()
                 .AddSingleton<IBooruDriver, TBooruDriver>(s => s.GetRequiredService<TBooruDriver>())
                 .Configure(typeof(TBooruDriver).Name, () => new BooruDriverOptions(new Uri(baseUrl)))
-                .Configure<JsonSerializerOptions>(typeof(TBooruDriver).Name, o =>
-                {
-                    o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
-                })
                 .AddHttpClient<TBooruDriver>()
                 .AddTransientHttpErrorPolicy
                 (
