@@ -21,8 +21,8 @@
 //
 
 using Argus.Collector.Common.Extensions;
+using Argus.Collector.Driver.Minibooru;
 using Argus.Collector.Driver.Minibooru.Extensions;
-using Argus.Collector.E621.Drivers;
 using Argus.Collector.E621.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

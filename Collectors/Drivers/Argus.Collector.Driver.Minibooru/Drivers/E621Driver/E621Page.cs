@@ -1,5 +1,5 @@
 //
-//  E621Post.cs
+//  E621Page.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,18 +20,17 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.E621.Drivers
+namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
-    /// Represents an E621 post.
+    /// Represents a page of results.
     /// </summary>
-    /// <param name="ID">The ID of the post.</param>
-    /// <param name="File">The file associated with the post.</param>
-    public record E621Post
+    /// <param name="Posts">The posts in the page.</param>
+    public record E621Page
     (
-        [property: JsonPropertyName("id")] ulong ID,
-        [property: JsonPropertyName("file")] E621File File
+        [property: JsonPropertyName("posts")] IReadOnlyList<E621Post> Posts
     );
 }

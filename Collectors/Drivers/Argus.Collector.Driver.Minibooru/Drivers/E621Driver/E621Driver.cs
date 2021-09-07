@@ -27,12 +27,11 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
-using Argus.Collector.Driver.Minibooru;
 using Argus.Collector.Driver.Minibooru.Model;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.E621.Drivers
+namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
     /// Implements E621-specific driver functionality.

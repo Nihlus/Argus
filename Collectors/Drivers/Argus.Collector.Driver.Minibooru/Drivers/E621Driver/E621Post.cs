@@ -1,5 +1,5 @@
 //
-//  E621File.cs
+//  E621Post.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,17 +20,18 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.E621.Drivers
+namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
-    /// Represents an E621 file.
+    /// Represents an E621 post.
     /// </summary>
-    /// <param name="Url">The full URL to the file.</param>
-    public record E621File
+    /// <param name="ID">The ID of the post.</param>
+    /// <param name="File">The file associated with the post.</param>
+    public record E621Post
     (
-        [property: JsonPropertyName("url")] Uri? Url
+        [property: JsonPropertyName("id")] ulong ID,
+        [property: JsonPropertyName("file")] E621File File
     );
 }

@@ -35,8 +35,4 @@
       </Content>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Drivers" />
-    </ItemGroup>
-
 </Project>
