@@ -20,18 +20,19 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
+using Argus.Collector.Booru.Configuration;
+using Argus.Collector.Booru.Services;
 using Argus.Collector.Common.Extensions;
 using Argus.Collector.Driver.Minibooru;
 using Argus.Collector.Driver.Minibooru.Extensions;
-using Argus.Collector.Hypnohub.Configuration;
-using Argus.Collector.Hypnohub.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetMQ;
 
-namespace Argus.Collector.Hypnohub
+namespace Argus.Collector.Booru
 {
     /// <summary>
     /// The main class of the program.
@@ -50,10 +51,10 @@ namespace Argus.Collector.Hypnohub
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<HypnohubCollectorService, HypnohubOptions>
+            .UseCollector<BooruCollectorService, BooruOptions>
             (
                 "hypnohub",
-                () => new HypnohubOptions()
+                () => new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"))
             )
             .ConfigureAppConfiguration((hostContext, configuration) =>
             {
@@ -64,16 +65,32 @@ namespace Argus.Collector.Hypnohub
             })
             .ConfigureServices((hostContext, services) =>
             {
-                var rateLimit = hostContext.Configuration
-                    .GetSection(nameof(HypnohubOptions))
-                    .GetValue<int>(nameof(HypnohubOptions.RateLimit));
+                var options = new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"));
+                hostContext.Configuration.Bind(nameof(BooruOptions), options);
 
+                var rateLimit = options.RateLimit;
                 if (rateLimit == 0)
                 {
                     rateLimit = 1;
                 }
 
-                services.AddBooruDriver<MoebooruDriver>("https://hypnohub.net", rateLimit);
+                switch (options.DriverName)
+                {
+                    case "moebooru":
+                    {
+                        services.AddBooruDriver<MoebooruDriver>(options.BaseUrl.ToString(), rateLimit);
+                        break;
+                    }
+                    case "e621":
+                    {
+                        services.AddBooruDriver<E621Driver>(options.BaseUrl.ToString(), rateLimit);
+                        break;
+                    }
+                    default:
+                    {
+                        throw new ArgumentOutOfRangeException($"Unknown driver name \"{options.DriverName}\"");
+                    }
+                }
             });
     }
 }

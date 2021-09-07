@@ -31,7 +31,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.FList", "Co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Collectors", "Collectors", "{D2D03F17-DC56-4EC4-B14A-8EA97966BE7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Hypnohub", "Collectors\Argus.Collector.Hypnohub\Argus.Collector.Hypnohub.csproj", "{41199F4D-B683-4BF3-8C16-D51FB3D64E32}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Booru", "Collectors\Argus.Collector.Booru\Argus.Collector.Booru.csproj", "{41199F4D-B683-4BF3-8C16-D51FB3D64E32}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Collector.Retry", "Collectors\Argus.Collector.Retry\Argus.Collector.Retry.csproj", "{E597285A-18D7-4FA2-AB9E-059718E2378C}"
 EndProject

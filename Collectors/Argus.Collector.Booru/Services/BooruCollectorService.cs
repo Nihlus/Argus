@@ -1,5 +1,5 @@
 //
-//  HypnohubCollectorService.cs
+//  BooruCollectorService.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -27,6 +27,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Argus.Collector.Booru.Configuration;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Services;
 using Argus.Collector.Driver.Minibooru;
@@ -37,36 +38,40 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.Hypnohub.Services
+namespace Argus.Collector.Booru.Services
 {
     /// <summary>
-    /// Collects images from Hypnohub.
+    /// Collects images from a Booru.
     /// </summary>
-    public class HypnohubCollectorService : CollectorService
+    public class BooruCollectorService : CollectorService
     {
         /// <inheritdoc />
-        protected override string ServiceName => "hypnohub";
+        protected override string ServiceName => _options.ServiceName;
 
+        private readonly BooruOptions _options;
         private readonly IBooruDriver _booruDriver;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<HypnohubCollectorService> _log;
+        private readonly ILogger<BooruCollectorService> _log;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HypnohubCollectorService"/> class.
+        /// Initializes a new instance of the <see cref="BooruCollectorService"/> class.
         /// </summary>
+        /// <param name="booruOptions">The collector-specific options.</param>
         /// <param name="options">The application options.</param>
-        /// <param name="booruDriver">The Hypnohub Booru driver.</param>
+        /// <param name="booruDriver">The Booru driver.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="log">The logging instance.</param>
-        public HypnohubCollectorService
+        public BooruCollectorService
         (
+            IOptions<BooruOptions> booruOptions,
             IOptions<CollectorOptions> options,
             IBooruDriver booruDriver,
             IHttpClientFactory httpClientFactory,
-            ILogger<HypnohubCollectorService> log
+            ILogger<BooruCollectorService> log
         )
             : base(options, log)
         {
+            _options = booruOptions.Value;
             _booruDriver = booruDriver;
             _httpClientFactory = httpClientFactory;
             _log = log;
@@ -189,7 +194,7 @@ namespace Argus.Collector.Hypnohub.Services
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Message = "No file"
+                        Message = "No file (deleted or login required)"
                     };
 
                     return (rejectionReport, null);
