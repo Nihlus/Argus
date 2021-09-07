@@ -127,6 +127,17 @@ namespace Argus.API
                 return options;
             });
 
+            services.AddCors(options =>
+            {
+                options.AddPolicy("_allowSpecificOrigins", policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+
             // Authentication
             services
                 .AddAuthentication("Key")
@@ -191,6 +202,8 @@ namespace Argus.API
             }
 
             app.UseRouting();
+
+            app.UseCors("_allowSpecificOrigins");
 
             app
                 .UseAuthentication()
