@@ -1,5 +1,5 @@
 //
-//  E621Page.cs
+//  OuroborosPage.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -29,8 +29,8 @@ namespace Argus.Collector.Driver.Minibooru
     /// Represents a page of results.
     /// </summary>
     /// <param name="Posts">The posts in the page.</param>
-    public record E621Page
+    public record OuroborosPage
     (
-        [property: JsonPropertyName("posts")] IReadOnlyList<E621Post> Posts
+        [property: JsonPropertyName("posts")] IReadOnlyList<OuroborosPost> Posts
     );
 }

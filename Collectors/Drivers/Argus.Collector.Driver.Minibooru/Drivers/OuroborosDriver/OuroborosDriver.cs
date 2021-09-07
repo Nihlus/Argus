@@ -1,5 +1,5 @@
 //
-//  E621Driver.cs
+//  OuroborosDriver.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -34,9 +34,9 @@ using Remora.Results;
 namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
-    /// Implements E621-specific driver functionality.
+    /// Implements Ouroboros-specific driver functionality.
     /// </summary>
-    public class E621Driver : AbstractBooruDriver<E621Page>
+    public class OuroborosDriver : AbstractBooruDriver<OuroborosPage>
     {
         /// <inheritdoc />
         protected override IReadOnlyList<ProductInfoHeaderValue> UserAgent => new[]
@@ -46,12 +46,12 @@ namespace Argus.Collector.Driver.Minibooru
         };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="E621Driver"/> class.
+        /// Initializes a new instance of the <see cref="OuroborosDriver"/> class.
         /// </summary>
         /// <param name="clientFactory">The HTTP client to use.</param>
         /// <param name="jsonOptions">The JSON serializer options.</param>
         /// <param name="driverOptions">The driver options.</param>
-        public E621Driver
+        public OuroborosDriver
         (
             IHttpClientFactory clientFactory,
             IOptionsMonitor<JsonSerializerOptions> jsonOptions,
@@ -62,7 +62,7 @@ namespace Argus.Collector.Driver.Minibooru
         }
 
         /// <inheritdoc />
-        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(E621Page internalPage)
+        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(OuroborosPage internalPage)
         {
             return internalPage.Posts.Select
             (

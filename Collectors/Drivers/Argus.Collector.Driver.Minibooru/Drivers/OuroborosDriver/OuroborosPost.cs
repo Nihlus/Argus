@@ -1,5 +1,5 @@
 //
-//  E621Post.cs
+//  OuroborosPost.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -25,13 +25,13 @@ using System.Text.Json.Serialization;
 namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
-    /// Represents an E621 post.
+    /// Represents an Ouroboros post.
     /// </summary>
     /// <param name="ID">The ID of the post.</param>
     /// <param name="File">The file associated with the post.</param>
-    public record E621Post
+    public record OuroborosPost
     (
         [property: JsonPropertyName("id")] ulong ID,
-        [property: JsonPropertyName("file")] E621File File
+        [property: JsonPropertyName("file")] OuroborosFile File
     );
 }

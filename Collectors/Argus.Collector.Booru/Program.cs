@@ -81,9 +81,9 @@ namespace Argus.Collector.Booru
                         services.AddBooruDriver<MoebooruDriver>(options.BaseUrl.ToString(), rateLimit);
                         break;
                     }
-                    case "e621":
+                    case "ouroboros":
                     {
-                        services.AddBooruDriver<E621Driver>(options.BaseUrl.ToString(), rateLimit);
+                        services.AddBooruDriver<OuroborosDriver>(options.BaseUrl.ToString(), rateLimit);
                         break;
                     }
                     default:

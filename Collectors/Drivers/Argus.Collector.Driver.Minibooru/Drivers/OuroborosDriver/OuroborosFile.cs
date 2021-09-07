@@ -1,5 +1,5 @@
 //
-//  E621File.cs
+//  OuroborosFile.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -26,10 +26,10 @@ using System.Text.Json.Serialization;
 namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
-    /// Represents an E621 file.
+    /// Represents an Ouroboros file.
     /// </summary>
     /// <param name="Url">The full URL to the file.</param>
-    public record E621File
+    public record OuroborosFile
     (
         [property: JsonPropertyName("url")] Uri? Url
     );
