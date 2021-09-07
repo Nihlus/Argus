@@ -15,6 +15,7 @@
 
             Collects images from Booru sites, handing them to the coordinator.
         </Description>
+        <Version>1.0.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
