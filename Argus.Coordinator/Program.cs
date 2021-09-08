@@ -22,7 +22,6 @@
 
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Common.Sqlite;
