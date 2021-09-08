@@ -24,6 +24,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using Argus.Common.Messages.Replies;
@@ -187,6 +188,21 @@ namespace Argus.Coordinator.Services
             incomingSocket.Bind(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
             outgoingSocket.Bind(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
 
+            var indexBlockOptions = new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = 1000,
+                CancellationToken = ct,
+                EnsureOrdered = false,
+                MaxDegreeOfParallelism = Environment.ProcessorCount,
+                SingleProducerConstrained = true
+            };
+
+            var indexBlock = new ActionBlock<FingerprintedImage>
+            (
+                f => HandleFingerprintedImageAsync(f, ct),
+                indexBlockOptions
+            );
+
             while (!ct.IsCancellationRequested)
             {
                 if (incomingSocket.TryReceiveFrameBytes(out var bytes))
@@ -227,33 +243,11 @@ namespace Argus.Coordinator.Services
                         }
                         case FingerprintedImage fingerprintedImage:
                         {
-                            var result = await HandleFingerprintedImageAsync(fingerprintedImage, ct);
-                            if (!result.IsSuccess)
+                            while (!await indexBlock.SendAsync(fingerprintedImage, ct))
                             {
-                                _log.LogWarning("Failed to handle fingerprinted image: {Message}", result.Error.Message);
+                                await Task.Delay(TimeSpan.FromSeconds(1), ct);
                             }
 
-                            var statusReport = new StatusReport
-                            (
-                                DateTime.UtcNow,
-                                fingerprintedImage.ServiceName,
-                                fingerprintedImage.Source,
-                                fingerprintedImage.Image,
-                                ImageStatus.Indexed,
-                                string.Empty
-                            );
-
-                            var indexed = await HandleStatusReportAsync(statusReport, ct);
-                            if (!indexed.IsSuccess)
-                            {
-                                _log.LogWarning("Failed to create status report: {Reason}", indexed.Error.Message);
-                            }
-
-                            _log.LogInformation
-                            (
-                                "Indexed fingerprinted image from service \"{Service}\"",
-                                fingerprintedImage.ServiceName
-                            );
                             break;
                         }
                         case StatusReport statusReport:
@@ -305,7 +299,35 @@ namespace Argus.Coordinator.Services
                 signature.Words
             );
 
-            return await _nestService.IndexImageAsync(indexedImage, ct);
+            var indexImage = await _nestService.IndexImageAsync(indexedImage, ct);
+            if (!indexImage.IsSuccess)
+            {
+                return indexImage;
+            }
+
+            var statusReport = new StatusReport
+            (
+                DateTime.UtcNow,
+                fingerprintedImage.ServiceName,
+                fingerprintedImage.Source,
+                fingerprintedImage.Image,
+                ImageStatus.Indexed,
+                string.Empty
+            );
+
+            var indexed = await HandleStatusReportAsync(statusReport, ct);
+            if (!indexed.IsSuccess)
+            {
+                _log.LogWarning("Failed to create status report: {Reason}", indexed.Error.Message);
+            }
+
+            _log.LogInformation
+            (
+                "Indexed fingerprinted image from service \"{Service}\"",
+                fingerprintedImage.ServiceName
+            );
+
+            return Result.FromSuccess();
         }
 
         private async Task<Result> HandleStatusReportAsync
