@@ -30,26 +30,31 @@ namespace Argus.Common
         /// <summary>
         /// The image has been collected, and has been submitted for processing.
         /// </summary>
-        Collected,
+        Collected = 0,
 
         /// <summary>
         /// The image has been rejected by the collector.
         /// </summary>
-        Rejected,
+        Rejected = 1,
 
         /// <summary>
         /// The image has been sent for processing by a worker.
         /// </summary>
-        Processing,
+        Processing = 2,
 
         /// <summary>
         /// The image has been processed, and has been sent back to the coordinator.
         /// </summary>
-        Processed,
+        Processed = 3,
+
+        /// <summary>
+        /// The image has been successfully indexed.
+        /// </summary>
+        Indexed = 5,
 
         /// <summary>
         /// Processing of the image faulted in some way.
         /// </summary>
-        Faulted
+        Faulted = 4
     }
 }

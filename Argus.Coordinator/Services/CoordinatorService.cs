@@ -153,8 +153,8 @@ namespace Argus.Coordinator.Services
                                 .Where
                                 (
                                     r =>
-                                        r.Status == ImageStatus.Collected ||
-                                        r.Status == ImageStatus.Processing
+                                        r.Status != ImageStatus.Faulted ||
+                                        r.Status != ImageStatus.Rejected
                                 )
                                 .Take(getImagesRequest.MaxCount)
                                 .ToListAsync(ct);
@@ -231,6 +231,22 @@ namespace Argus.Coordinator.Services
                             if (!result.IsSuccess)
                             {
                                 _log.LogWarning("Failed to handle fingerprinted image: {Message}", result.Error.Message);
+                            }
+
+                            var statusReport = new StatusReport
+                            (
+                                DateTime.UtcNow,
+                                fingerprintedImage.ServiceName,
+                                fingerprintedImage.Source,
+                                fingerprintedImage.Image,
+                                ImageStatus.Indexed,
+                                string.Empty
+                            );
+
+                            var indexed = await HandleStatusReportAsync(statusReport, ct);
+                            if (!indexed.IsSuccess)
+                            {
+                                _log.LogWarning("Failed to create status report: {Reason}", indexed.Error.Message);
                             }
 
                             _log.LogInformation
