@@ -154,8 +154,8 @@ namespace Argus.Coordinator.Services
                                 .Where
                                 (
                                     r =>
-                                        r.Status != ImageStatus.Faulted ||
-                                        r.Status != ImageStatus.Rejected ||
+                                        r.Status != ImageStatus.Faulted &&
+                                        r.Status != ImageStatus.Rejected &&
                                         r.Status != ImageStatus.Indexed
                                 )
                                 .Take(getImagesRequest.MaxCount)
