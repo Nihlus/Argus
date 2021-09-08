@@ -190,7 +190,7 @@ namespace Argus.Coordinator.Services
 
             var indexBlockOptions = new ExecutionDataflowBlockOptions
             {
-                BoundedCapacity = 1000,
+                BoundedCapacity = Environment.ProcessorCount,
                 CancellationToken = ct,
                 EnsureOrdered = false,
                 MaxDegreeOfParallelism = Environment.ProcessorCount,
