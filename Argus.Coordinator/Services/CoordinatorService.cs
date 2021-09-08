@@ -188,7 +188,7 @@ namespace Argus.Coordinator.Services
             incomingSocket.Bind(_options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
             outgoingSocket.Bind(_options.CoordinatorOutputEndpoint.ToString().TrimEnd('/'));
 
-            var indexBlockOptions = new ExecutionDataflowBlockOptions
+            var blockOptions = new ExecutionDataflowBlockOptions
             {
                 BoundedCapacity = Environment.ProcessorCount,
                 CancellationToken = ct,
@@ -200,7 +200,13 @@ namespace Argus.Coordinator.Services
             var indexBlock = new ActionBlock<FingerprintedImage>
             (
                 f => HandleFingerprintedImageAsync(f, ct),
-                indexBlockOptions
+                blockOptions
+            );
+
+            var reportBlock = new ActionBlock<StatusReport>
+            (
+                r => HandleStatusReportAsync(r, ct),
+                blockOptions
             );
 
             while (!ct.IsCancellationRequested)
@@ -252,18 +258,11 @@ namespace Argus.Coordinator.Services
                         }
                         case StatusReport statusReport:
                         {
-                            var result = await HandleStatusReportAsync(statusReport, ct);
-                            if (!result.IsSuccess)
+                            while (!await reportBlock.SendAsync(statusReport, ct))
                             {
-                                _log.LogWarning("Failed to handle status report: {Message}", result.Error.Message);
+                                await Task.Delay(TimeSpan.FromSeconds(1), ct);
                             }
 
-                            _log.LogInformation
-                            (
-                                "Logged status report regarding image {Image} from {Source}",
-                                statusReport.Image,
-                                statusReport.Source
-                            );
                             break;
                         }
                         default:
@@ -315,10 +314,10 @@ namespace Argus.Coordinator.Services
                 string.Empty
             );
 
-            var indexed = await HandleStatusReportAsync(statusReport, ct);
-            if (!indexed.IsSuccess)
+            var reportIndexed = await HandleStatusReportAsync(statusReport, ct);
+            if (!reportIndexed.IsSuccess)
             {
-                _log.LogWarning("Failed to create status report: {Reason}", indexed.Error.Message);
+                _log.LogWarning("Failed to create status report: {Reason}", reportIndexed.Error.Message);
             }
 
             _log.LogInformation
@@ -336,29 +335,43 @@ namespace Argus.Coordinator.Services
             CancellationToken ct
         )
         {
-            await using var db = _contextFactory.CreateDbContext();
-            var existingReport = await db.ServiceStatusReports.FirstOrDefaultAsync
-            (
-                r =>
-                    r.Report.ServiceName == statusReport.ServiceName &&
-                    r.Report.Source == statusReport.Source &&
-                    r.Report.Image == statusReport.Image,
-                ct
-            );
-
-            if (existingReport is null)
+            try
             {
-                existingReport = new ServiceStatusReport(statusReport);
+                await using var db = _contextFactory.CreateDbContext();
+                var existingReport = await db.ServiceStatusReports.FirstOrDefaultAsync
+                (
+                    r =>
+                        r.Report.ServiceName == statusReport.ServiceName &&
+                        r.Report.Source == statusReport.Source &&
+                        r.Report.Image == statusReport.Image,
+                    ct
+                );
+
+                if (existingReport is null)
+                {
+                    existingReport = new ServiceStatusReport(statusReport);
+                }
+                else
+                {
+                    existingReport.Report = statusReport;
+                }
+
+                db.ServiceStatusReports.Update(existingReport);
+                await db.SaveChangesAsync(ct);
+
+                _log.LogInformation
+                (
+                    "Logged status report regarding image {Image} from {Source}",
+                    statusReport.Image,
+                    statusReport.Source
+                );
+
+                return Result.FromSuccess();
             }
-            else
+            catch (Exception e)
             {
-                existingReport.Report = statusReport;
+                return e;
             }
-
-            db.ServiceStatusReports.Update(existingReport);
-            await db.SaveChangesAsync(ct);
-
-            return Result.FromSuccess();
         }
     }
 }
