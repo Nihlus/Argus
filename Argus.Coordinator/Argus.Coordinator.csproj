@@ -13,9 +13,10 @@
         <Description>
             Cluster coordinator for Argus
 
-            The cluster coordinator load-balances incoming images across available workers, as well as tracking the 
+            The cluster coordinator load-balances incoming images across available workers, as well as tracking the
             state of units of work.
         </Description>
+        <Version>1.1.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
