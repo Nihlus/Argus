@@ -30,6 +30,7 @@ using Argus.Common.Results;
 using Argus.Common.Services.Elasticsearch.Search;
 using Nest;
 using Puzzle;
+using Remora.Results;
 using Result = Remora.Results.Result;
 
 namespace Argus.Common.Services.Elasticsearch
@@ -51,12 +52,13 @@ namespace Argus.Common.Services.Elasticsearch
         }
 
         /// <summary>
-        /// Indexes the given image in Elasticsearch.
+        /// Determines whether the image from the given source with the given link has already been indexed.
         /// </summary>
-        /// <param name="image">The image.</param>
+        /// <param name="source">The source URL.</param>
+        /// <param name="link">The link URL.</param>
         /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>true if the image was indexed; otherwise, false.</returns>
-        public async Task<Result> IndexImageAsync(IndexedImage image, CancellationToken ct = default)
+        /// <returns>true if the image is indexed; otherwise, false.</returns>
+        public async Task<Result<bool>> IsIndexedAsync(string source, string link, CancellationToken ct = default)
         {
             var existingImage = await _client.SearchAsync<IndexedImage>
             (
@@ -65,10 +67,10 @@ namespace Argus.Common.Services.Elasticsearch
                     q1 => q1.Bool
                     (
                         b => b
-                            .Must(m => m.Match(ma => ma.Field(im => im.Source).Query(image.Source)))
-                            .Must(m => m.Match(ma => ma.Field(im => im.Link).Query(image.Link)))
+                            .Must(m => m.Match(ma => ma.Field(im => im.Source).Query(source)))
+                            .Must(m => m.Match(ma => ma.Field(im => im.Link).Query(link)))
                     )
-                ),
+                ).Source(so => so.ExcludeAll()),
                 ct
             );
 
@@ -79,13 +81,27 @@ namespace Argus.Common.Services.Elasticsearch
                     : existingImage.OriginalException;
             }
 
-            if (existingImage.Hits.Any())
+            return existingImage.Hits.Any();
+        }
+
+        /// <summary>
+        /// Indexes the given image in Elasticsearch.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        /// <param name="ct">The cancellation token for this operation.</param>
+        /// <returns>true if the image was indexed; otherwise, false.</returns>
+        public async Task<Result> IndexImageAsync(IndexedImage image, CancellationToken ct = default)
+        {
+            var checkIsIndexed = await IsIndexedAsync(image.Source, image.Link, ct);
+            if (!checkIsIndexed.IsSuccess)
             {
-                if (existingImage.Hits.Any(hit => hit.Source.Signature.SequenceEqual(image.Signature)))
-                {
-                    // It's already indexed, so it's fine
-                    return Result.FromSuccess();
-                }
+                return Result.FromError(checkIsIndexed);
+            }
+
+            if (checkIsIndexed.Entity)
+            {
+                // It's already indexed, so it's fine
+                return Result.FromSuccess();
             }
 
             var response = await _client.IndexAsync(image, idx => idx.Index("images"), ct);
