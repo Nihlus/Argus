@@ -29,12 +29,10 @@ using Argus.API.Configuration;
 using Argus.API.Database;
 using Argus.Common.Json;
 using Argus.Common.Services.Elasticsearch;
-using Argus.Common.Sqlite;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -165,20 +163,14 @@ namespace Argus.API
                 .AddTransient<NESTService>();
 
             // Database
-            services.Configure(() =>
+            services.AddDbContextFactory<ArgusAPIContext>(options =>
             {
-                var cacheFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                var applicationName = "argus";
-
-                var dbPath = Path.Combine(cacheFolder, applicationName, "api.sqlite");
-                Directory.CreateDirectory(Path.GetDirectoryName(dbPath) ?? throw new InvalidOperationException());
-
-                return new SqliteConnectionOptions(dbPath);
+                options.UseNpgsql
+                (
+                    this.Configuration.GetConnectionString("API")
+                )
+                .UseSnakeCaseNamingConvention();
             });
-
-            services
-                .AddDbContextFactory<ArgusAPIContext>()
-                .AddSingleton<SqliteConnectionPool>();
         }
 
         /// <summary>

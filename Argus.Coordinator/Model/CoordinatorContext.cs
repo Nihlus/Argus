@@ -20,8 +20,6 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System.Threading.Tasks;
-using Argus.Common.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Argus.Coordinator.Model
@@ -31,17 +29,13 @@ namespace Argus.Coordinator.Model
     /// </summary>
     public class CoordinatorContext : DbContext
     {
-        private readonly SqliteConnectionPool _connectionPool;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="CoordinatorContext"/> class.
         /// </summary>
         /// <param name="options">The context options.</param>
-        /// <param name="connectionPool">The connection pool.</param>
-        public CoordinatorContext(DbContextOptions options, SqliteConnectionPool connectionPool)
+        public CoordinatorContext(DbContextOptions options)
             : base(options)
         {
-            _connectionPool = connectionPool;
         }
 
         /// <summary>
@@ -55,54 +49,21 @@ namespace Argus.Coordinator.Model
         public DbSet<ServiceStatusReport> ServiceStatusReports => Set<ServiceStatusReport>();
 
         /// <inheritdoc />
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
-            optionsBuilder
-                .UseSqlite(_connectionPool.LeaseConnection());
-
-        /// <inheritdoc />
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
+            // Configure ServiceStates
             modelBuilder.Entity<ServiceState>()
-                .HasIndex(s => s.Id)
+                .HasIndex(r => r.Id)
                 .IsUnique();
 
-            modelBuilder.Entity<ServiceState>()
-                .HasIndex(s => s.Name)
-                .IsUnique();
+            // Configure ServiceStatusReports
+            modelBuilder.Entity<ServiceStatusReport>()
+                .OwnsOne(r => r.Report)
+                .WithOwner();
 
             modelBuilder.Entity<ServiceStatusReport>()
-                .HasIndex(s => s.Id)
+                .HasIndex(r => r.Id)
                 .IsUnique();
-
-            var ownedReport = modelBuilder.Entity<ServiceStatusReport>()
-                .OwnsOne(s => s.Report);
-
-            ownedReport
-                .HasIndex(s => s.ServiceName);
-
-            ownedReport
-                .HasIndex(s => s.Source);
-
-            ownedReport
-                .HasIndex(s => s.Image);
-
-            ownedReport.WithOwner();
-        }
-
-        /// <inheritdoc/>
-        public override void Dispose()
-        {
-            _connectionPool.ReturnConnection(this.Database.GetDbConnection());
-            base.Dispose();
-        }
-
-        /// <inheritdoc />
-        public override ValueTask DisposeAsync()
-        {
-            _connectionPool.ReturnConnection(this.Database.GetDbConnection());
-            return base.DisposeAsync();
         }
     }
 }

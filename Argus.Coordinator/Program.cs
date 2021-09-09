@@ -24,7 +24,6 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Argus.Common.Services.Elasticsearch;
-using Argus.Common.Sqlite;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.Model;
 using Argus.Coordinator.Services;
@@ -133,20 +132,14 @@ namespace Argus.Coordinator
                 });
 
                 // Database
-                services.Configure(() =>
+                services.AddDbContextFactory<CoordinatorContext>(options =>
                 {
-                    var cacheFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                    var applicationName = "image-indexer";
-
-                    var dbPath = Path.Combine(cacheFolder, applicationName, "indexer.sqlite");
-                    Directory.CreateDirectory(Path.GetDirectoryName(dbPath) ?? throw new InvalidOperationException());
-
-                    return new SqliteConnectionOptions(dbPath);
+                    options.UseNpgsql
+                    (
+                        hostContext.Configuration.GetConnectionString("Coordinator")
+                    )
+                    .UseSnakeCaseNamingConvention();
                 });
-
-                services
-                    .AddDbContextFactory<CoordinatorContext>()
-                    .AddSingleton<SqliteConnectionPool>();
 
                 // Elasticsearch services
                 services

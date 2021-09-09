@@ -10,7 +10,6 @@
 
     <ItemGroup>
         <PackageReference Include="MessagePack" Version="2.3.75" />
-        <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="5.0.9" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
         <PackageReference Include="NetMQ" Version="4.0.1.6" />
