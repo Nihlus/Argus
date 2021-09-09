@@ -1,5 +1,5 @@
 //
-//  ICoordinatorRequest.cs
+//  PongReply.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,18 +20,10 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
-
-namespace Argus.Common.Messages.Requests
+namespace Argus.Common.Messages.Replies
 {
     /// <summary>
-    /// Represents a marker interface for a request made to the coordinator.
+    /// Sends an acknowledgement back to a pinging collector or worker.
     /// </summary>
-    [Union(0, typeof(GetResumeRequest))]
-    [Union(1, typeof(SetResumeRequest))]
-    [Union(2, typeof(GetImagesToRetryRequest))]
-    [Union(3, typeof(PingRequest))]
-    public interface ICoordinatorRequest
-    {
-    }
+    public record PongReply : ICoordinatorReply;
 }

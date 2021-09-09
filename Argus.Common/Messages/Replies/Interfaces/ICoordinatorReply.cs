@@ -30,6 +30,7 @@ namespace Argus.Common.Messages.Replies
     [Union(0, typeof(ResumeReply))]
     [Union(1, typeof(ErrorReply))]
     [Union(2, typeof(ImagesToRetryReply))]
+    [Union(3, typeof(PongReply))]
     public interface ICoordinatorReply
     {
     }

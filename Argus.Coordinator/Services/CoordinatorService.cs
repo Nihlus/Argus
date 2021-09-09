@@ -164,6 +164,11 @@ namespace Argus.Coordinator.Services
                             reply = new ImagesToRetryReply(reports);
                             break;
                         }
+                        case PingRequest:
+                        {
+                            reply = new PongReply();
+                            break;
+                        }
                         default:
                         {
                             reply = new ErrorReply("Unknown request.");

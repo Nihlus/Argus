@@ -1,5 +1,5 @@
 //
-//  ICoordinatorRequest.cs
+//  PingRequest.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,18 +20,10 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
-
 namespace Argus.Common.Messages.Requests
 {
     /// <summary>
-    /// Represents a marker interface for a request made to the coordinator.
+    /// Sends a ping to the coordinator to see if it's still alive.
     /// </summary>
-    [Union(0, typeof(GetResumeRequest))]
-    [Union(1, typeof(SetResumeRequest))]
-    [Union(2, typeof(GetImagesToRetryRequest))]
-    [Union(3, typeof(PingRequest))]
-    public interface ICoordinatorRequest
-    {
-    }
+    public record PingRequest : ICoordinatorRequest;
 }
