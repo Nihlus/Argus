@@ -117,6 +117,20 @@ namespace Argus.Worker.Services
                     }
                     else
                     {
+                        // send status message
+                        var message = new StatusReport
+                        (
+                            DateTime.UtcNow,
+                            request.ServiceName,
+                            request.Source,
+                            request.Image,
+                            ImageStatus.Faulted,
+                            result.Error.Message
+                        );
+
+                        var serializedStatusReport = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(message);
+                        outgoingSocket.SendFrame(serializedStatusReport);
+
                         _log.LogInformation
                         (
                             "Failed to fingerprint {Image} from {Source}: {Reason}",
@@ -125,20 +139,6 @@ namespace Argus.Worker.Services
                             result.Error.Message
                         );
                     }
-
-                    // send status message
-                    var message = new StatusReport
-                    (
-                        DateTime.UtcNow,
-                        request.ServiceName,
-                        request.Source,
-                        request.Image,
-                        result.IsSuccess ? ImageStatus.Processed : ImageStatus.Faulted,
-                        result.IsSuccess ? string.Empty : result.Error.Message
-                    );
-
-                    var serializedStatusReport = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(message);
-                    outgoingSocket.SendFrame(serializedStatusReport);
                 },
                 sendOptions
             );
