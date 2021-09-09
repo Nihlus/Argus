@@ -88,8 +88,7 @@ namespace Argus.Coordinator
                 await db.Database.MigrateAsync();
             }
 
-            using var runtime = new NetMQRuntime();
-            runtime.Run(host.RunAsync());
+            await host.RunAsync();
             log.LogInformation("Shutting down...");
         }
 
