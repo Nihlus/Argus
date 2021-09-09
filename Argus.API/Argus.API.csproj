@@ -11,7 +11,7 @@
 
             The REST API exposes a simple REST+JSON API for generating fingerprints and searching the database.
         </Description>
-        <Version>1.2.0</Version>
+        <Version>2.0.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
