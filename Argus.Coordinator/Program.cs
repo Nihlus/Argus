@@ -25,16 +25,15 @@ using System.IO;
 using System.Threading.Tasks;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
+using Argus.Coordinator.MassTransit.Consumers;
 using Argus.Coordinator.Model;
-using Argus.Coordinator.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Nest;
-using NetMQ;
 using Remora.Extensions.Options.Immutable;
 using Serilog;
 using Serilog.Events;
@@ -114,26 +113,35 @@ namespace Argus.Coordinator
             })
             .ConfigureServices((hostContext, services) =>
             {
-                services.Configure(() =>
-                {
-                    var options = new CoordinatorOptions
-                    (
-                        new Uri("about:blank"),
-                        new Uri("about:blank"),
-                        new Uri("about:blank"),
-                        new Uri("about:blank"),
-                        string.Empty,
-                        string.Empty
-                    );
+                var options = new CoordinatorOptions
+                (
+                    new Uri("about:blank"),
+                    new Uri("about:blank"),
+                    string.Empty,
+                    string.Empty
+                );
 
-                    hostContext.Configuration.Bind(nameof(CoordinatorOptions), options);
-                    return options;
+                hostContext.Configuration.Bind(nameof(CoordinatorOptions), options);
+                services.Configure(() => options);
+
+                // MassTransit
+                services.AddMassTransit(busConfig =>
+                {
+                    busConfig.UsingGrpc((_, cfg) =>
+                    {
+                        cfg.Host(options.CoordinatorEndpoint);
+                    });
+
+                    busConfig.AddConsumer<ResumeRequestConsumer>();
+                    busConfig.AddConsumer<RetryRequestConsumer>();
                 });
 
+                services.AddMassTransitHostedService();
+
                 // Database
-                services.AddDbContextFactory<CoordinatorContext>(options =>
+                services.AddDbContextFactory<CoordinatorContext>(dbOptions =>
                 {
-                    options.UseNpgsql
+                    dbOptions.UseNpgsql
                     (
                         hostContext.Configuration.GetConnectionString("Coordinator")
                     )
@@ -144,16 +152,13 @@ namespace Argus.Coordinator
                 services
                     .AddTransient
                     (
-                        transientServices =>
+                        _ =>
                         {
-                            var configuration = transientServices
-                                .GetRequiredService<IOptions<CoordinatorOptions>>().Value;
-
-                            var node = configuration.ElasticsearchServer;
+                            var node = options.ElasticsearchServer;
                             var settings = new ConnectionSettings(node);
 
-                            var username = configuration.ElasticsearchUsername;
-                            var password = configuration.ElasticsearchPassword;
+                            var username = options.ElasticsearchUsername;
+                            var password = options.ElasticsearchPassword;
                             settings.BasicAuthentication(username, password);
 
                             settings.DefaultIndex("images");
@@ -163,8 +168,6 @@ namespace Argus.Coordinator
                     )
                     .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
                     .AddTransient<NESTService>();
-
-                services.AddHostedService<CoordinatorService>();
             });
     }
 }

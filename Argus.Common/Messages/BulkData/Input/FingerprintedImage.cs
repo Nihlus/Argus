@@ -21,8 +21,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using MessagePack;
 using Puzzle;
 
 namespace Argus.Common.Messages.BulkData
@@ -35,13 +33,12 @@ namespace Argus.Common.Messages.BulkData
     /// <param name="Image">A direct link to the image.</param>
     /// <param name="Fingerprint">The image data.</param>
     /// <param name="Hash">A SHA256 hash of the image data.</param>
-    [MessagePackObject]
     public record FingerprintedImage
     (
-        [property: Key(0)] string ServiceName,
-        [property: Key(1)] Uri Source,
-        [property: Key(2)] Uri Image,
-        [property: Key(3)] LuminosityLevel[] Fingerprint,
-        [property: Key(4)] string Hash
-    ) : ICoordinatorInputMessage;
+        string ServiceName,
+        Uri Source,
+        Uri Image,
+        LuminosityLevel[] Fingerprint,
+        string Hash
+    );
 }

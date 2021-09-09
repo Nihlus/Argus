@@ -34,6 +34,7 @@ using Argus.Collector.Driver.Minibooru;
 using Argus.Collector.Driver.Minibooru.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -57,19 +58,21 @@ namespace Argus.Collector.Booru.Services
         /// Initializes a new instance of the <see cref="BooruCollectorService"/> class.
         /// </summary>
         /// <param name="booruOptions">The collector-specific options.</param>
-        /// <param name="options">The application options.</param>
         /// <param name="booruDriver">The Booru driver.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
+        /// <param name="bus">The message bus.</param>
+        /// <param name="options">The application options.</param>
         /// <param name="log">The logging instance.</param>
         public BooruCollectorService
         (
             IOptions<BooruOptions> booruOptions,
-            IOptions<CollectorOptions> options,
             IBooruDriver booruDriver,
             IHttpClientFactory httpClientFactory,
+            IBus bus,
+            IOptions<CollectorOptions> options,
             ILogger<BooruCollectorService> log
         )
-            : base(options, log)
+            : base(bus, options, log)
         {
             _options = booruOptions.Value;
             _booruDriver = booruDriver;
@@ -125,7 +128,7 @@ namespace Argus.Collector.Booru.Services
 
                         var (statusReport, collectedImage) = collection.Entity;
 
-                        var report = PushStatusReport(statusReport);
+                        var report = await PushStatusReportAsync(statusReport, ct);
                         if (!report.IsSuccess)
                         {
                             _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
@@ -137,7 +140,7 @@ namespace Argus.Collector.Booru.Services
                             continue;
                         }
 
-                        var push = PushCollectedImage(collectedImage);
+                        var push = await PushCollectedImageAsync(collectedImage, ct);
                         if (push.IsSuccess)
                         {
                             continue;

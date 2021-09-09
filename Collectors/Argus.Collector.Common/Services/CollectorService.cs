@@ -27,12 +27,10 @@ using Argus.Collector.Common.Configuration;
 using Argus.Common.Messages.BulkData;
 using Argus.Common.Messages.Replies;
 using Argus.Common.Messages.Requests;
-using MessagePack;
+using MassTransit;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NetMQ;
-using NetMQ.Sockets;
 using Remora.Results;
 
 namespace Argus.Collector.Common.Services
@@ -43,24 +41,19 @@ namespace Argus.Collector.Common.Services
     public abstract class CollectorService : BackgroundService
     {
         /// <summary>
-        /// Holds the push socket used for data output.
-        /// </summary>
-        private readonly PushSocket _pushSocket;
-
-        /// <summary>
         /// Holds the logging instance.
         /// </summary>
         private readonly ILogger<CollectorService> _log;
 
         /// <summary>
-        /// Gets the request socket used for communication with the coordinator.
-        /// </summary>
-        protected RequestSocket RequestSocket { get; }
-
-        /// <summary>
         /// Gets the name of the service.
         /// </summary>
         protected abstract string ServiceName { get; }
+
+        /// <summary>
+        /// Gets the message bus.
+        /// </summary>
+        protected IBus Bus { get; }
 
         /// <summary>
         /// Gets the application options.
@@ -70,18 +63,14 @@ namespace Argus.Collector.Common.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectorService"/> class.
         /// </summary>
+        /// <param name="bus">The message bus.</param>
         /// <param name="options">The application options.</param>
         /// <param name="log">The logging instance.</param>
-        protected CollectorService(IOptions<CollectorOptions> options, ILogger<CollectorService> log)
+        protected CollectorService(IBus bus, IOptions<CollectorOptions> options, ILogger<CollectorService> log)
         {
+            this.Bus = bus;
             this.Options = options.Value;
             _log = log;
-
-            this.RequestSocket = new RequestSocket();
-            _pushSocket = new PushSocket();
-
-            this.RequestSocket.Connect(this.Options.CoordinatorEndpoint.ToString().TrimEnd('/'));
-            _pushSocket.Connect(this.Options.CoordinatorInputEndpoint.ToString().TrimEnd('/'));
         }
 
         /// <inheritdoc/>
@@ -114,17 +103,10 @@ namespace Argus.Collector.Common.Services
         /// <returns>The resume point.</returns>
         protected async Task<Result<string>> GetResumePointAsync(CancellationToken ct = default)
         {
-            var message = new GetResumeRequest(this.ServiceName);
-            var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
-            this.RequestSocket.SendFrame(serialized);
+            var message = new GetResumePoint(this.ServiceName);
+            var response = await this.Bus.Request<GetResumePoint, ResumePoint>(message, ct);
 
-            var (frame, _) = await this.RequestSocket.ReceiveFrameBytesAsync(ct);
-            var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
-            return response switch
-            {
-                ResumeReply resumeReply => resumeReply.ResumePoint,
-                _ => new InvalidOperationError("Unknown response.")
-            };
+            return response.Message.Value;
         }
 
         /// <summary>
@@ -135,31 +117,27 @@ namespace Argus.Collector.Common.Services
         /// <returns>A result which may or may not have succeeded.</returns>
         protected async Task<Result> SetResumePointAsync(string resumePoint, CancellationToken ct = default)
         {
-            var message = new SetResumeRequest(this.ServiceName, resumePoint);
-            var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
-            this.RequestSocket.SendFrame(serialized);
+            var message = new SetResumePoint(this.ServiceName, resumePoint);
+            var response = await this.Bus.Request<SetResumePoint, ResumePoint>(message, ct);
 
-            var (frame, _) = await this.RequestSocket.ReceiveFrameBytesAsync(ct);
-            var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
-            return response switch
-            {
-                ResumeReply resumeReply => resumeReply.ResumePoint == resumePoint
-                    ? Result.FromSuccess()
-                    : new InvalidOperationError("The new resume point did not match the requested value."),
-                _ => new InvalidOperationError("Unknown response.")
-            };
+            return response.Message.Value != resumePoint
+                ? new InvalidOperationError("The new resume point did not match the requested value.")
+                : Result.FromSuccess();
         }
 
         /// <summary>
         /// Pushes a collected image out to the coordinator.
         /// </summary>
         /// <param name="collectedImage">The collected image.</param>
+        /// <param name="ct">The cancellation token for this operation.</param>
         /// <returns>A result which may or may not have succeeded.</returns>
-        protected Result PushCollectedImage(CollectedImage collectedImage)
+        protected async Task<Result> PushCollectedImageAsync
+        (
+            CollectedImage collectedImage,
+            CancellationToken ct = default
+        )
         {
-            var serialized = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(collectedImage);
-            _pushSocket.SendFrame(serialized);
-
+            await this.Bus.Send(collectedImage, ct);
             return Result.FromSuccess();
         }
 
@@ -167,12 +145,11 @@ namespace Argus.Collector.Common.Services
         /// Pushes a status report out to the coordinator.
         /// </summary>
         /// <param name="statusReport">The status report.</param>
+        /// <param name="ct">The cancellation token for this operation.</param>
         /// <returns>A result which may or may not have succeeded.</returns>
-        protected Result PushStatusReport(StatusReport statusReport)
+        protected async Task<Result> PushStatusReportAsync(StatusReport statusReport, CancellationToken ct = default)
         {
-            var serialized = MessagePackSerializer.Serialize<ICoordinatorInputMessage>(statusReport);
-            _pushSocket.SendFrame(serialized);
-
+            await this.Bus.Send(statusReport, ct);
             return Result.FromSuccess();
         }
     }

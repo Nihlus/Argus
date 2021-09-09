@@ -22,7 +22,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -51,7 +50,7 @@ namespace Argus.Collector.Driver.Minibooru
         /// <summary>
         /// Gets the user agent to use.
         /// </summary>
-        protected virtual IReadOnlyCollection<ProductInfoHeaderValue>? UserAgent { get; }
+        protected virtual IReadOnlyCollection<ProductInfoHeaderValue>? UserAgent => null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AbstractBooruDriver{TInternalPost}"/> class.

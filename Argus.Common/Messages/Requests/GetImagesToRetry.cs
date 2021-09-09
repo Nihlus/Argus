@@ -1,5 +1,5 @@
 //
-//  GetResumeRequest.cs
+//  GetImagesToRetry.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,16 +20,11 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
-
 namespace Argus.Common.Messages.Requests
 {
     /// <summary>
-    /// Represents a request to resume a collector.
+    /// Represents a request for a set of images to retry collection of.
     /// </summary>
-    [MessagePackObject]
-    public record GetResumeRequest
-    (
-        [property: Key(0)] string ServiceName
-    ) : ICoordinatorRequest;
+    /// <param name="MaxCount">The maximum number of images to receive.</param>
+    public record GetImagesToRetry(int MaxCount);
 }

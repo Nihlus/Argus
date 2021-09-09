@@ -21,7 +21,6 @@
 //
 
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Argus.API.Database.Model
 {

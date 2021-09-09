@@ -34,6 +34,7 @@ using Argus.Collector.Weasyl.API.Model;
 using Argus.Collector.Weasyl.Configuration;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -57,6 +58,7 @@ namespace Argus.Collector.Weasyl.Services
         /// Initializes a new instance of the <see cref="WeasylCollectorService"/> class.
         /// </summary>
         /// <param name="weasylOptions">The Weasyl options.</param>
+        /// <param name="bus">The message bus.</param>
         /// <param name="options">The application options.</param>
         /// <param name="weasylAPI">The weasyl weasylAPI.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
@@ -64,11 +66,12 @@ namespace Argus.Collector.Weasyl.Services
         public WeasylCollectorService
         (
             IOptions<WeasylOptions> weasylOptions,
-            IOptions<CollectorOptions> options,
             WeasylAPI weasylAPI,
             IHttpClientFactory httpClientFactory,
+            IBus bus,
+            IOptions<CollectorOptions> options,
             ILogger<WeasylCollectorService> log)
-            : base(options, log)
+            : base(bus, options, log)
         {
             _options = weasylOptions.Value;
             _log = log;
@@ -160,7 +163,7 @@ namespace Argus.Collector.Weasyl.Services
 
                     var (statusReport, collectedImage) = collection.Entity;
 
-                    var report = PushStatusReport(statusReport);
+                    var report = await PushStatusReportAsync(statusReport, ct);
                     if (!report.IsSuccess)
                     {
                         _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
@@ -172,7 +175,7 @@ namespace Argus.Collector.Weasyl.Services
                         continue;
                     }
 
-                    var push = PushCollectedImage(collectedImage);
+                    var push = await PushCollectedImageAsync(collectedImage, ct);
                     if (push.IsSuccess)
                     {
                         continue;

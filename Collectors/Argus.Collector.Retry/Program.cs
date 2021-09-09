@@ -20,8 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
-using System.IO;
+using System.Threading.Tasks;
 using Argus.Collector.Common.Extensions;
 using Argus.Collector.Retry.Configuration;
 using Argus.Collector.Retry.Services;
@@ -29,8 +28,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NetMQ;
-using Remora.Extensions.Options.Immutable;
 
 namespace Argus.Collector.Retry
 {
@@ -39,14 +36,12 @@ namespace Argus.Collector.Retry
     /// </summary>
     internal class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             using var host = CreateHostBuilder(args).Build();
             var log = host.Services.GetRequiredService<ILogger<Program>>();
 
-            using var runtime = new NetMQRuntime();
-            runtime.Run(host.RunAsync());
-
+            await host.RunAsync();
             log.LogInformation("Shutting down...");
         }
 

@@ -1,5 +1,5 @@
 //
-//  GetImagesToRetryRequest.cs
+//  ImagesToRetry.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,14 +20,17 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
+using System.Collections.Generic;
+using Argus.Common.Messages.BulkData;
 
-namespace Argus.Common.Messages.Requests
+namespace Argus.Common.Messages.Replies
 {
     /// <summary>
-    /// Represents a request for a set of images to retry collection of.
+    /// Represents a response with a set of images to retry.
     /// </summary>
-    /// <param name="MaxCount">The maximum number of images to receive.</param>
-    [MessagePackObject]
-    public record GetImagesToRetryRequest([property: Key(0)] int MaxCount) : ICoordinatorRequest;
+    /// <param name="Value">The images to retry.</param>
+    public record ImagesToRetry
+    (
+        IReadOnlyCollection<StatusReport> Value
+    );
 }

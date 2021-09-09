@@ -1,5 +1,5 @@
 //
-//  ICoordinatorInputMessage.cs
+//  GetResumePoint.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,17 +20,13 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
-
-namespace Argus.Common.Messages.BulkData
+namespace Argus.Common.Messages.Requests
 {
     /// <summary>
-    /// Represents a marker interface for bulk data accepted as an input to the coordinator.
+    /// Represents a request to resume a collector.
     /// </summary>
-    [Union(0, typeof(CollectedImage))]
-    [Union(1, typeof(FingerprintedImage))]
-    [Union(2, typeof(StatusReport))]
-    public interface ICoordinatorInputMessage
-    {
-    }
+    public record GetResumePoint
+    (
+        string ServiceName
+    );
 }

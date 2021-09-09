@@ -26,6 +26,7 @@ using System.Runtime.InteropServices;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Polly;
 using Argus.Collector.Common.Services;
+using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -142,26 +143,31 @@ namespace Argus.Collector.Common.Extensions
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.Configure(() =>
-                    {
-                        var options = new CollectorOptions
-                        (
-                            new Uri("about:blank"),
-                            new Uri("about:blank")
-                        );
+                    var options = new CollectorOptions
+                    (
+                        new Uri("about:blank")
+                    );
 
-                        hostContext.Configuration.Bind(nameof(CollectorOptions), options);
-                        return options;
+                    hostContext.Configuration.Bind(nameof(CollectorOptions), options);
+                    services.Configure(() => options);
+
+                    // MassTransit
+                    services.AddMassTransit(busConfig =>
+                    {
+                        busConfig.UsingGrpc((_, cfg) =>
+                        {
+                            cfg.Host(options.CoordinatorEndpoint);
+                        });
                     });
 
+                    services.AddMassTransitHostedService();
+
+                    // Various
                     services
                         .AddHttpClient()
                         .AddMemoryCache();
 
-                    var rateLimit = hostContext.Configuration
-                        .GetSection(nameof(CollectorOptions))
-                        .GetValue<int>(nameof(CollectorOptions.BulkDownloadRateLimit));
-
+                    var rateLimit = options.BulkDownloadRateLimit;
                     if (rateLimit == 0)
                     {
                         rateLimit = 25;

@@ -1,5 +1,5 @@
 //
-//  ICoordinatorOutputMessage.cs
+//  ResumePoint.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -20,15 +20,13 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-using MessagePack;
-
-namespace Argus.Common.Messages.BulkData
+namespace Argus.Common.Messages.Replies
 {
     /// <summary>
-    /// Represents a marker interface for bulk data accepted as an output from the coordinator.
+    /// Represents a reply with a resume point.
     /// </summary>
-    [Union(0, typeof(CollectedImage))]
-    public interface ICoordinatorOutputMessage
-    {
-    }
+    public record ResumePoint
+    (
+        string Value
+    );
 }

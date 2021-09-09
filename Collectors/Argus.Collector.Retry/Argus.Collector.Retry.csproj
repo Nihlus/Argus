@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
+        <PackageReference Remove="MessagePackAnalyzer" />
     </ItemGroup>
 
     <ItemGroup>

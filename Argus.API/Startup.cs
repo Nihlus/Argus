@@ -22,7 +22,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using Argus.API.Authentication;
 using Argus.API.Configuration;

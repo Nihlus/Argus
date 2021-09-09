@@ -19,6 +19,7 @@
       <PackageReference Include="CommandLineParser" Version="2.8.0" />
       <PackageReference Include="Puzzle" Version="3.0.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
+      <PackageReference Remove="MessagePackAnalyzer" />
     </ItemGroup>
 
     <ItemGroup>

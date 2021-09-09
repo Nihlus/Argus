@@ -34,10 +34,9 @@ using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using Argus.Common.Messages.Replies;
 using Argus.Common.Messages.Requests;
-using MessagePack;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NetMQ;
 using Remora.Results;
 
 namespace Argus.Collector.Retry.Services
@@ -57,19 +56,21 @@ namespace Argus.Collector.Retry.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="RetryCollectorService"/> class.
         /// </summary>
-        /// <param name="options">The options.</param>
+        /// <param name="retryOptions">The retryOptions.</param>
         /// <param name="httpClientFactory">The http client factory.</param>
-        /// <param name="collectorOptions">The collector options.</param>
+        /// <param name="bus">The message bus.</param>
+        /// <param name="options">The collector retryOptions.</param>
         /// <param name="log">The logging instance.</param>
         public RetryCollectorService
         (
-            IOptions<RetryOptions> options,
+            IOptions<RetryOptions> retryOptions,
             IHttpClientFactory httpClientFactory,
-            IOptions<CollectorOptions> collectorOptions,
+            IBus bus,
+            IOptions<CollectorOptions> options,
             ILogger<RetryCollectorService> log)
-            : base(collectorOptions, log)
+            : base(bus, options, log)
         {
-            _options = options.Value;
+            _options = retryOptions.Value;
             _httpClientFactory = httpClientFactory;
             _log = log;
         }
@@ -106,7 +107,7 @@ namespace Argus.Collector.Retry.Services
 
                     var (statusReport, collectedImage) = collection.Entity;
 
-                    var report = PushStatusReport(statusReport);
+                    var report = await PushStatusReportAsync(statusReport, ct);
                     if (!report.IsSuccess)
                     {
                         _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
@@ -118,7 +119,7 @@ namespace Argus.Collector.Retry.Services
                         continue;
                     }
 
-                    var push = PushCollectedImage(collectedImage);
+                    var push = await PushCollectedImageAsync(collectedImage, ct);
                     if (push.IsSuccess)
                     {
                         continue;
@@ -186,19 +187,9 @@ namespace Argus.Collector.Retry.Services
         /// <returns>The resume point.</returns>
         private async Task<Result<IReadOnlyCollection<StatusReport>>> GetImagesToRetryAsync(CancellationToken ct = default)
         {
-            var message = new GetImagesToRetryRequest(_options.PageSize);
-            var serialized = MessagePackSerializer.Serialize<ICoordinatorRequest>(message, cancellationToken: ct);
-            this.RequestSocket.SendFrame(serialized);
-
-            var (frame, _) = await this.RequestSocket.ReceiveFrameBytesAsync(ct);
-            var response = MessagePackSerializer.Deserialize<ICoordinatorReply>(frame, cancellationToken: ct);
-            return response switch
-            {
-                ImagesToRetryReply imagesToRetryReply
-                    => Result<IReadOnlyCollection<StatusReport>>.FromSuccess(imagesToRetryReply.ImagesToRetry),
-                _
-                    => new InvalidOperationError("Unknown response.")
-            };
+            var message = new GetImagesToRetry(_options.PageSize);
+            var response = await this.Bus.Request<GetImagesToRetry, ImagesToRetry>(message, ct);
+            return Result<IReadOnlyCollection<StatusReport>>.FromSuccess(response.Message.Value);
         }
     }
 }

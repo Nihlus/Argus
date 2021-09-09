@@ -28,8 +28,6 @@ namespace Argus.Worker.Configuration
     /// Represents the application configuration.
     /// </summary>
     /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorInputEndpoint">The input endpoint of the cluster coordinator.</param>
-    /// <param name="CoordinatorOutputEndpoint">The output endpoint of the cluster coordinator.</param>
     /// <param name="ParallelismMultiplier">
     /// The multiplier used with the available processor count to determine the maximum number of parallel tasks the
     /// worker will process.
@@ -37,8 +35,6 @@ namespace Argus.Worker.Configuration
     public record WorkerOptions
     (
         Uri CoordinatorEndpoint,
-        Uri CoordinatorInputEndpoint,
-        Uri CoordinatorOutputEndpoint,
         int ParallelismMultiplier = 4
     );
 }

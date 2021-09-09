@@ -31,6 +31,7 @@ using Argus.Collector.FList.API;
 using Argus.Collector.FList.API.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -52,18 +53,20 @@ namespace Argus.Collector.FList.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="FListCollectorService"/> class.
         /// </summary>
-        /// <param name="options">The application options.</param>
-        /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="flistAPI">The F-List API.</param>
+        /// <param name="httpClientFactory">The HTTP client factory.</param>
+        /// <param name="bus">The message bus.</param>
+        /// <param name="options">The application options.</param>
         /// <param name="log">The logging instance.</param>
         public FListCollectorService
         (
-            IOptions<CollectorOptions> options,
-            IHttpClientFactory httpClientFactory,
             FListAPI flistAPI,
+            IHttpClientFactory httpClientFactory,
+            IBus bus,
+            IOptions<CollectorOptions> options,
             ILogger<FListCollectorService> log
         )
-            : base(options, log)
+            : base(bus, options, log)
         {
             _log = log;
             _flistAPI = flistAPI;
@@ -168,19 +171,21 @@ namespace Argus.Collector.FList.Services
                         string.Empty
                     );
 
-                    var report = PushStatusReport(statusReport);
+                    var report = await PushStatusReportAsync(statusReport, ct);
                     if (!report.IsSuccess)
                     {
                         _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
                         return report;
                     }
 
-                    var push = PushCollectedImage(collectedImage);
-                    if (!push.IsSuccess)
+                    var push = await PushCollectedImageAsync(collectedImage, ct);
+                    if (push.IsSuccess)
                     {
-                        _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                        return push;
+                        continue;
                     }
+
+                    _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                    return push;
                 }
 
                 ++currentCharacterId;

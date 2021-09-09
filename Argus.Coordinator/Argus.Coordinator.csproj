@@ -20,6 +20,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="MassTransit.AspNetCore" Version="7.2.2" />
+        <PackageReference Include="MassTransit.Grpc" Version="7.2.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.9" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.9">
             <PrivateAssets>all</PrivateAssets>
@@ -29,10 +31,10 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.7" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
         <PackageReference Include="NEST" Version="7.14.1" />
-        <PackageReference Include="NetMQ" Version="4.0.1.6" />
         <PackageReference Include="Remora.Extensions.Options.Immutable" Version="1.0.0" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
         <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
+        <PackageReference Remove="MessagePackAnalyzer" />
     </ItemGroup>
 
     <ItemGroup>

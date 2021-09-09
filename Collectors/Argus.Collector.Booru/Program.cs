@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Threading.Tasks;
 using Argus.Collector.Booru.Configuration;
 using Argus.Collector.Booru.Services;
 using Argus.Collector.Common.Extensions;
@@ -30,7 +31,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NetMQ;
 
 namespace Argus.Collector.Booru
 {
@@ -39,14 +39,12 @@ namespace Argus.Collector.Booru
     /// </summary>
     internal class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             using var host = CreateHostBuilder(args).Build();
             var log = host.Services.GetRequiredService<ILogger<Program>>();
 
-            using var runtime = new NetMQRuntime();
-            runtime.Run(host.RunAsync());
-
+            await host.RunAsync();
             log.LogInformation("Shutting down...");
         }
 

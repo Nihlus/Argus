@@ -21,9 +21,7 @@
 //
 
 using System;
-using System.Text.Json;
 using Argus.Collector.Common.Polly;
-using Argus.Common.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Contrib.WaitAndRetry;

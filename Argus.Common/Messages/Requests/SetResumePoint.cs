@@ -1,5 +1,5 @@
 //
-//  PingRequest.cs
+//  SetResumePoint.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -23,7 +23,11 @@
 namespace Argus.Common.Messages.Requests
 {
     /// <summary>
-    /// Sends a ping to the coordinator to see if it's still alive.
+    /// Represents a request to set the resume point of a collector.
     /// </summary>
-    public record PingRequest : ICoordinatorRequest;
+    public record SetResumePoint
+    (
+        string ServiceName,
+        string ResumePoint
+    );
 }

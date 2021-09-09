@@ -21,10 +21,10 @@
 //
 
 using System;
-using System.IO;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Argus.Collector.Common.Extensions;
 using Argus.Collector.Common.Polly;
 using Argus.Collector.Weasyl.API;
@@ -35,10 +35,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NetMQ;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
-using Remora.Extensions.Options.Immutable;
 
 namespace Argus.Collector.Weasyl
 {
@@ -47,14 +45,12 @@ namespace Argus.Collector.Weasyl
     /// </summary>
     internal class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             using var host = CreateHostBuilder(args).Build();
             var log = host.Services.GetRequiredService<ILogger<Program>>();
 
-            using var runtime = new NetMQRuntime();
-            runtime.Run(host.RunAsync());
-
+            await host.RunAsync();
             log.LogInformation("Shutting down...");
         }
 
@@ -93,7 +89,7 @@ namespace Argus.Collector.Weasyl
                     rateLimit = 1;
                 }
 
-                services.AddHttpClient(nameof(WeasylOptions), (_, client) =>
+                services.AddHttpClient(nameof(WeasylAPI), (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
                     var name = assemblyName.Name ?? "Indexer";

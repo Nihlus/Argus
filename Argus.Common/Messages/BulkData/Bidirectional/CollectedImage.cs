@@ -21,7 +21,6 @@
 //
 
 using System;
-using MessagePack;
 
 namespace Argus.Common.Messages.BulkData
 {
@@ -32,12 +31,11 @@ namespace Argus.Common.Messages.BulkData
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Image">A direct link to the image.</param>
     /// <param name="Data">The image data.</param>
-    [MessagePackObject]
     public record CollectedImage
     (
-        [property: Key(0)] string ServiceName,
-        [property: Key(1)] Uri Source,
-        [property: Key(2)] Uri Image,
-        [property: Key(3)] byte[] Data
-    ) : ICoordinatorInputMessage, ICoordinatorOutputMessage;
+        string ServiceName,
+        Uri Source,
+        Uri Image,
+        byte[] Data
+    );
 }

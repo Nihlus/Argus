@@ -24,12 +24,12 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Argus.Worker.Configuration;
-using Argus.Worker.Services;
+using Argus.Worker.MassTransit.Consumers;
+using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NetMQ;
 using Puzzle;
 using Remora.Extensions.Options.Immutable;
 using Serilog;
@@ -71,23 +71,30 @@ namespace Argus.Worker
             })
             .ConfigureServices((hostContext, services) =>
             {
-                services.Configure(() =>
+                var options = new WorkerOptions
+                (
+                    new Uri("about:blank"),
+                    0
+                );
+
+                hostContext.Configuration.Bind(nameof(WorkerOptions), options);
+                services.Configure(() => options);
+
+                // MassTransit
+                services.AddMassTransit(busConfig =>
                 {
-                    var options = new WorkerOptions
-                    (
-                        new Uri("about:blank"),
-                        new Uri("about:blank"),
-                        new Uri("about:blank"),
-                        0
-                    );
+                    busConfig.UsingGrpc((_, cfg) =>
+                    {
+                        cfg.Host(options.CoordinatorEndpoint);
+                    });
 
-                    hostContext.Configuration.Bind(nameof(WorkerOptions), options);
-
-                    return options;
+                    busConfig.AddConsumer<ImageConsumer>();
                 });
 
+                services.AddMassTransitHostedService();
+
+                // Signature generation
                 services.AddSingleton<SignatureGenerator>();
-                services.AddHostedService<ImageFingerprintingService>();
             });
     }
 }
