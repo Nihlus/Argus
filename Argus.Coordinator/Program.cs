@@ -139,7 +139,7 @@ namespace Argus.Coordinator
                 services.AddMassTransitHostedService();
 
                 // Database
-                services.AddDbContextFactory<CoordinatorContext>(dbOptions =>
+                services.AddDbContext<CoordinatorContext>(dbOptions =>
                 {
                     dbOptions.UseNpgsql
                     (

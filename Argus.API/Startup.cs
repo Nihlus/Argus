@@ -162,7 +162,7 @@ namespace Argus.API
                 .AddTransient<NESTService>();
 
             // Database
-            services.AddDbContextFactory<ArgusAPIContext>(options =>
+            services.AddDbContext<ArgusAPIContext>(options =>
             {
                 options.UseNpgsql
                 (
@@ -203,8 +203,7 @@ namespace Argus.API
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
             // Perform migrations
-            var contextFactory = app.ApplicationServices.GetRequiredService<IDbContextFactory<ArgusAPIContext>>();
-            using var db = contextFactory.CreateDbContext();
+            using var db = app.ApplicationServices.GetRequiredService<ArgusAPIContext>();
             db.Database.Migrate();
         }
     }

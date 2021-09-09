@@ -40,19 +40,19 @@ namespace Argus.API.Authentication
     /// </summary>
     public class APIKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
-        private readonly IDbContextFactory<ArgusAPIContext> _contextFactory;
+        private readonly ArgusAPIContext _db;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="APIKeyAuthenticationHandler"/> class.
         /// </summary>
-        /// <param name="contextFactory">The database context factory.</param>
+        /// <param name="db">The database context.</param>
         /// <param name="options">The authentication scheme options.</param>
         /// <param name="logger">The logging instance.</param>
         /// <param name="encoder">The URL encoder.</param>
         /// <param name="clock">The system clock.</param>
         public APIKeyAuthenticationHandler
         (
-            IDbContextFactory<ArgusAPIContext> contextFactory,
+            ArgusAPIContext db,
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
@@ -65,7 +65,7 @@ namespace Argus.API.Authentication
                 clock
             )
         {
-            _contextFactory = contextFactory;
+            _db = db;
         }
 
         /// <inheritdoc />
@@ -103,8 +103,7 @@ namespace Argus.API.Authentication
                 return AuthenticateResult.Fail("Invalid authorization key.");
             }
 
-            await using var dbContext = _contextFactory.CreateDbContext();
-            var knownKey = await dbContext.APIKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == apiKey);
+            var knownKey = await _db.APIKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == apiKey);
             if (knownKey is null)
             {
                 return AuthenticateResult.Fail("Unknown authorization key.");
