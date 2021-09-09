@@ -137,7 +137,7 @@ namespace Argus.Collector.Common.Services
             CancellationToken ct = default
         )
         {
-            await this.Bus.Send(collectedImage, ct);
+            await this.Bus.Publish(collectedImage, ct);
             return Result.FromSuccess();
         }
 
@@ -149,7 +149,7 @@ namespace Argus.Collector.Common.Services
         /// <returns>A result which may or may not have succeeded.</returns>
         protected async Task<Result> PushStatusReportAsync(StatusReport statusReport, CancellationToken ct = default)
         {
-            await this.Bus.Send(statusReport, ct);
+            await this.Bus.Publish(statusReport, ct);
             return Result.FromSuccess();
         }
     }

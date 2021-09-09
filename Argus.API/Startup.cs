@@ -203,7 +203,8 @@ namespace Argus.API
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
             // Perform migrations
-            using var db = app.ApplicationServices.GetRequiredService<ArgusAPIContext>();
+            using var scope = app.ApplicationServices.CreateScope();
+            using var db = scope.ServiceProvider.GetRequiredService<ArgusAPIContext>();
             db.Database.Migrate();
         }
     }

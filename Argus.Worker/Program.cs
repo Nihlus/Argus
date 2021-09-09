@@ -23,6 +23,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Argus.Common.Configuration;
 using Argus.Worker.Configuration;
 using Argus.Worker.MassTransit.Consumers;
 using MassTransit;
@@ -71,24 +72,37 @@ namespace Argus.Worker
             })
             .ConfigureServices((hostContext, services) =>
             {
-                var options = new WorkerOptions
-                (
-                    new Uri("about:blank"),
-                    0
-                );
+                var options = new WorkerOptions(0);
 
                 hostContext.Configuration.Bind(nameof(WorkerOptions), options);
                 services.Configure(() => options);
 
+                var brokerOptions = new BrokerOptions
+                (
+                    new Uri("about:blank"),
+                    string.Empty,
+                    string.Empty
+                );
+
+                hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
+                services.Configure(() => brokerOptions);
+
                 // MassTransit
                 services.AddMassTransit(busConfig =>
                 {
-                    busConfig.UsingGrpc((_, cfg) =>
+                    busConfig.SetKebabCaseEndpointNameFormatter();
+                    busConfig.UsingRabbitMq((context, cfg) =>
                     {
-                        cfg.Host(options.CoordinatorEndpoint);
+                        cfg.Host(brokerOptions.Host, "/argus", h =>
+                        {
+                            h.Username(brokerOptions.Username);
+                            h.Password(brokerOptions.Password);
+                        });
+
+                        cfg.ConfigureEndpoints(context);
                     });
 
-                    busConfig.AddConsumer<ImageConsumer>();
+                    busConfig.AddConsumer<CollectedImageConsumer>();
                 });
 
                 services.AddMassTransitHostedService();

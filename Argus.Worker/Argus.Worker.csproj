@@ -6,6 +6,10 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <UserSecretsId>63c76c4e-758f-4055-90c2-92f6dbd42e00</UserSecretsId>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <Description>
             Cluster coordinator for Argus
 
@@ -17,7 +21,7 @@
 
     <ItemGroup>
         <PackageReference Include="MassTransit.AspNetCore" Version="7.2.2" />
-        <PackageReference Include="MassTransit.Grpc" Version="7.2.2" />
+        <PackageReference Include="MassTransit.RabbitMQ" Version="7.2.2" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
         <PackageReference Include="Remora.Extensions.Options.Immutable" Version="1.0.0" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />

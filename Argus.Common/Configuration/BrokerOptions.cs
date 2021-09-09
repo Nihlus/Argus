@@ -1,5 +1,5 @@
 //
-//  WorkerOptions.cs
+//  BrokerOptions.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -22,17 +22,18 @@
 
 using System;
 
-namespace Argus.Worker.Configuration
+namespace Argus.Common.Configuration
 {
     /// <summary>
-    /// Represents the application configuration.
+    /// Holds options related to the message broker.
     /// </summary>
-    /// <param name="ParallelismMultiplier">
-    /// The multiplier used with the available processor count to determine the maximum number of parallel tasks the
-    /// worker will process.
-    /// </param>
-    public record WorkerOptions
+    /// <param name="Host">The host at which the broker is available.</param>
+    /// <param name="Username">The username to use for authentication with the broker.</param>
+    /// <param name="Password">The password to use for authentication with the broker.</param>
+    public record BrokerOptions
     (
-        int ParallelismMultiplier = 4
+        Uri Host,
+        string Username,
+        string Password
     );
 }

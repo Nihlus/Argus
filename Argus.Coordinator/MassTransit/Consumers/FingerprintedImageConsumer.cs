@@ -1,5 +1,5 @@
 //
-//  ImageConsumer.cs
+//  FingerprintedImageConsumer.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -33,19 +33,19 @@ namespace Argus.Coordinator.MassTransit.Consumers
     /// <summary>
     /// Consumers fingerprinted images, indexing them.
     /// </summary>
-    public class ImageConsumer : IConsumer<FingerprintedImage>
+    public class FingerprintedImageConsumer : IConsumer<FingerprintedImage>
     {
         private readonly IBus _bus;
         private readonly NESTService _nestService;
-        private readonly ILogger<ImageConsumer> _log;
+        private readonly ILogger<FingerprintedImageConsumer> _log;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageConsumer"/> class.
+        /// Initializes a new instance of the <see cref="FingerprintedImageConsumer"/> class.
         /// </summary>
         /// <param name="bus">The message bus.</param>
         /// <param name="nestService">The elasticsearch service.</param>
         /// <param name="log">The logging instance.</param>
-        public ImageConsumer(IBus bus, NESTService nestService, ILogger<ImageConsumer> log)
+        public FingerprintedImageConsumer(IBus bus, NESTService nestService, ILogger<FingerprintedImageConsumer> log)
         {
             _bus = bus;
             _nestService = nestService;
@@ -94,7 +94,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
                 string.Empty
             );
 
-            await _bus.Send(statusReport, context.CancellationToken);
+            await _bus.Publish(statusReport, context.CancellationToken);
 
             _log.LogInformation
             (

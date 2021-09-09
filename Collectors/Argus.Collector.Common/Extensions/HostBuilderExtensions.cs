@@ -26,6 +26,7 @@ using System.Runtime.InteropServices;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Polly;
 using Argus.Collector.Common.Services;
+using Argus.Common.Configuration;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -143,20 +144,34 @@ namespace Argus.Collector.Common.Extensions
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    var options = new CollectorOptions
-                    (
-                        new Uri("about:blank")
-                    );
+                    var options = new CollectorOptions();
 
                     hostContext.Configuration.Bind(nameof(CollectorOptions), options);
                     services.Configure(() => options);
 
+                    var brokerOptions = new BrokerOptions
+                    (
+                        new Uri("about:blank"),
+                        string.Empty,
+                        string.Empty
+                    );
+
+                    hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
+                    services.Configure(() => brokerOptions);
+
                     // MassTransit
                     services.AddMassTransit(busConfig =>
                     {
-                        busConfig.UsingGrpc((_, cfg) =>
+                        busConfig.SetKebabCaseEndpointNameFormatter();
+                        busConfig.UsingRabbitMq((context, cfg) =>
                         {
-                            cfg.Host(options.CoordinatorEndpoint);
+                            cfg.Host(brokerOptions.Host, "/argus", h =>
+                            {
+                                h.Username(brokerOptions.Username);
+                                h.Password(brokerOptions.Password);
+                            });
+
+                            cfg.ConfigureEndpoints(context);
                         });
                     });
 

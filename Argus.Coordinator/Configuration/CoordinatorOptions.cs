@@ -27,13 +27,11 @@ namespace Argus.Coordinator.Configuration
     /// <summary>
     /// Represents the application configuration.
     /// </summary>
-    /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
     /// <param name="ElasticsearchServer">The endpoint of the elasticsearch server.</param>
     /// <param name="ElasticsearchUsername">The username of the elasticsearch credentials.</param>
     /// <param name="ElasticsearchPassword">The password of the elasticsearch credentials.</param>
     public record CoordinatorOptions
     (
-        Uri CoordinatorEndpoint,
         Uri ElasticsearchServer,
         string ElasticsearchUsername,
         string ElasticsearchPassword

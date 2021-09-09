@@ -1,5 +1,5 @@
 //
-//  ImageConsumer.cs
+//  CollectedImageConsumer.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -35,17 +35,17 @@ namespace Argus.Worker.MassTransit.Consumers
     /// <summary>
     /// Consumes images for fingerprinting.
     /// </summary>
-    public class ImageConsumer : IConsumer<CollectedImage>
+    public class CollectedImageConsumer : IConsumer<CollectedImage>
     {
         private readonly IBus _bus;
         private readonly SignatureGenerator _signatureGenerator;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageConsumer"/> class.
+        /// Initializes a new instance of the <see cref="CollectedImageConsumer"/> class.
         /// </summary>
         /// <param name="bus">The message bus.</param>
         /// <param name="signatureGenerator">The signature generator.</param>
-        public ImageConsumer(IBus bus, SignatureGenerator signatureGenerator)
+        public CollectedImageConsumer(IBus bus, SignatureGenerator signatureGenerator)
         {
             _bus = bus;
             _signatureGenerator = signatureGenerator;
@@ -70,7 +70,7 @@ namespace Argus.Worker.MassTransit.Consumers
 
                 // CPU-intensive step 3
                 var signature = _signatureGenerator.GenerateSignature(image);
-                await _bus.Send
+                await _bus.Publish
                 (
                     new FingerprintedImage
                     (
@@ -94,7 +94,7 @@ namespace Argus.Worker.MassTransit.Consumers
                     e.Message
                 );
 
-                await _bus.Send(message);
+                await _bus.Publish(message);
                 throw;
             }
         }

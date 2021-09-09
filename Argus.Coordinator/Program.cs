@@ -23,6 +23,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Argus.Common.Configuration;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
@@ -81,7 +82,8 @@ namespace Argus.Coordinator
             }
 
             // Ensure the database is created
-            await using var db = host.Services.GetRequiredService<CoordinatorContext>();
+            using var scope = host.Services.CreateScope();
+            await using var db = scope.ServiceProvider.GetRequiredService<CoordinatorContext>();
             await db.Database.MigrateAsync();
 
             await host.RunAsync();
@@ -113,7 +115,6 @@ namespace Argus.Coordinator
                 var options = new CoordinatorOptions
                 (
                     new Uri("about:blank"),
-                    new Uri("about:blank"),
                     string.Empty,
                     string.Empty
                 );
@@ -121,16 +122,35 @@ namespace Argus.Coordinator
                 hostContext.Configuration.Bind(nameof(CoordinatorOptions), options);
                 services.Configure(() => options);
 
+                var brokerOptions = new BrokerOptions
+                (
+                    new Uri("about:blank"),
+                    string.Empty,
+                    string.Empty
+                );
+
+                hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
+                services.Configure(() => brokerOptions);
+
                 // MassTransit
                 services.AddMassTransit(busConfig =>
                 {
-                    busConfig.UsingGrpc((_, cfg) =>
+                    busConfig.SetKebabCaseEndpointNameFormatter();
+                    busConfig.UsingRabbitMq((context, cfg) =>
                     {
-                        cfg.Host(options.CoordinatorEndpoint);
+                        cfg.Host(brokerOptions.Host, "/argus", h =>
+                        {
+                            h.Username(brokerOptions.Username);
+                            h.Password(brokerOptions.Password);
+                        });
+
+                        cfg.ConfigureEndpoints(context);
                     });
 
                     busConfig.AddConsumer<ResumeRequestConsumer>();
                     busConfig.AddConsumer<RetryRequestConsumer>();
+                    busConfig.AddConsumer<FingerprintedImageConsumer>();
+                    busConfig.AddConsumer<StatusReportConsumer>();
                 });
 
                 services.AddMassTransitHostedService();

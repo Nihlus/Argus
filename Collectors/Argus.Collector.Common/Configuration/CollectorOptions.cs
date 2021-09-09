@@ -27,13 +27,11 @@ namespace Argus.Collector.Common.Configuration
     /// <summary>
     /// Represents the application configuration.
     /// </summary>
-    /// <param name="CoordinatorEndpoint">The request-reply endpoint of the cluster coordinator.</param>
     /// <param name="BulkDownloadRateLimit">
     /// The rate limit to use for bulk downloads, measured in requests per second.
     /// </param>
     public record CollectorOptions
     (
-        Uri CoordinatorEndpoint,
         int BulkDownloadRateLimit = 25
     );
 }
