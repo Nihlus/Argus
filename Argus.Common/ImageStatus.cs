@@ -20,6 +20,8 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
+
 namespace Argus.Common
 {
     /// <summary>
@@ -45,6 +47,7 @@ namespace Argus.Common
         /// <summary>
         /// The image has been processed, and has been sent back to the coordinator.
         /// </summary>
+        [Obsolete("Don't notify the coordinator of a processed image; send it instead and let it figure it out")]
         Processed = 3,
 
         /// <summary>
