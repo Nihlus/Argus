@@ -81,11 +81,8 @@ namespace Argus.Coordinator
             }
 
             // Ensure the database is created
-            var contextFactory = host.Services.GetRequiredService<IDbContextFactory<CoordinatorContext>>();
-            await using (var db = contextFactory.CreateDbContext())
-            {
-                await db.Database.MigrateAsync();
-            }
+            await using var db = host.Services.GetRequiredService<CoordinatorContext>();
+            await db.Database.MigrateAsync();
 
             await host.RunAsync();
             log.LogInformation("Shutting down...");
