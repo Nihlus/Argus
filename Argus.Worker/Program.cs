@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Argus.Worker.Configuration;
 using Argus.Worker.Services;
 using Microsoft.Extensions.Configuration;
@@ -40,14 +41,12 @@ namespace Argus.Worker
     /// </summary>
     internal class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             using var host = CreateHostBuilder(args).Build();
             var log = host.Services.GetRequiredService<ILogger<Program>>();
 
-            using var runtime = new NetMQRuntime();
-            runtime.Run(host.RunAsync());
-
+            await host.RunAsync();
             log.LogInformation("Shutting down...");
         }
 
