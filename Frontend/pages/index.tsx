@@ -1,8 +1,8 @@
-import {Layout} from "@/components/Layout";
-import {InteractionViewLayout} from "@/components/InteractionViewLayout";
-import {Card} from "@/components/Card";
-import {Headline} from "@/components/Headline";
-import {CardTitle} from "@/components/CardTitle";
+import { Layout } from '@/components/common/Layout'
+import { InteractionViewLayout } from '@/components/common/InteractionViewLayout'
+import { Card } from '@/components/common/Card'
+import { Headline } from '@/components/common/Headline'
+import { CardTitle } from '@/components/common/CardTitle'
 
 export default function Home() {
   return (
@@ -10,15 +10,10 @@ export default function Home() {
       <Headline>Argus</Headline>
       <InteractionViewLayout>
         <Card>
-          <CardTitle>
-            Your images
-          </CardTitle>
-
+          <CardTitle>Your images</CardTitle>
         </Card>
         <Card>
-          <CardTitle>
-            Potential copyright violations
-          </CardTitle>
+          <CardTitle>Potential copyright violations</CardTitle>
         </Card>
       </InteractionViewLayout>
     </Layout>
