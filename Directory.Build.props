@@ -80,11 +80,6 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
     </ItemGroup>
 
-    <!-- MessagePack -->
-    <ItemGroup>
-        <PackageReference Include="MessagePackAnalyzer" Version="2.3.75" PrivateAssets="all" />
-    </ItemGroup>
-
     <PropertyGroup>
         <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
     </PropertyGroup>
