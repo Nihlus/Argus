@@ -2,6 +2,7 @@ import {Layout} from "@/components/Layout";
 import {InteractionViewLayout} from "@/components/InteractionViewLayout";
 import {Card} from "@/components/Card";
 import {Headline} from "@/components/Headline";
+import {CardTitle} from "@/components/CardTitle";
 
 export default function Home() {
   return (
@@ -9,10 +10,15 @@ export default function Home() {
       <Headline>Argus</Headline>
       <InteractionViewLayout>
         <Card>
-          Input
+          <CardTitle>
+            Your images
+          </CardTitle>
+
         </Card>
         <Card>
-          Results
+          <CardTitle>
+            Potential copyright violations
+          </CardTitle>
         </Card>
       </InteractionViewLayout>
     </Layout>
