@@ -77,7 +77,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
                 (
                     "Failed to index image from {Source} at {Link}: {Reason}",
                     fingerprintedImage.Source,
-                    fingerprintedImage.Image,
+                    fingerprintedImage.Link,
                     indexImage.Error.Message
                 );
 
@@ -89,7 +89,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
                 DateTime.UtcNow,
                 fingerprintedImage.ServiceName,
                 fingerprintedImage.Source,
-                fingerprintedImage.Image,
+                fingerprintedImage.Link,
                 ImageStatus.Indexed,
                 string.Empty
             );

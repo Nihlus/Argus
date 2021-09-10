@@ -76,7 +76,7 @@ namespace Argus.Coordinator.Migrations
                                 .HasColumnName("id")
                                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
-                            b1.Property<string>("Image")
+                            b1.Property<string>("Link")
                                 .IsRequired()
                                 .HasColumnType("text")
                                 .HasColumnName("report_image");

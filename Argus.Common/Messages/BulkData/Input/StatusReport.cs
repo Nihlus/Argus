@@ -30,7 +30,7 @@ namespace Argus.Common.Messages.BulkData
     /// <param name="Timestamp">The time at which the report was created.</param>
     /// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
     /// <param name="Source">The source URL where the image was retrieved.</param>
-    /// <param name="Image">A direct link to the image.</param>
+    /// <param name="Link">A direct link to the image.</param>
     /// <param name="Status">The status of the image.</param>
     /// <param name="Message">The status message.</param>
     public record StatusReport
@@ -38,7 +38,7 @@ namespace Argus.Common.Messages.BulkData
         DateTime Timestamp,
         string ServiceName,
         Uri Source,
-        Uri Image,
+        Uri Link,
         ImageStatus Status,
         string Message
     );

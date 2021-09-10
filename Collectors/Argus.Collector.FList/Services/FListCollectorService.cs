@@ -166,7 +166,7 @@ namespace Argus.Collector.FList.Services
                         DateTime.UtcNow,
                         this.ServiceName,
                         collectedImage.Source,
-                        collectedImage.Image,
+                        collectedImage.Link,
                         ImageStatus.Collected,
                         string.Empty
                     );

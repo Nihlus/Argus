@@ -85,7 +85,7 @@ namespace Argus.Worker.MassTransit.Consumers
                     (
                         collectedImage.ServiceName,
                         collectedImage.Source,
-                        collectedImage.Image,
+                        collectedImage.Link,
                         signature,
                         hashString
                     )
@@ -93,8 +93,8 @@ namespace Argus.Worker.MassTransit.Consumers
 
                 _log.LogInformation
                 (
-                    "Fingerprinted image {Image} from {Source}",
-                    collectedImage.Image,
+                    "Fingerprinted image {Link} from {Source}",
+                    collectedImage.Link,
                     collectedImage.Source
                 );
             }
@@ -105,7 +105,7 @@ namespace Argus.Worker.MassTransit.Consumers
                     DateTime.UtcNow,
                     collectedImage.ServiceName,
                     collectedImage.Source,
-                    collectedImage.Image,
+                    collectedImage.Link,
                     ImageStatus.Faulted,
                     e.Message
                 );

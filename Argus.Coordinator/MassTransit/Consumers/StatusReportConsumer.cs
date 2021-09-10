@@ -57,7 +57,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
                 r =>
                     r.Report.ServiceName == statusReport.ServiceName &&
                     r.Report.Source == statusReport.Source &&
-                    r.Report.Image == statusReport.Image,
+                    r.Report.Link == statusReport.Link,
                 context.CancellationToken
             );
 
@@ -75,8 +75,8 @@ namespace Argus.Coordinator.MassTransit.Consumers
 
             _log.LogInformation
             (
-                "Logged status report regarding image {Image} from {Source}",
-                statusReport.Image,
+                "Logged status report regarding image {Link} from {Source}",
+                statusReport.Link,
                 statusReport.Source
             );
         }

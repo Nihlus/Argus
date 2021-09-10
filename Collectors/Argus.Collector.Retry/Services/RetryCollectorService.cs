@@ -145,20 +145,20 @@ namespace Argus.Collector.Retry.Services
                 DateTime.UtcNow,
                 failedImage.ServiceName,
                 failedImage.Source,
-                failedImage.Image,
+                failedImage.Link,
                 ImageStatus.Collected,
                 string.Empty
             );
 
             try
             {
-                var bytes = await client.GetByteArrayAsync(failedImage.Image, ct);
+                var bytes = await client.GetByteArrayAsync(failedImage.Link, ct);
 
                 var collectedImage = new CollectedImage
                 (
                     statusReport.ServiceName,
                     statusReport.Source,
-                    statusReport.Image,
+                    statusReport.Link,
                     bytes
                 );
 

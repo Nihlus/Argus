@@ -209,7 +209,7 @@ namespace Argus.Collector.Booru.Services
                     var rejectionReport = statusReport with
                     {
                         Status = ImageStatus.Rejected,
-                        Image = new Uri(file),
+                        Link = new Uri(file),
                         Message = "Animation"
                     };
 
@@ -218,7 +218,7 @@ namespace Argus.Collector.Booru.Services
 
                 statusReport = statusReport with
                 {
-                    Image = new Uri(file)
+                    Link = new Uri(file)
                 };
 
                 var bytes = await client.GetByteArrayAsync(file, ct);
@@ -227,7 +227,7 @@ namespace Argus.Collector.Booru.Services
                 (
                     this.ServiceName,
                     statusReport.Source,
-                    statusReport.Image,
+                    statusReport.Link,
                     bytes
                 );
 

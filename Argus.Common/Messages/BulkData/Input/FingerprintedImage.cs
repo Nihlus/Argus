@@ -30,14 +30,14 @@ namespace Argus.Common.Messages.BulkData
     /// </summary>
     /// <param name="ServiceName">The name of the service the original collector retrieved the image from.</param>
     /// <param name="Source">The source URL where the image was retrieved.</param>
-    /// <param name="Image">A direct link to the image.</param>
+    /// <param name="Link">A direct link to the image.</param>
     /// <param name="Fingerprint">The image data.</param>
     /// <param name="Hash">A SHA256 hash of the image data.</param>
     public record FingerprintedImage
     (
         string ServiceName,
         Uri Source,
-        Uri Image,
+        Uri Link,
         LuminosityLevel[] Fingerprint,
         string Hash
     );

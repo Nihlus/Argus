@@ -29,13 +29,13 @@ namespace Argus.Common.Messages.BulkData
     /// </summary>
     /// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
     /// <param name="Source">The source URL where the image was retrieved.</param>
-    /// <param name="Image">A direct link to the image.</param>
+    /// <param name="Link">A direct link to the image.</param>
     /// <param name="Data">The image data.</param>
     public record CollectedImage
     (
         string ServiceName,
         Uri Source,
-        Uri Image,
+        Uri Link,
         byte[] Data
     );
 }

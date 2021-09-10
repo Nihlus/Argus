@@ -258,7 +258,7 @@ namespace Argus.Collector.Weasyl.Services
 
                 statusReport = statusReport with
                 {
-                    Image = new Uri(supportedMedia.URL)
+                    Link = new Uri(supportedMedia.URL)
                 };
 
                 var collectedImage = new CollectedImage

@@ -51,6 +51,50 @@ namespace Argus.Common.Services.Elasticsearch
         }
 
         /// <summary>
+        /// Searches for an indexed image by its origin.
+        /// </summary>
+        /// <param name="source">The source URL of the origin.</param>
+        /// <param name="link">The direct link to the image.</param>
+        /// <param name="includeSource">Whether the source of the document should be included.</param>
+        /// <param name="ct">The cancellation token for this operation.</param>
+        /// <returns>The search response.</returns>
+        public async Task<ISearchResponse<IndexedImage>> SearchByOriginAsync
+        (
+            string source,
+            string link,
+            bool includeSource = false,
+            CancellationToken ct = default
+        )
+        {
+            return await _client.SearchAsync<IndexedImage>
+            (
+                q =>
+                {
+                    var query = q.Index("images").Query
+                    (
+                        q1 => q1.Bool
+                        (
+                            b => b
+                                .Must(m => m.Term(ma => ma.Field(im => im.Source).Value(source)))
+                                .Must(m => m.Term(ma => ma.Field(im => im.Link).Value(link)))
+                        )
+                    );
+
+                    if (!includeSource)
+                    {
+                        query.Source(m => m.ExcludeAll());
+                    }
+
+                    // never include words
+                    query.Source(m => m.Excludes(ed => ed.Field(im => im.Words)));
+
+                    return query;
+                },
+                ct
+            );
+        }
+
+        /// <summary>
         /// Indexes the given image in Elasticsearch.
         /// </summary>
         /// <param name="image">The image.</param>
@@ -58,20 +102,7 @@ namespace Argus.Common.Services.Elasticsearch
         /// <returns>true if the image was indexed; otherwise, false.</returns>
         public async Task<Result> IndexImageAsync(IndexedImage image, CancellationToken ct = default)
         {
-            var existingImage = await _client.SearchAsync<IndexedImage>
-            (
-                q => q.Index("images").Query
-                (
-                    q1 => q1.Bool
-                    (
-                        b => b
-                            .Must(m => m.Term(ma => ma.Field(im => im.Source).Value(image.Source)))
-                            .Must(m => m.Term(ma => ma.Field(im => im.Link).Value(image.Link)))
-                    )
-                ),
-                ct
-            );
-
+            var existingImage = await SearchByOriginAsync(image.Source, image.Link, true, ct);
             if (!existingImage.IsValid)
             {
                 return existingImage.ServerError is not null
