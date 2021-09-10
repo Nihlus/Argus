@@ -7,7 +7,7 @@ export function Layout({children}: PropsWithChildren<{}>) {
     <style jsx>{`
       main {
         padding: 2rem;
-
+        min-height:100vh;
         width: 100%;
       }
     `}</style>

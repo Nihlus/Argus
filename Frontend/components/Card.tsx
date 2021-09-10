@@ -7,6 +7,9 @@ export function Card({children}: PropsWithChildren<{}>) {
       {`
         div {
           background-color: var(--secondary-light-color);
+          padding: 8px;
+          border-radius: 4px;
+          overflow-y: auto;
         }
       `}
     </style>

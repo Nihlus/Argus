@@ -10,7 +10,8 @@ export function InteractionViewLayout({children}: PropsWithChildren<{}>) {
         section {
           display: grid;
           grid-template-columns: 1fr 3fr;
-          width:100%;
+          gap: 8px;
+          height: 75vh;
         }
       `}
     </style>
