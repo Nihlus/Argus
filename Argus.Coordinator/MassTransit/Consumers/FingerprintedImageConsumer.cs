@@ -64,8 +64,8 @@ namespace Argus.Coordinator.MassTransit.Consumers
             (
                 fingerprintedImage.ServiceName,
                 DateTimeOffset.UtcNow,
-                fingerprintedImage.Image.ToString(),
                 fingerprintedImage.Source.ToString(),
+                fingerprintedImage.Link.ToString(),
                 signature.Signature,
                 signature.Words
             );
