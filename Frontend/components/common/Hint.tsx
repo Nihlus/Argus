@@ -6,9 +6,22 @@ export interface HintProps {
 
 export function Hint({ children, adornment }: PropsWithChildren<HintProps>) {
   return (
-    <div>
-      {adornment}
-      {children}
-    </div>
+    <>
+      <div className="hint">
+        <div>{adornment}</div>
+        <div>{children}</div>
+      </div>
+      <style jsx>
+        {`
+          .hint {
+            display: flex;
+            flex-flow: column;
+            place-items: center;
+            gap: 16px;
+            color: (--text-color-hint);
+          }
+        `}
+      </style>
+    </>
   )
 }

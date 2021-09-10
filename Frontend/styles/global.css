@@ -6,6 +6,7 @@
     --secondary-light-color: #2F2F45;
 
     --text-color: #E5E5E5;
+    --text-color-hint: #5A5A85;
 }
 
 
@@ -19,7 +20,7 @@ body {
     font-size: 18px;
     min-height: 100vh;
     background-color: var(--secondary-main-color);
-    color: var(--text-color);
+    color: var(--text-color-hint);
 }
 
 * {

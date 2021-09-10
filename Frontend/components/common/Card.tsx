@@ -12,6 +12,8 @@ export function Card({ children }: ChildrenProps) {
             padding: 8px;
             border-radius: 4px;
             overflow-y: auto;
+            display: flex;
+            flex-flow: column;
           }
         `}
       </style>
