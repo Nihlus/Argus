@@ -1,7 +1,8 @@
-import React, {PropsWithChildren} from 'react';
+import React from 'react';
+import {ChildrenProps} from "../utils";
 
 
-export function Layout({children}: PropsWithChildren<{}>) {
+export function Layout({children}: ChildrenProps) {
   return <>
     <main>{children}</main>
     <style jsx>{`

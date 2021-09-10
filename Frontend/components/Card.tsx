@@ -1,6 +1,7 @@
-import React, {PropsWithChildren} from 'react';
+import React from 'react';
+import {ChildrenProps} from "../utils";
 
-export function Card({children}: PropsWithChildren<{}>) {
+export function Card({children}: ChildrenProps) {
   return <>
     <div>{children}</div>
     <style jsx>

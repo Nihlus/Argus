@@ -1,6 +1,7 @@
-import React, {PropsWithChildren} from 'react';
+import React from 'react';
+import {ChildrenProps} from "../utils";
 
-export function InteractionViewLayout({children}: PropsWithChildren<{}>) {
+export function InteractionViewLayout({children}: ChildrenProps) {
   return <>
     <section>
       {children}

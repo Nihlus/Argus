@@ -1,6 +1,7 @@
-import React, {PropsWithChildren} from 'react';
+import React from 'react';
+import {ChildrenProps} from "../utils";
 
-export function Headline({children}: PropsWithChildren<{}>) {
+export function Headline({children}: ChildrenProps) {
   return <>
     <h1>{children}</h1>
     <style jsx>{`
