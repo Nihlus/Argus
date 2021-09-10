@@ -1,3 +1,12 @@
+:root {
+    --primary-main-color: #FEA82F;
+    --secondary-main-color: #202030;
+    --secondary-light-color: #2F2F45;
+
+    --text-color: #E5E5E5;
+}
+
+
 html,
 body {
     padding: 0;
@@ -6,6 +15,9 @@ body {
     Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
     line-height: 1.6;
     font-size: 18px;
+    min-height: 100vh;
+    background-color: var(--secondary-main-color);
+    color: var(--text-color);
 }
 
 * {
