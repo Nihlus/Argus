@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using Puzzle;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -39,16 +40,24 @@ namespace Argus.Worker.MassTransit.Consumers
     {
         private readonly IBus _bus;
         private readonly SignatureGenerator _signatureGenerator;
+        private readonly ILogger<CollectedImageConsumer> _log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectedImageConsumer"/> class.
         /// </summary>
         /// <param name="bus">The message bus.</param>
         /// <param name="signatureGenerator">The signature generator.</param>
-        public CollectedImageConsumer(IBus bus, SignatureGenerator signatureGenerator)
+        /// <param name="log">The logging instance.</param>
+        public CollectedImageConsumer
+        (
+            IBus bus,
+            SignatureGenerator signatureGenerator,
+            ILogger<CollectedImageConsumer> log
+        )
         {
             _bus = bus;
             _signatureGenerator = signatureGenerator;
+            _log = log;
         }
 
         /// <inheritdoc />
@@ -80,6 +89,13 @@ namespace Argus.Worker.MassTransit.Consumers
                         signature,
                         hashString
                     )
+                );
+
+                _log.LogInformation
+                (
+                    "Fingerprinted image {Image} from {Source}",
+                    collectedImage.Image,
+                    collectedImage.Source
                 );
             }
             catch (Exception e)
