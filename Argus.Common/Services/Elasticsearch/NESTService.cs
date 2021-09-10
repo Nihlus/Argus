@@ -65,8 +65,8 @@ namespace Argus.Common.Services.Elasticsearch
                     q1 => q1.Bool
                     (
                         b => b
-                            .Must(m => m.Match(ma => ma.Field(im => im.Source).Query(image.Source)))
-                            .Must(m => m.Match(ma => ma.Field(im => im.Link).Query(image.Link)))
+                            .Must(m => m.Term(ma => ma.Field(im => im.Source).Value(image.Source)))
+                            .Must(m => m.Term(ma => ma.Field(im => im.Link).Value(image.Link)))
                     )
                 ),
                 ct
