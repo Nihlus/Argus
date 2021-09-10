@@ -7,7 +7,6 @@ export function Headline({ children }: ChildrenProps) {
       <h1>{children}</h1>
       <style jsx>{`
         h1 {
-          text-align: center;
           color: var(--primary-main-color);
         }
       `}</style>
