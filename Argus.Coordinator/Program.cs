@@ -26,6 +26,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Argus.Common;
 using Argus.Common.Configuration;
+using Argus.Common.Messages.BulkData;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
@@ -57,7 +58,7 @@ namespace Argus.Coordinator
 
             // Ensure the index is created
             var elasticClient = host.Services.GetRequiredService<ElasticClient>();
-            var exists = await elasticClient.Indices.ExistsAsync("images");
+            var exists = await elasticClient.Indices.ExistsAsync("argus");
             if (exists.ServerError is not null)
             {
                 log.LogError
@@ -70,8 +71,14 @@ namespace Argus.Coordinator
 
             if (!exists.Exists)
             {
-                var ensureCreated = await elasticClient.Indices
-                    .CreateAsync("images", i => i.Map<IndexedImage>(x => x.AutoMap()));
+                var ensureCreated = await elasticClient.Indices.CreateAsync
+                (
+                    "argus",
+                    i => i.Map<IndexedImage>
+                    (
+                        x => x.AutoMap()
+                    )
+                );
 
                 if (ensureCreated.ServerError is not null and not { Error: { Type: "resource_already_exists_exception" } })
                 {
@@ -88,47 +95,6 @@ namespace Argus.Coordinator
             using var scope = host.Services.CreateScope();
             await using var db = scope.ServiceProvider.GetRequiredService<CoordinatorContext>();
             await db.Database.MigrateAsync();
-
-            // Figure out what needs to be retried
-            var nestService = scope.ServiceProvider.GetRequiredService<NESTService>();
-            var result = await nestService.SearchByOriginAsync
-            (
-                "https://e926.net/posts/82428",
-                "https://static1.e926.net/data/6a/8e/6a8edaaa333296025df21545d6bd2ce0.jpg",
-                true
-            );
-
-            var offset = 0;
-
-            await using var file = new StreamWriter(File.OpenWrite("/home/jarl/output.csv"));
-            await file.WriteLineAsync("id,report_source,report_image,report_status");
-            while (true)
-            {
-                var batch = await db.ServiceStatusReports
-                    .OrderBy(r => r.Report.Timestamp)
-                    .Where(r => r.Report.Status == ImageStatus.Indexed)
-                    .Skip(offset)
-                    .Take(100)
-                    .ToListAsync();
-
-                if (batch.Count == 0)
-                {
-                    break;
-                }
-
-                var missing = (await Task.WhenAll(batch.Select
-                (
-                    async r => (r, await nestService.SearchByOriginAsync(r.Report.Source.ToString(), r.Report.Link.ToString()))
-                ))).Where(r => r.Item2.Hits.Count == 0).Select(r => r.r).ToList();
-
-                log.LogInformation("Found {Count} missing images", missing.Count);
-                foreach (var missingImage in missing)
-                {
-                    await file.WriteLineAsync($"{missingImage.Id},{missingImage.Report.Source},{missingImage.Report.Link},0");
-                }
-
-                offset += missing.Count;
-            }
 
             await host.RunAsync();
             log.LogInformation("Shutting down...");
@@ -222,7 +188,7 @@ namespace Argus.Coordinator
                             var password = options.ElasticsearchPassword;
                             settings.BasicAuthentication(username, password);
 
-                            settings.DefaultIndex("images");
+                            settings.DefaultIndex("argus");
 
                             return settings;
                         }

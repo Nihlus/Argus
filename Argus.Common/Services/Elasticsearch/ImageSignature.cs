@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Puzzle;
@@ -40,7 +41,7 @@ namespace Argus.Common.Services.Elasticsearch
         /// <summary>
         /// Gets a composite signature, used for rapid full-text search.
         /// </summary>
-        public int[] Words { get; }
+        public SignatureWords Words { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageSignature"/> class.
@@ -53,7 +54,7 @@ namespace Argus.Common.Services.Elasticsearch
 
             this.Signature = signature;
 
-            var words = new List<int>();
+            var words = ArrayPool<int>.Shared.Rent(63);
             Span<sbyte> word = stackalloc sbyte[wordSize];
 
             for (var i = 0; i < wordCount; i++)
@@ -87,10 +88,11 @@ namespace Argus.Common.Services.Elasticsearch
                     sum += a * b;
                 }
 
-                words.Add(sum);
+                words[i] = sum;
             }
 
-            this.Words = words.ToArray();
+            this.Words = SignatureWords.FromArray(words);
+            ArrayPool<int>.Shared.Return(words);
         }
     }
 }

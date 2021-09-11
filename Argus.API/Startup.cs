@@ -153,7 +153,7 @@ namespace Argus.API
 
                         settings.BasicAuthentication(username, password);
 
-                        settings.DefaultIndex("images");
+                        settings.DefaultIndex("argus");
 
                         return settings;
                     }

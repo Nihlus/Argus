@@ -70,7 +70,7 @@ namespace Argus.Common.Services.Elasticsearch
             (
                 q =>
                 {
-                    var query = q.Index("images").Query
+                    var query = q.Index("argus").Query
                     (
                         q1 => q1.Bool
                         (
@@ -119,7 +119,7 @@ namespace Argus.Common.Services.Elasticsearch
                 }
             }
 
-            var response = await _client.IndexAsync(image, idx => idx.Index("images"), ct);
+            var response = await _client.IndexAsync(image, idx => idx.Index("argus"), ct);
             if (!response.IsValid)
             {
                 return response.ServerError is not null
@@ -202,25 +202,78 @@ namespace Argus.Common.Services.Elasticsearch
             }
         }
 
-        private ISearchRequest BuildQuery(SearchDescriptor<IndexedImage> q, int[] searchWords)
+        private ISearchRequest BuildQuery(SearchDescriptor<IndexedImage> q, SignatureWords searchWords)
         {
-            q = q.Index("images")
-                .Query(query =>
-                {
-                    return query.Bool(boolQuery =>
-                    {
-                        boolQuery.Should(shouldQuery =>
-                        {
-                            return searchWords[1..].Aggregate
-                            (
-                                shouldQuery.Term(t => t.Field(i => i.Words).Value(searchWords[0])),
-                                (current, word) => current || shouldQuery.Term(t => t.Field(i => i.Words).Value(word))
-                            );
-                        });
-
-                        return boolQuery;
-                    });
-                });
+            q = q.Index("argus").Query
+            (
+                q => q.Bool
+                (
+                    b => b
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word1).Value(searchWords.Word1)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word2).Value(searchWords.Word2)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word3).Value(searchWords.Word3)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word4).Value(searchWords.Word4)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word5).Value(searchWords.Word5)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word6).Value(searchWords.Word6)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word7).Value(searchWords.Word7)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word8).Value(searchWords.Word8)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word9).Value(searchWords.Word9)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word10).Value(searchWords.Word10)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word11).Value(searchWords.Word11)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word12).Value(searchWords.Word12)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word13).Value(searchWords.Word13)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word14).Value(searchWords.Word14)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word15).Value(searchWords.Word15)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word16).Value(searchWords.Word16)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word17).Value(searchWords.Word17)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word18).Value(searchWords.Word18)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word19).Value(searchWords.Word19)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word20).Value(searchWords.Word20)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word21).Value(searchWords.Word21)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word22).Value(searchWords.Word22)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word23).Value(searchWords.Word23)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word24).Value(searchWords.Word24)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word25).Value(searchWords.Word25)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word26).Value(searchWords.Word26)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word27).Value(searchWords.Word27)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word28).Value(searchWords.Word28)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word29).Value(searchWords.Word29)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word30).Value(searchWords.Word30)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word31).Value(searchWords.Word31)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word32).Value(searchWords.Word32)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word33).Value(searchWords.Word33)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word34).Value(searchWords.Word34)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word35).Value(searchWords.Word35)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word36).Value(searchWords.Word36)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word37).Value(searchWords.Word37)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word38).Value(searchWords.Word38)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word39).Value(searchWords.Word39)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word40).Value(searchWords.Word40)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word41).Value(searchWords.Word41)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word42).Value(searchWords.Word42)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word43).Value(searchWords.Word43)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word44).Value(searchWords.Word44)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word45).Value(searchWords.Word45)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word46).Value(searchWords.Word46)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word47).Value(searchWords.Word47)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word48).Value(searchWords.Word48)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word49).Value(searchWords.Word49)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word50).Value(searchWords.Word50)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word51).Value(searchWords.Word51)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word52).Value(searchWords.Word52)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word53).Value(searchWords.Word53)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word54).Value(searchWords.Word54)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word55).Value(searchWords.Word55)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word56).Value(searchWords.Word56)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word57).Value(searchWords.Word57)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word58).Value(searchWords.Word58)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word59).Value(searchWords.Word59)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word60).Value(searchWords.Word60)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word61).Value(searchWords.Word61)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word62).Value(searchWords.Word62)))
+                        .Should(s => s.Term(t => t.Field(i => i.Words.Word63).Value(searchWords.Word63)))
+                )
+            );
 
             q = q.Source(so => so.Excludes(fs => fs.Field(i => i.Words)));
 

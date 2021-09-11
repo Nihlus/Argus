@@ -58,7 +58,7 @@ namespace Argus.Common.Services.Elasticsearch
         /// <summary>
         /// Gets the words that compose the signature. This field is used for search performance.
         /// </summary>
-        public int[] Words { get; init; }
+        public SignatureWords Words { get; init; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexedImage"/> class.
@@ -76,7 +76,7 @@ namespace Argus.Common.Services.Elasticsearch
             string source,
             string link,
             LuminosityLevel[] signature,
-            int[] words
+            SignatureWords words
         )
         {
             this.Service = service;
