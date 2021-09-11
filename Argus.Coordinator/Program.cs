@@ -22,17 +22,13 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using Argus.Common;
 using Argus.Common.Configuration;
-using Argus.Common.Messages.BulkData;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
 using Argus.Coordinator.Model;
 using MassTransit;
-using MassTransit.Initializers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

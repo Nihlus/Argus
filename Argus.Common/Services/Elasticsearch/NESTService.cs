@@ -206,7 +206,7 @@ namespace Argus.Common.Services.Elasticsearch
         {
             q = q.Index("argus").Query
             (
-                q => q.Bool
+                qd => qd.Bool
                 (
                     b => b
                         .Should(s => s.Term(t => t.Field(i => i.Words.Word1).Value(searchWords.Word1)))
