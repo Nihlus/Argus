@@ -1,18 +1,27 @@
 import React, { useMemo } from 'react'
 import { Blob } from 'buffer'
+import { useEnrichedFileInfo } from '@/components/fileUpload/useEnrichedFileInfo'
 
 export interface DroppedFileProps {
   file: File
 }
 
 export function DroppedFile({ file }: DroppedFileProps) {
-  const url = useMemo(() => URL.createObjectURL(file), [file])
-
+  const {
+    objectUrl,
+    lastModified,
+    imageType,
+    original: { name },
+  } = useEnrichedFileInfo(file)
   return (
     <>
       <div>
-        <img src={url} alt={file.name} />
-        <div className="file">{file.name}</div>
+        <img src={objectUrl} alt={file.name} />
+        <div className="file">
+          {name}
+          {imageType}
+          {lastModified.toLocaleString()}
+        </div>
       </div>
       <style jsx>{`
         img {
