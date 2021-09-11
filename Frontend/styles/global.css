@@ -20,7 +20,7 @@ body {
     font-size: 18px;
     min-height: 100vh;
     background-color: var(--secondary-main-color);
-    color: var(--text-color-hint);
+    color: var(--text-color);
 }
 
 * {
