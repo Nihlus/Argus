@@ -75,8 +75,8 @@ namespace Argus.Common.Services.Elasticsearch
                         q1 => q1.Bool
                         (
                             b => b
-                                .Must(m => m.Term(ma => ma.Field(im => im.Source).Value(source)))
-                                .Must(m => m.Term(ma => ma.Field(im => im.Link).Value(link)))
+                                .Must(m => m.Term(ma => ma.Field(im => im.Source.Suffix("keyword")).Value(source)))
+                                .Must(m => m.Term(ma => ma.Field(im => im.Link.Suffix("keyword")).Value(link)))
                         )
                     );
 
