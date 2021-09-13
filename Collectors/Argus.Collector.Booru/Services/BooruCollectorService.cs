@@ -35,6 +35,7 @@ using Argus.Collector.Driver.Minibooru.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using MassTransit;
+using MassTransit.MessageData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -53,6 +54,7 @@ namespace Argus.Collector.Booru.Services
         private readonly IBooruDriver _booruDriver;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<BooruCollectorService> _log;
+        private readonly IMessageDataRepository _repository;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BooruCollectorService"/> class.
@@ -61,6 +63,7 @@ namespace Argus.Collector.Booru.Services
         /// <param name="booruDriver">The Booru driver.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="bus">The message bus.</param>
+        /// <param name="repository">The message repository.</param>
         /// <param name="options">The application options.</param>
         /// <param name="log">The logging instance.</param>
         public BooruCollectorService
@@ -69,15 +72,16 @@ namespace Argus.Collector.Booru.Services
             IBooruDriver booruDriver,
             IHttpClientFactory httpClientFactory,
             IBus bus,
+            IMessageDataRepository repository,
             IOptions<CollectorOptions> options,
-            ILogger<BooruCollectorService> log
-        )
+            ILogger<BooruCollectorService> log)
             : base(bus, options, log)
         {
             _options = booruOptions.Value;
             _booruDriver = booruDriver;
             _httpClientFactory = httpClientFactory;
             _log = log;
+            _repository = repository;
         }
 
         /// <inheritdoc />
@@ -228,7 +232,7 @@ namespace Argus.Collector.Booru.Services
                     this.ServiceName,
                     statusReport.Source,
                     statusReport.Link,
-                    bytes
+                    await _repository.PutBytes(bytes, ct)
                 );
 
                 return (statusReport, collectedImage);

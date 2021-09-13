@@ -26,8 +26,7 @@ using System.Runtime.InteropServices;
 using Argus.Collector.Common.Configuration;
 using Argus.Collector.Common.Polly;
 using Argus.Collector.Common.Services;
-using Argus.Common.Configuration;
-using MassTransit;
+using Argus.Common.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -125,6 +124,7 @@ namespace Argus.Collector.Common.Extensions
                 .UseEnvironment("Production")
             #endif
                 .UseConsoleLifetime()
+                .UseMassTransit()
                 .ConfigureAppConfiguration((_, configuration) =>
                 {
                     if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -148,34 +148,6 @@ namespace Argus.Collector.Common.Extensions
 
                     hostContext.Configuration.Bind(nameof(CollectorOptions), options);
                     services.Configure(() => options);
-
-                    var brokerOptions = new BrokerOptions
-                    (
-                        new Uri("about:blank"),
-                        string.Empty,
-                        string.Empty
-                    );
-
-                    hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
-                    services.Configure(() => brokerOptions);
-
-                    // MassTransit
-                    services.AddMassTransit(busConfig =>
-                    {
-                        busConfig.SetKebabCaseEndpointNameFormatter();
-                        busConfig.UsingRabbitMq((context, cfg) =>
-                        {
-                            cfg.Host(brokerOptions.Host, "/argus", h =>
-                            {
-                                h.Username(brokerOptions.Username);
-                                h.Password(brokerOptions.Password);
-                            });
-
-                            cfg.ConfigureEndpoints(context);
-                        });
-                    });
-
-                    services.AddMassTransitHostedService();
 
                     // Various
                     services

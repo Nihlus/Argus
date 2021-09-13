@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.IO;
 
 namespace Argus.Common.Configuration
 {
@@ -30,10 +31,12 @@ namespace Argus.Common.Configuration
     /// <param name="Host">The host at which the broker is available.</param>
     /// <param name="Username">The username to use for authentication with the broker.</param>
     /// <param name="Password">The password to use for authentication with the broker.</param>
+    /// <param name="DataRepository">The path to the data repository.</param>
     public record BrokerOptions
     (
         Uri Host,
         string Username,
-        string Password
+        string Password,
+        string DataRepository
     );
 }

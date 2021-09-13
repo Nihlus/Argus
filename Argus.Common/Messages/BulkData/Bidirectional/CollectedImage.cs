@@ -21,6 +21,7 @@
 //
 
 using System;
+using MassTransit;
 
 namespace Argus.Common.Messages.BulkData
 {
@@ -36,6 +37,6 @@ namespace Argus.Common.Messages.BulkData
         string ServiceName,
         Uri Source,
         Uri Link,
-        byte[] Data
+        MessageData<byte[]> Data
     );
 }

@@ -24,9 +24,12 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Argus.Common.Configuration;
+using Argus.Common.Extensions;
 using Argus.Worker.Configuration;
 using Argus.Worker.MassTransit.Consumers;
 using MassTransit;
+using MassTransit.MessageData;
+using MassTransit.MessageData.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -64,6 +67,7 @@ namespace Argus.Worker
         #else
             .UseEnvironment("Production")
         #endif
+            .UseMassTransit(busConfig => busConfig.AddConsumer<CollectedImageConsumer>())
             .ConfigureAppConfiguration((_, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -76,36 +80,6 @@ namespace Argus.Worker
 
                 hostContext.Configuration.Bind(nameof(WorkerOptions), options);
                 services.Configure(() => options);
-
-                var brokerOptions = new BrokerOptions
-                (
-                    new Uri("about:blank"),
-                    string.Empty,
-                    string.Empty
-                );
-
-                hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
-                services.Configure(() => brokerOptions);
-
-                // MassTransit
-                services.AddMassTransit(busConfig =>
-                {
-                    busConfig.SetKebabCaseEndpointNameFormatter();
-                    busConfig.UsingRabbitMq((context, cfg) =>
-                    {
-                        cfg.Host(brokerOptions.Host, "/argus", h =>
-                        {
-                            h.Username(brokerOptions.Username);
-                            h.Password(brokerOptions.Password);
-                        });
-
-                        cfg.ConfigureEndpoints(context);
-                    });
-
-                    busConfig.AddConsumer<CollectedImageConsumer>();
-                });
-
-                services.AddMassTransitHostedService();
 
                 // Signature generation
                 services.AddSingleton<SignatureGenerator>();

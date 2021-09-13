@@ -32,6 +32,7 @@ using Argus.Collector.FList.API.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using MassTransit;
+using MassTransit.MessageData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -46,6 +47,7 @@ namespace Argus.Collector.FList.Services
         private readonly FListAPI _flistAPI;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<FListCollectorService> _log;
+        private readonly IMessageDataRepository _repository;
 
         /// <inheritdoc />
         protected override string ServiceName => "f-list";
@@ -56,6 +58,7 @@ namespace Argus.Collector.FList.Services
         /// <param name="flistAPI">The F-List API.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
         /// <param name="bus">The message bus.</param>
+        /// <param name="repository">The data repository.</param>
         /// <param name="options">The application options.</param>
         /// <param name="log">The logging instance.</param>
         public FListCollectorService
@@ -63,12 +66,13 @@ namespace Argus.Collector.FList.Services
             FListAPI flistAPI,
             IHttpClientFactory httpClientFactory,
             IBus bus,
+            IMessageDataRepository repository,
             IOptions<CollectorOptions> options,
-            ILogger<FListCollectorService> log
-        )
+            ILogger<FListCollectorService> log)
             : base(bus, options, log)
         {
             _log = log;
+            _repository = repository;
             _flistAPI = flistAPI;
             _httpClientFactory = httpClientFactory;
         }
@@ -212,7 +216,7 @@ namespace Argus.Collector.FList.Services
                     this.ServiceName,
                     new Uri($"https://www.f-list.net/c/{characterName}"),
                     new Uri(location),
-                    bytes
+                    await _repository.PutBytes(bytes, ct)
                 );
             }
             catch (Exception e)

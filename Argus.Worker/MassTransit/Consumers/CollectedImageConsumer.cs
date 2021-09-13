@@ -25,6 +25,7 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
+using Argus.Common.Services.Elasticsearch;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Puzzle;
@@ -67,7 +68,9 @@ namespace Argus.Worker.MassTransit.Consumers
             try
             {
                 // CPU-intensive step 1
-                using var image = Image.Load<L8>(collectedImage.Data);
+                var data = await collectedImage.Data.Value;
+
+                using var image = Image.Load<L8>(data);
                 context.CancellationToken.ThrowIfCancellationRequested();
 
                 // CPU-intensive step 2

@@ -24,11 +24,14 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Argus.Common.Configuration;
+using Argus.Common.Extensions;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
 using Argus.Coordinator.Model;
 using MassTransit;
+using MassTransit.MessageData;
+using MassTransit.MessageData.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -110,6 +113,13 @@ namespace Argus.Coordinator
         #else
             .UseEnvironment("Production")
         #endif
+            .UseMassTransit(busConfig =>
+            {
+                busConfig.AddConsumer<FingerprintedImageConsumer>();
+                busConfig.AddConsumer<ResumeRequestConsumer>();
+                busConfig.AddConsumer<RetryRequestConsumer>();
+                busConfig.AddConsumer<StatusReportConsumer>();
+            })
             .ConfigureAppConfiguration((_, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -127,39 +137,6 @@ namespace Argus.Coordinator
 
                 hostContext.Configuration.Bind(nameof(CoordinatorOptions), options);
                 services.Configure(() => options);
-
-                var brokerOptions = new BrokerOptions
-                (
-                    new Uri("about:blank"),
-                    string.Empty,
-                    string.Empty
-                );
-
-                hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
-                services.Configure(() => brokerOptions);
-
-                // MassTransit
-                services.AddMassTransit(busConfig =>
-                {
-                    busConfig.SetKebabCaseEndpointNameFormatter();
-                    busConfig.UsingRabbitMq((context, cfg) =>
-                    {
-                        cfg.Host(brokerOptions.Host, "/argus", h =>
-                        {
-                            h.Username(brokerOptions.Username);
-                            h.Password(brokerOptions.Password);
-                        });
-
-                        cfg.ConfigureEndpoints(context);
-                    });
-
-                    busConfig.AddConsumer<ResumeRequestConsumer>();
-                    busConfig.AddConsumer<RetryRequestConsumer>();
-                    busConfig.AddConsumer<FingerprintedImageConsumer>();
-                    busConfig.AddConsumer<StatusReportConsumer>();
-                });
-
-                services.AddMassTransitHostedService();
 
                 // Database
                 services.AddDbContext<CoordinatorContext>(dbOptions =>

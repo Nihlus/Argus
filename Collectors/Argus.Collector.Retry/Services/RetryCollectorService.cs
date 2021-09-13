@@ -35,6 +35,7 @@ using Argus.Common.Messages.BulkData;
 using Argus.Common.Messages.Replies;
 using Argus.Common.Messages.Requests;
 using MassTransit;
+using MassTransit.MessageData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -49,6 +50,7 @@ namespace Argus.Collector.Retry.Services
         private readonly RetryOptions _options;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<RetryCollectorService> _log;
+        private readonly IMessageDataRepository _repository;
 
         /// <inheritdoc />
         protected override string ServiceName => "retry";
@@ -59,6 +61,7 @@ namespace Argus.Collector.Retry.Services
         /// <param name="retryOptions">The retryOptions.</param>
         /// <param name="httpClientFactory">The http client factory.</param>
         /// <param name="bus">The message bus.</param>
+        /// <param name="repository">The message data repository.</param>
         /// <param name="options">The collector retryOptions.</param>
         /// <param name="log">The logging instance.</param>
         public RetryCollectorService
@@ -66,6 +69,7 @@ namespace Argus.Collector.Retry.Services
             IOptions<RetryOptions> retryOptions,
             IHttpClientFactory httpClientFactory,
             IBus bus,
+            IMessageDataRepository repository,
             IOptions<CollectorOptions> options,
             ILogger<RetryCollectorService> log)
             : base(bus, options, log)
@@ -73,6 +77,7 @@ namespace Argus.Collector.Retry.Services
             _options = retryOptions.Value;
             _httpClientFactory = httpClientFactory;
             _log = log;
+            _repository = repository;
         }
 
         /// <inheritdoc />
@@ -159,7 +164,7 @@ namespace Argus.Collector.Retry.Services
                     statusReport.ServiceName,
                     statusReport.Source,
                     statusReport.Link,
-                    bytes
+                    await _repository.PutBytes(bytes, ct)
                 );
 
                 return (statusReport, collectedImage);

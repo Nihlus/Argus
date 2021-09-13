@@ -35,6 +35,7 @@ using Argus.Collector.Weasyl.Configuration;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using MassTransit;
+using MassTransit.MessageData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -50,6 +51,7 @@ namespace Argus.Collector.Weasyl.Services
         private readonly WeasylAPI _weasylAPI;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<WeasylCollectorService> _log;
+        private readonly IMessageDataRepository _repository;
 
         /// <inheritdoc />
         protected override string ServiceName => "weasyl";
@@ -59,6 +61,7 @@ namespace Argus.Collector.Weasyl.Services
         /// </summary>
         /// <param name="weasylOptions">The Weasyl options.</param>
         /// <param name="bus">The message bus.</param>
+        /// <param name="repository">The message data repository.</param>
         /// <param name="options">The application options.</param>
         /// <param name="weasylAPI">The weasyl weasylAPI.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
@@ -69,12 +72,14 @@ namespace Argus.Collector.Weasyl.Services
             WeasylAPI weasylAPI,
             IHttpClientFactory httpClientFactory,
             IBus bus,
+            IMessageDataRepository repository,
             IOptions<CollectorOptions> options,
             ILogger<WeasylCollectorService> log)
             : base(bus, options, log)
         {
             _options = weasylOptions.Value;
             _log = log;
+            _repository = repository;
             _weasylAPI = weasylAPI;
             _httpClientFactory = httpClientFactory;
         }
@@ -266,7 +271,7 @@ namespace Argus.Collector.Weasyl.Services
                     this.ServiceName,
                     new Uri(submission.Link),
                     new Uri(location),
-                    bytes
+                    await _repository.PutBytes(bytes, ct)
                 );
 
                 return (statusReport, collectedImage);
