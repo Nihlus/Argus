@@ -36,7 +36,7 @@ function main() {
     aptly publish update focal :argus
     aptly publish update bullseye :argus
 
-    rsync -ruvz -e 'ssh -p 21122' --progress "${HOME}/.aptly/public/argus/" jax@algiz.nu:/var/www/repoi
+    rsync -ruvz -e 'ssh -p 21122' --progress "${HOME}/.aptly/public/argus/" jax@algiz.nu:/var/www/repo
 }
 
 main "${@}"
