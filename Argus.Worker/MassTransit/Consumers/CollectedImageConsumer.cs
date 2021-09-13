@@ -108,7 +108,6 @@ namespace Argus.Worker.MassTransit.Consumers
                 );
 
                 await _bus.Publish(message);
-                throw;
             }
         }
     }
