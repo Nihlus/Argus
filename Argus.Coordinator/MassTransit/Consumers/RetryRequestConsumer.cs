@@ -59,7 +59,6 @@ namespace Argus.Coordinator.MassTransit.Consumers
             var then = now - TimeSpan.FromHours(1);
 
             var reports = await _db.ServiceStatusReports.AsNoTracking()
-                .Select(r => r.Report)
                 .OrderBy(r => r.Timestamp)
                 .Where(r => r.Timestamp < then)
                 .Where

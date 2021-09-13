@@ -105,7 +105,7 @@ namespace Argus.Coordinator
             {
                 logging
                     .MinimumLevel.Information()
-                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+                    //.MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
                     .WriteTo.Console();
             })
         #if DEBUG
@@ -118,7 +118,15 @@ namespace Argus.Coordinator
                 busConfig.AddConsumer<FingerprintedImageConsumer>();
                 busConfig.AddConsumer<ResumeRequestConsumer>();
                 busConfig.AddConsumer<RetryRequestConsumer>();
-                busConfig.AddConsumer<StatusReportConsumer>();
+                busConfig.AddConsumer<StatusReportConsumer>(consumer =>
+                {
+                    consumer.Options<BatchOptions>
+                    (
+                        options => options
+                                .SetMessageLimit(100)
+                                .SetTimeLimit(TimeSpan.FromSeconds(10))
+                    );
+                });
             })
             .ConfigureAppConfiguration((_, configuration) =>
             {

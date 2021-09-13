@@ -20,6 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System.Linq;
 using System.Threading.Tasks;
 using Argus.Common.Messages.BulkData;
 using Argus.Coordinator.Model;
@@ -32,7 +33,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
     /// <summary>
     /// Consumes status reports, logging them for later use.
     /// </summary>
-    public class StatusReportConsumer : IConsumer<StatusReport>
+    public class StatusReportConsumer : IConsumer<Batch<StatusReport>>
     {
         private readonly CoordinatorContext _db;
         private readonly ILogger<StatusReportConsumer> _log;
@@ -49,36 +50,22 @@ namespace Argus.Coordinator.MassTransit.Consumers
         }
 
         /// <inheritdoc />
-        public async Task Consume(ConsumeContext<StatusReport> context)
+        public async Task Consume(ConsumeContext<Batch<StatusReport>> context)
         {
-            var statusReport = context.Message;
-            var existingReport = await _db.ServiceStatusReports.FirstOrDefaultAsync
-            (
-                r =>
-                    r.Report.ServiceName == statusReport.ServiceName &&
-                    r.Report.Source == statusReport.Source &&
-                    r.Report.Link == statusReport.Link,
-                context.CancellationToken
-            );
+            var statusReports = context.Message;
 
-            if (existingReport is null)
-            {
-                existingReport = new ServiceStatusReport(statusReport);
-            }
-            else
-            {
-                existingReport.Report = statusReport;
-            }
-
-            _db.ServiceStatusReports.Update(existingReport);
+            _db.ServiceStatusReports.UpsertRange(statusReports.AsEnumerable().Select(t => t.Message));
             await _db.SaveChangesAsync(context.CancellationToken);
 
-            _log.LogInformation
-            (
-                "Logged status report regarding image {Link} from {Source}",
-                statusReport.Link,
-                statusReport.Source
-            );
+            foreach (var statusReport in statusReports)
+            {
+                _log.LogInformation
+                (
+                    "Logged status report regarding image {Link} from {Source}",
+                    statusReport.Message.Link,
+                    statusReport.Message.Source
+                );
+            }
         }
     }
 }

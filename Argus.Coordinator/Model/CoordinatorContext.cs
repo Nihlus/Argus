@@ -20,6 +20,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+using Argus.Common.Messages.BulkData;
 using Microsoft.EntityFrameworkCore;
 
 namespace Argus.Coordinator.Model
@@ -46,7 +47,7 @@ namespace Argus.Coordinator.Model
         /// <summary>
         /// Gets received status reports.
         /// </summary>
-        public DbSet<ServiceStatusReport> ServiceStatusReports => Set<ServiceStatusReport>();
+        public DbSet<StatusReport> ServiceStatusReports => Set<StatusReport>();
 
         /// <inheritdoc />
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -56,13 +57,12 @@ namespace Argus.Coordinator.Model
                 .HasIndex(r => r.Id)
                 .IsUnique();
 
-            // Configure ServiceStatusReports
-            modelBuilder.Entity<ServiceStatusReport>()
-                .OwnsOne(r => r.Report)
-                .WithOwner();
+            // Configure StatusReports
+            modelBuilder.Entity<StatusReport>()
+                .HasKey(nameof(StatusReport.Source), nameof(StatusReport.Link));
 
-            modelBuilder.Entity<ServiceStatusReport>()
-                .HasIndex(r => r.Id)
+            modelBuilder.Entity<StatusReport>()
+                .HasIndex(nameof(StatusReport.Source), nameof(StatusReport.Link))
                 .IsUnique();
         }
     }
