@@ -21,11 +21,14 @@
 //
 
 using System;
+using System.IO;
 using Argus.Common.Configuration;
 using MassTransit;
 using MassTransit.ExtensionsDependencyInjectionIntegration;
+using MassTransit.MessageData;
 using MassTransit.MessageData.Configuration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Remora.Extensions.Options.Immutable;
 
@@ -64,8 +67,14 @@ namespace Argus.Common.Extensions
                 services.Configure(() => brokerOptions);
 
                 // MassTransit
+                var dataRepository = new FileSystemMessageDataRepository
+                (
+                    new DirectoryInfo(brokerOptions.DataRepository)
+                );
+
+                services.AddSingleton<IMessageDataRepository>(dataRepository);
+
                 MessageDataDefaults.TimeToLive = TimeSpan.FromDays(1);
-                MessageDataDefaults.Threshold = 16_000_000; // 16MB
                 MessageDataDefaults.AlwaysWriteToRepository = false;
 
                 services.AddMassTransit(busConfig =>
@@ -73,7 +82,7 @@ namespace Argus.Common.Extensions
                     busConfig.SetKebabCaseEndpointNameFormatter();
                     busConfig.UsingRabbitMq((context, cfg) =>
                     {
-                        cfg.UseMessageData(s => s.FileSystem(brokerOptions.DataRepository));
+                        cfg.UseMessageData(dataRepository);
                         cfg.Host(brokerOptions.Host, "/argus", h =>
                         {
                             h.Username(brokerOptions.Username);
