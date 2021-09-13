@@ -105,7 +105,7 @@ namespace Argus.Coordinator
             {
                 logging
                     .MinimumLevel.Information()
-                    //.MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
                     .WriteTo.Console();
             })
         #if DEBUG
