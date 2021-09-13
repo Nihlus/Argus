@@ -30,6 +30,7 @@ using Argus.Common.Results;
 using Argus.Common.Services.Elasticsearch.Search;
 using Nest;
 using Puzzle;
+using Remora.Results;
 using Result = Remora.Results.Result;
 
 namespace Argus.Common.Services.Elasticsearch
@@ -39,7 +40,10 @@ namespace Argus.Common.Services.Elasticsearch
     /// </summary>
     public class NESTService
     {
-        private readonly ElasticClient _client;
+        /// <summary>
+        /// Gets the Elasticsearch client associated with the service.
+        /// </summary>
+        public ElasticClient Client { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NESTService"/> class.
@@ -47,7 +51,7 @@ namespace Argus.Common.Services.Elasticsearch
         /// <param name="client">The Elasticsearch client to use.</param>
         public NESTService(ElasticClient client)
         {
-            _client = client;
+            this.Client = client;
         }
 
         /// <summary>
@@ -66,7 +70,7 @@ namespace Argus.Common.Services.Elasticsearch
             CancellationToken ct = default
         )
         {
-            return await _client.SearchAsync<IndexedImage>
+            return await this.Client.SearchAsync<IndexedImage>
             (
                 q =>
                 {
@@ -91,14 +95,22 @@ namespace Argus.Common.Services.Elasticsearch
         }
 
         /// <summary>
-        /// Indexes the given image in Elasticsearch.
+        /// Determines whether a fingerprinted image at the given origin has been indexed.
         /// </summary>
-        /// <param name="image">The image.</param>
+        /// <param name="source">The source link.</param>
+        /// <param name="link">The image link.</param>
+        /// <param name="signature">The signature.</param>
         /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>true if the image was indexed; otherwise, false.</returns>
-        public async Task<Result> IndexImageAsync(IndexedImage image, CancellationToken ct = default)
+        /// <returns>true if the image has been indexed; otherwise, false.</returns>
+        public async Task<Result<bool>> IsIndexedAsync
+        (
+            string source,
+            string link,
+            LuminosityLevel[] signature,
+            CancellationToken ct = default
+        )
         {
-            var existingImage = await SearchByOriginAsync(image.Source, image.Link, true, ct);
+            var existingImage = await SearchByOriginAsync(source, link, true, ct);
             if (!existingImage.IsValid)
             {
                 return existingImage.ServerError is not null
@@ -106,16 +118,29 @@ namespace Argus.Common.Services.Elasticsearch
                     : existingImage.OriginalException;
             }
 
-            if (existingImage.Hits.Any())
+            return existingImage.Hits.Any(hit => hit.Source.Signature.SequenceEqual(signature));
+        }
+
+        /// <summary>
+        /// Indexes the given image in Elasticsearch.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        /// <param name="ct">The cancellation token for this operation.</param>
+        /// <returns>true if the image was indexed; otherwise, false.</returns>
+        public async Task<Result> IndexImageAsync(IndexedImage image, CancellationToken ct = default)
+        {
+            var checkIsIndexed = await IsIndexedAsync(image.Source, image.Link, image.Signature, ct);
+            if (!checkIsIndexed.IsSuccess)
             {
-                if (existingImage.Hits.Any(hit => hit.Source.Signature.SequenceEqual(image.Signature)))
-                {
-                    // It's already indexed, so it's fine
-                    return Result.FromSuccess();
-                }
+                return Result.FromError(checkIsIndexed);
             }
 
-            var response = await _client.IndexAsync(image, idx => idx.Index("argus"), ct);
+            if (checkIsIndexed.Entity)
+            {
+                return Result.FromSuccess();
+            }
+
+            var response = await this.Client.IndexAsync(image, idx => idx.Index("argus"), ct);
             if (!response.IsValid)
             {
                 return response.ServerError is not null
@@ -158,7 +183,7 @@ namespace Argus.Common.Services.Elasticsearch
                 }
 
                 var offsetCopy = after;
-                var searchResponse = await _client.SearchAsync<IndexedImage>
+                var searchResponse = await this.Client.SearchAsync<IndexedImage>
                 (
                     s => BuildQuery(s.From((int)offsetCopy).Size(pageSize), signature.Words), ct
                 ).ConfigureAwait(false);

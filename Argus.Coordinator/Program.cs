@@ -115,9 +115,16 @@ namespace Argus.Coordinator
         #endif
             .UseMassTransit(busConfig =>
             {
-                busConfig.AddConsumer<FingerprintedImageConsumer>();
-                busConfig.AddConsumer<ResumeRequestConsumer>();
-                busConfig.AddConsumer<RetryRequestConsumer>();
+                busConfig.AddConsumer<FingerprintedImageConsumer>(consumer =>
+                {
+                    consumer.Options<BatchOptions>
+                    (
+                        options => options
+                            .SetMessageLimit(100)
+                            .SetTimeLimit(TimeSpan.FromSeconds(10))
+                    );
+                });
+
                 busConfig.AddConsumer<StatusReportConsumer>(consumer =>
                 {
                     consumer.Options<BatchOptions>
@@ -127,6 +134,9 @@ namespace Argus.Coordinator
                                 .SetTimeLimit(TimeSpan.FromSeconds(10))
                     );
                 });
+
+                busConfig.AddConsumer<ResumeRequestConsumer>();
+                busConfig.AddConsumer<RetryRequestConsumer>();
             })
             .ConfigureAppConfiguration((_, configuration) =>
             {

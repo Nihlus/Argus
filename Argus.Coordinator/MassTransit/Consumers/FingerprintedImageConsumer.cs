@@ -21,19 +21,21 @@
 //
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using Argus.Common.Services.Elasticsearch;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Nest;
 
 namespace Argus.Coordinator.MassTransit.Consumers
 {
     /// <summary>
     /// Consumers fingerprinted images, indexing them.
     /// </summary>
-    public class FingerprintedImageConsumer : IConsumer<FingerprintedImage>
+    public class FingerprintedImageConsumer : IConsumer<Batch<FingerprintedImage>>
     {
         private readonly IBus _bus;
         private readonly NESTService _nestService;
@@ -53,51 +55,105 @@ namespace Argus.Coordinator.MassTransit.Consumers
         }
 
         /// <inheritdoc />
-        public async Task Consume(ConsumeContext<FingerprintedImage> context)
+        public async Task Consume(ConsumeContext<Batch<FingerprintedImage>> context)
         {
-            var fingerprintedImage = context.Message;
+            var batch = context.Message;
 
-            // Save to database
-            var indexedImage = new IndexedImage
+            var indexChecks = await Task.WhenAll
             (
-                fingerprintedImage.ServiceName,
-                DateTimeOffset.UtcNow,
-                fingerprintedImage.Source.ToString(),
-                fingerprintedImage.Link.ToString(),
-                fingerprintedImage.Signature.Signature,
-                fingerprintedImage.Signature.Words
+                context.Message
+                .Select(m => m.Message)
+                .Select
+                (
+                    async im => (Image: im, Result: await _nestService.IsIndexedAsync
+                    (
+                        im.Source.ToString(),
+                        im.Link.ToString(),
+                        im.Signature.Signature,
+                        context.CancellationToken
+                    ))
+                )
             );
 
-            var indexImage = await _nestService.IndexImageAsync(indexedImage, context.CancellationToken);
-            if (!indexImage.IsSuccess)
+            var failed = indexChecks.Where(c => !c.Result.IsSuccess);
+            foreach (var check in failed)
             {
+                var (image, result) = check;
+
                 _log.LogWarning
                 (
                     "Failed to index image from {Source} at {Link}: {Reason}",
-                    fingerprintedImage.Source,
-                    fingerprintedImage.Link,
-                    indexImage.Error.Message
+                    image.Source,
+                    image.Link,
+                    result.Error!.Message
+                );
+            }
+
+            var alreadyIndexed = indexChecks.Where(c => c.Result.IsSuccess && c.Result.Entity);
+            foreach (var check in alreadyIndexed)
+            {
+                var (image, _) = check;
+
+                _log.LogWarning
+                (
+                    "Skipping image from {Source} at {Link} (already indexed)",
+                    image.Source,
+                    image.Link
+                );
+            }
+
+            var toIndex = indexChecks
+                .Where(c => c.Result.IsSuccess && !c.Result.Entity)
+                .Select(check => check.Image)
+                .Select(image => new IndexedImage
+                (
+                    image.ServiceName,
+                    DateTimeOffset.UtcNow,
+                    image.Source.ToString(),
+                    image.Link.ToString(),
+                    image.Signature.Signature,
+                    image.Signature.Words
+                ))
+                .ToList();
+
+            if (toIndex.Count == 0)
+            {
+                return;
+            }
+
+            // Save to database
+            var response = await _nestService.Client.IndexManyAsync(toIndex, "argus", context.CancellationToken);
+            if (!response.IsValid)
+            {
+                var errorMessage = response.ServerError is not null
+                    ? response.ServerError.ToString()
+                    : response.OriginalException.Message;
+
+                _log.LogWarning
+                (
+                    "Failed to index an image batch: {Reason} ",
+                    errorMessage
                 );
 
                 return;
             }
 
-            var statusReport = new StatusReport
+            var statusReports = toIndex.Select(indexedImage => new StatusReport
             (
                 DateTime.UtcNow,
-                fingerprintedImage.ServiceName,
-                fingerprintedImage.Source,
-                fingerprintedImage.Link,
+                indexedImage.Service,
+                new Uri(indexedImage.Source),
+                new Uri(indexedImage.Link),
                 ImageStatus.Indexed,
                 string.Empty
-            );
+            ));
 
-            await _bus.Publish(statusReport, context.CancellationToken);
+            await _bus.PublishBatch(statusReports, context.CancellationToken);
 
             _log.LogInformation
             (
-                "Indexed fingerprinted image from service \"{Service}\"",
-                fingerprintedImage.ServiceName
+                "Indexed a batch of images ({Count})",
+                batch.Length
             );
         }
     }
