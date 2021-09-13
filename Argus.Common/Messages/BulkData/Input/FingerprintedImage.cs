@@ -21,6 +21,7 @@
 //
 
 using System;
+using Argus.Common.Services.Elasticsearch;
 using Puzzle;
 
 namespace Argus.Common.Messages.BulkData
@@ -31,14 +32,12 @@ namespace Argus.Common.Messages.BulkData
     /// <param name="ServiceName">The name of the service the original collector retrieved the image from.</param>
     /// <param name="Source">The source URL where the image was retrieved.</param>
     /// <param name="Link">A direct link to the image.</param>
-    /// <param name="Fingerprint">The image data.</param>
-    /// <param name="Hash">A SHA256 hash of the image data.</param>
+    /// <param name="Signature">The image signature.</param>
     public record FingerprintedImage
     (
         string ServiceName,
         Uri Source,
         Uri Link,
-        LuminosityLevel[] Fingerprint,
-        string Hash
+        ImageSignature Signature
     );
 }

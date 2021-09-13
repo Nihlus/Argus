@@ -58,16 +58,14 @@ namespace Argus.Coordinator.MassTransit.Consumers
             var fingerprintedImage = context.Message;
 
             // Save to database
-            var signature = new ImageSignature(fingerprintedImage.Fingerprint);
-
             var indexedImage = new IndexedImage
             (
                 fingerprintedImage.ServiceName,
                 DateTimeOffset.UtcNow,
                 fingerprintedImage.Source.ToString(),
                 fingerprintedImage.Link.ToString(),
-                signature.Signature,
-                signature.Words
+                fingerprintedImage.Signature.Signature,
+                fingerprintedImage.Signature.Words
             );
 
             var indexImage = await _nestService.IndexImageAsync(indexedImage, context.CancellationToken);

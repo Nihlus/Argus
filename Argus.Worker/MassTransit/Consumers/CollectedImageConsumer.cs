@@ -71,14 +71,9 @@ namespace Argus.Worker.MassTransit.Consumers
                 context.CancellationToken.ThrowIfCancellationRequested();
 
                 // CPU-intensive step 2
-                using var sha256 = new SHA256Managed();
-                var hash = sha256.ComputeHash(collectedImage.Data);
-                context.CancellationToken.ThrowIfCancellationRequested();
-
-                var hashString = BitConverter.ToString(hash).ToLowerInvariant();
-
-                // CPU-intensive step 3
                 var signature = _signatureGenerator.GenerateSignature(image);
+                var fingerprint = new ImageSignature(signature);
+
                 await _bus.Publish
                 (
                     new FingerprintedImage
@@ -86,8 +81,7 @@ namespace Argus.Worker.MassTransit.Consumers
                         collectedImage.ServiceName,
                         collectedImage.Source,
                         collectedImage.Link,
-                        signature,
-                        hashString
+                        fingerprint
                     )
                 );
 
