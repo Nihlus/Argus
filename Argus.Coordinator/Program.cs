@@ -23,15 +23,12 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Argus.Common.Configuration;
 using Argus.Common.Extensions;
 using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
 using Argus.Coordinator.Model;
 using MassTransit;
-using MassTransit.MessageData;
-using MassTransit.MessageData.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -113,7 +110,7 @@ namespace Argus.Coordinator
         #else
             .UseEnvironment("Production")
         #endif
-            .UseMassTransit(busConfig =>
+            .UseMassTransit((busConfig, _) =>
             {
                 busConfig.AddConsumer<FingerprintedImageConsumer>(consumer =>
                 {

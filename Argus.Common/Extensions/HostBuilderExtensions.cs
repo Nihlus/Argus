@@ -26,7 +26,6 @@ using Argus.Common.Configuration;
 using MassTransit;
 using MassTransit.ExtensionsDependencyInjectionIntegration;
 using MassTransit.MessageData;
-using MassTransit.MessageData.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -48,10 +47,10 @@ namespace Argus.Common.Extensions
         public static IHostBuilder UseMassTransit
         (
             this IHostBuilder hostBuilder,
-            Action<IServiceCollectionBusConfigurator>? busConfigurator = null
+            Action<IServiceCollectionBusConfigurator, BrokerOptions>? busConfigurator = null
         )
         {
-            busConfigurator ??= _ => { };
+            busConfigurator ??= (_, _) => { };
 
             return hostBuilder.ConfigureServices((hostContext, services) =>
             {
@@ -92,7 +91,7 @@ namespace Argus.Common.Extensions
                         cfg.ConfigureEndpoints(context);
                     });
 
-                    busConfigurator(busConfig);
+                    busConfigurator(busConfig, brokerOptions);
                 });
 
                 services.AddMassTransitHostedService();

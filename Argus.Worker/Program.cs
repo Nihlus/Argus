@@ -23,19 +23,13 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Argus.Common.Configuration;
 using Argus.Common.Extensions;
-using Argus.Worker.Configuration;
 using Argus.Worker.MassTransit.Consumers;
-using MassTransit;
-using MassTransit.MessageData;
-using MassTransit.MessageData.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Puzzle;
-using Remora.Extensions.Options.Immutable;
 using Serilog;
 
 namespace Argus.Worker
@@ -67,20 +61,19 @@ namespace Argus.Worker
         #else
             .UseEnvironment("Production")
         #endif
-            .UseMassTransit(busConfig => busConfig.AddConsumer<CollectedImageConsumer>())
+            .UseMassTransit((busConfig, brokerOptions) =>
+            {
+                busConfig.AddConsumer<CollectedImageConsumer>()
+                    .Endpoint(endpoint => endpoint.PrefetchCount = brokerOptions.PrefetchCount);
+            })
             .ConfigureAppConfiguration((_, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 var systemConfigFile = Path.Combine(configFolder, "argus", "worker.json");
                 configuration.AddJsonFile(systemConfigFile, true);
             })
-            .ConfigureServices((hostContext, services) =>
+            .ConfigureServices((_, services) =>
             {
-                var options = new WorkerOptions(0);
-
-                hostContext.Configuration.Bind(nameof(WorkerOptions), options);
-                services.Configure(() => options);
-
                 // Signature generation
                 services.AddSingleton<SignatureGenerator>();
             });

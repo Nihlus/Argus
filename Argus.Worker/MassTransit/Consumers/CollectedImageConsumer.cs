@@ -21,7 +21,6 @@
 //
 
 using System;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;

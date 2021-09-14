@@ -22,7 +22,6 @@
 
 using System;
 using Argus.Common.Services.Elasticsearch;
-using Puzzle;
 
 namespace Argus.Common.Messages.BulkData
 {
