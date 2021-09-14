@@ -175,7 +175,7 @@ namespace Argus.Common.Services.Elasticsearch
             const int pageSize = 10;
 
             var foundResults = 0;
-            while (true)
+            while (foundResults < limit)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -187,6 +187,16 @@ namespace Argus.Common.Services.Elasticsearch
                 (
                     s => BuildQuery(s.From((int)offsetCopy).Size(pageSize), signature.Words), ct
                 ).ConfigureAwait(false);
+
+                if (!searchResponse.IsValid)
+                {
+                    throw new InvalidOperationException(searchResponse.DebugInformation);
+                }
+
+                if (searchResponse.Documents.Count == 0)
+                {
+                    yield break;
+                }
 
                 foreach (var hit in searchResponse.Documents)
                 {
@@ -213,10 +223,6 @@ namespace Argus.Common.Services.Elasticsearch
                     yield return new SearchResult(similarity, imageInformation);
 
                     ++foundResults;
-                    if (foundResults >= limit)
-                    {
-                        yield break;
-                    }
                 }
 
                 after += pageSize;
