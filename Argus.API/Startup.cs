@@ -28,6 +28,7 @@ using Argus.API.Configuration;
 using Argus.API.Database;
 using Argus.Common.Json;
 using Argus.Common.Services.Elasticsearch;
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -140,6 +141,21 @@ namespace Argus.API
                 .AddAuthentication("Key")
                 .AddScheme<AuthenticationSchemeOptions, APIKeyAuthenticationHandler>("Key", null);
 
+            // Rate limiting
+            services.AddMemoryCache();
+
+            services.Configure<IpRateLimitOptions>(ConfigureRateLimitDefaults);
+            services.Configure<ClientRateLimitOptions>(ConfigureRateLimitDefaults);
+
+            services.Configure<IpRateLimitOptions>(this.Configuration.GetSection("IPRateLimiting"));
+            services.Configure<IpRateLimitPolicies>(this.Configuration.GetSection("IPRateLimitPolicies"));
+
+            services.Configure<ClientRateLimitOptions>(this.Configuration.GetSection("ClientRateLimiting"));
+            services.Configure<ClientRateLimitPolicies>(this.Configuration.GetSection("ClientRateLimitPolicies"));
+
+            services.AddInMemoryRateLimiting();
+            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
             // Elasticsearch services
             services
                 .AddTransient
@@ -172,6 +188,47 @@ namespace Argus.API
             });
         }
 
+        private static void ConfigureRateLimitDefaults(RateLimitOptions options)
+        {
+            options.ClientIdHeader = "Authorization";
+
+            // Don't rate limit the local network
+            options.IpWhitelist = new List<string>
+            {
+                "127.0.0.1",
+                "::1",
+                "192.168.0.0/24"
+            };
+
+            options.GeneralRules = new List<RateLimitRule>
+            {
+                new()
+                {
+                    Endpoint = "*",
+                    PeriodTimespan = TimeSpan.FromSeconds(1),
+                    Limit = 10
+                },
+                new()
+                {
+                    Endpoint = "*",
+                    PeriodTimespan = TimeSpan.FromMinutes(15),
+                    Limit = 100
+                },
+                new()
+                {
+                    Endpoint = "*",
+                    PeriodTimespan = TimeSpan.FromHours(12),
+                    Limit = 1000
+                },
+                new()
+                {
+                    Endpoint = "*",
+                    PeriodTimespan = TimeSpan.FromDays(7),
+                    Limit = 10000
+                }
+            };
+        }
+
         /// <summary>
         /// Configures the HTTP request pipeline of the application.
         /// </summary>
@@ -179,6 +236,9 @@ namespace Argus.API
         /// <param name="env">The environment builder.</param>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseIpRateLimiting();
+            app.UseClientRateLimiting();
+
             app.UseForwardedHeaders(new()
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
@@ -201,11 +261,6 @@ namespace Argus.API
                 .UseAuthorization();
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-
-            // Perform migrations
-            using var scope = app.ApplicationServices.CreateScope();
-            using var db = scope.ServiceProvider.GetRequiredService<ArgusAPIContext>();
-            db.Database.Migrate();
         }
     }
 }

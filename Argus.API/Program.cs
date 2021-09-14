@@ -21,7 +21,11 @@
 //
 
 using System.Threading.Tasks;
+using Argus.API.Database;
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Argus.API
@@ -31,7 +35,24 @@ namespace Argus.API
     /// </summary>
     public class Program
     {
-        private static Task Main(string[] args) => CreateHostBuilder(args).Build().RunAsync();
+        private static async Task Main(string[] args)
+        {
+            var host = CreateHostBuilder(args).Build();
+
+            // Perform migrations
+            using var scope = host.Services.CreateScope();
+            await using var db = scope.ServiceProvider.GetRequiredService<ArgusAPIContext>();
+            await db.Database.MigrateAsync();
+
+            // Seed policy stores
+            var policyStore = scope.ServiceProvider.GetRequiredService<IIpPolicyStore>();
+            await policyStore.SeedAsync();
+
+            var clientPolicyStore = scope.ServiceProvider.GetRequiredService<IClientPolicyStore>();
+            await clientPolicyStore.SeedAsync();
+
+            await host.RunAsync();
+        }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
