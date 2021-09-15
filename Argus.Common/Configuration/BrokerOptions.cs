@@ -31,16 +31,11 @@ namespace Argus.Common.Configuration
     /// <param name="Username">The username to use for authentication with the broker.</param>
     /// <param name="Password">The password to use for authentication with the broker.</param>
     /// <param name="DataRepository">The path to the data repository.</param>
-    /// <param name="PrefetchCount">
-    /// The number of messages to prefetch from the broker. By default, this is based on the number of processors the
-    /// device has. Endpoints do not respect this value by default, and it's mainly used as a hint where needed.
-    /// </param>
     public record BrokerOptions
     (
         Uri Host,
         string Username,
         string Password,
-        string DataRepository,
-        int? PrefetchCount = null
+        string DataRepository
     );
 }

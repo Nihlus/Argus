@@ -61,11 +61,7 @@ namespace Argus.Worker
         #else
             .UseEnvironment("Production")
         #endif
-            .UseMassTransit((busConfig, brokerOptions) =>
-            {
-                busConfig.AddConsumer<CollectedImageConsumer>()
-                    .Endpoint(endpoint => endpoint.PrefetchCount = brokerOptions.PrefetchCount);
-            })
+            .UseMassTransit((busConfig, _) => busConfig.AddConsumer<CollectedImageConsumer>())
             .ConfigureAppConfiguration((_, configuration) =>
             {
                 var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
