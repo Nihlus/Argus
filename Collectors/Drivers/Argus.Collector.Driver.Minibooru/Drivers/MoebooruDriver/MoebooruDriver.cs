@@ -38,6 +38,11 @@ namespace Argus.Collector.Driver.Minibooru
     public class MoebooruDriver : AbstractBooruDriver<IReadOnlyList<MoebooruPost>>
     {
         /// <summary>
+        /// Gets the name of the driver.
+        /// </summary>
+        public static string Name => "moebooru";
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="MoebooruDriver"/> class.
         /// </summary>
         /// <param name="clientFactory">The HTTP client to use.</param>

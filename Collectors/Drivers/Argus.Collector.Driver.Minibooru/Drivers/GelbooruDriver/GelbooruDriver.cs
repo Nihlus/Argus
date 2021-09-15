@@ -1,5 +1,5 @@
 //
-//  OuroborosDriver.cs
+//  GelbooruDriver.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
@@ -24,9 +24,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text.Json;
+using System.Web;
 using Argus.Collector.Driver.Minibooru.Model;
 using Microsoft.Extensions.Options;
 using Remora.Results;
@@ -34,49 +33,57 @@ using Remora.Results;
 namespace Argus.Collector.Driver.Minibooru
 {
     /// <summary>
-    /// Implements Ouroboros-specific driver functionality.
+    /// Implements Gelbooru-specific driver functionality.
     /// </summary>
-    public class OuroborosDriver : AbstractBooruDriver<OuroborosPage>
+    public class GelbooruDriver : AbstractBooruDriver<IReadOnlyList<GelbooruPost>>
     {
         /// <summary>
         /// Gets the name of the driver.
         /// </summary>
-        public static string Name => "ouroboros";
+        public static string Name => "gelbooru";
 
-        /// <inheritdoc />
-        protected override IReadOnlyList<ProductInfoHeaderValue> UserAgent => new[]
-        {
-            new ProductInfoHeaderValue("Argus", Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0"),
-            new ProductInfoHeaderValue("(by Jax#7487 on Discord)")
-        };
+        private readonly GelbooruDriverOptions _options;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OuroborosDriver"/> class.
+        /// Initializes a new instance of the <see cref="GelbooruDriver"/> class.
         /// </summary>
+        /// <param name="options">The Gelbooru options.</param>
         /// <param name="clientFactory">The HTTP client to use.</param>
         /// <param name="jsonOptions">The JSON serializer options.</param>
         /// <param name="driverOptions">The driver options.</param>
-        public OuroborosDriver
+        public GelbooruDriver
         (
+            IOptions<GelbooruDriverOptions> options,
             IHttpClientFactory clientFactory,
             IOptionsMonitor<JsonSerializerOptions> jsonOptions,
             IOptionsMonitor<BooruDriverOptions> driverOptions
         )
-            : base(clientFactory, jsonOptions, driverOptions)
+            : base
+            (
+                clientFactory,
+                jsonOptions,
+                driverOptions
+            )
         {
+            _options = options.Value;
         }
 
         /// <inheritdoc />
-        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(OuroborosPage internalPage)
+        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(IReadOnlyList<GelbooruPost> internalPage)
         {
-            return internalPage.Posts.Select
+            return internalPage.Select
             (
                 post =>
                 {
-                    var (id, file) = post;
+                    var (id, fileUrl, directory, image) = post;
 
-                    var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
-                    return new BooruPost(id, file.Url?.ToString(), postUrl);
+                    // Prefer the suggested file URL whenever possible
+                    var realFileUrl = fileUrl is not null
+                        ? new Uri(fileUrl)
+                        : new Uri($"{_options.BaseCDNUrl.ToString().TrimEnd('/')}/images/{directory}/{image}");
+
+                    var postUrl = new Uri(this.DriverOptions.BaseUrl, $"index.php?page=post&s=view&id={id}");
+                    return new BooruPost(id, realFileUrl.ToString(), postUrl);
                 }
             ).ToList();
         }
@@ -84,12 +91,17 @@ namespace Argus.Collector.Driver.Minibooru
         /// <inheritdoc />
         protected override Uri GetSearchUrl(ulong after, uint limit)
         {
-            if (limit > 320)
+            if (limit > 1000)
             {
-                limit = 320;
+                limit = 1000;
             }
 
-            return new Uri(this.DriverOptions.BaseUrl, $"posts.json?limit={limit}&page=a{after}");
+            var tags = HttpUtility.UrlEncode($"sort:id:asc id:>{after}");
+            return new Uri
+            (
+                this.DriverOptions.BaseUrl,
+                $"index.php?page=dapi&s=post&q=index&json=1&limit={limit}&tags={tags}"
+            );
         }
     }
 }

@@ -22,6 +22,7 @@
 
 using System;
 using Argus.Collector.Common.Polly;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
@@ -34,6 +35,40 @@ namespace Argus.Collector.Driver.Minibooru.Extensions
     /// </summary>
     public static class MinibooruServiceCollectionExtensions
     {
+        /// <summary>
+        /// Adds a named booru driver for the given URL.
+        /// </summary>
+        /// <param name="services">The application services.</param>
+        /// <param name="configuration">The application configuration.</param>
+        /// <param name="driverName">The name of the driver.</param>
+        /// <param name="baseUrl">The base URL.</param>
+        /// <param name="rateLimit">The number of requests per second the driver is permitted to make.</param>
+        /// <returns>The services, with the Booru driver.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if the driver name is not recognized.</exception>
+        public static IServiceCollection AddBooruDriver
+        (
+            this IServiceCollection services,
+            IConfiguration configuration,
+            string driverName,
+            string baseUrl,
+            int rateLimit = 25
+        )
+        {
+            return driverName switch
+            {
+                _ when driverName == GelbooruDriver.Name =>
+                    services
+                        .Configure(() => new GelbooruDriverOptions(new Uri(baseUrl)))
+                        .Configure<GelbooruDriverOptions>(configuration.GetSection("GelbooruOptions"))
+                        .AddBooruDriver<GelbooruDriver>(baseUrl, rateLimit),
+                _ when driverName == MoebooruDriver.Name =>
+                    services.AddBooruDriver<MoebooruDriver>(baseUrl, rateLimit),
+                _ when driverName == OuroborosDriver.Name =>
+                    services.AddBooruDriver<OuroborosDriver>(baseUrl, rateLimit),
+                _ => throw new ArgumentOutOfRangeException(nameof(driverName), "Unknown driver.")
+            };
+        }
+
         /// <summary>
         /// Adds a Booru driver for the given URL.
         /// </summary>

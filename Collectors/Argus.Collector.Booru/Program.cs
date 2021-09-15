@@ -72,23 +72,13 @@ namespace Argus.Collector.Booru
                     rateLimit = 1;
                 }
 
-                switch (options.DriverName)
-                {
-                    case "moebooru":
-                    {
-                        services.AddBooruDriver<MoebooruDriver>(options.BaseUrl.ToString(), rateLimit);
-                        break;
-                    }
-                    case "ouroboros":
-                    {
-                        services.AddBooruDriver<OuroborosDriver>(options.BaseUrl.ToString(), rateLimit);
-                        break;
-                    }
-                    default:
-                    {
-                        throw new ArgumentOutOfRangeException($"Unknown driver name \"{options.DriverName}\"");
-                    }
-                }
+                services.AddBooruDriver
+                (
+                    hostContext.Configuration,
+                    options.DriverName,
+                    options.BaseUrl.ToString(),
+                    rateLimit
+                );
             });
     }
 }
