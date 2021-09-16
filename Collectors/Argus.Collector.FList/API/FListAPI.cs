@@ -286,7 +286,7 @@ namespace Argus.Collector.FList.API
         /// Gets the name of the most recently created character. This is an expensive, synchronous operation.
         /// </summary>
         /// <returns>The name.</returns>
-        public Result<string> GetMostRecentlyCreatedCharacterAsync()
+        public Result<string> GetMostRecentlyCreatedCharacter()
         {
             try
             {

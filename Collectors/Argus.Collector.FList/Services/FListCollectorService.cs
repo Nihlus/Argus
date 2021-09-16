@@ -57,16 +57,16 @@ namespace Argus.Collector.FList.Services
         /// </summary>
         /// <param name="flistAPI">The F-List API.</param>
         /// <param name="httpClientFactory">The HTTP client factory.</param>
-        /// <param name="bus">The message bus.</param>
         /// <param name="repository">The data repository.</param>
+        /// <param name="bus">The message bus.</param>
         /// <param name="options">The application options.</param>
         /// <param name="log">The logging instance.</param>
         public FListCollectorService
         (
             FListAPI flistAPI,
             IHttpClientFactory httpClientFactory,
-            IBus bus,
             IMessageDataRepository repository,
+            IBus bus,
             IOptions<CollectorOptions> options,
             ILogger<FListCollectorService> log)
             : base(bus, options, log)
@@ -99,7 +99,7 @@ namespace Argus.Collector.FList.Services
             {
                 if (currentCharacterId >= latestCharacterId || latestCharacterId is null)
                 {
-                    var getLatestName = _flistAPI.GetMostRecentlyCreatedCharacterAsync();
+                    var getLatestName = _flistAPI.GetMostRecentlyCreatedCharacter();
                     if (!getLatestName.IsSuccess)
                     {
                         return Result.FromError(getLatestName);
