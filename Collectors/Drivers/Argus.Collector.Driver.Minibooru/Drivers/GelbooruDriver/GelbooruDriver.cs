@@ -42,6 +42,9 @@ namespace Argus.Collector.Driver.Minibooru
         /// </summary>
         public static string Name => "gelbooru";
 
+        /// <inheritdoc />
+        protected override bool AllowEmptyResponse => true;
+
         private readonly GelbooruDriverOptions _options;
 
         /// <summary>

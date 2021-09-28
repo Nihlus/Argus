@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -51,6 +52,11 @@ namespace Argus.Collector.Driver.Minibooru
         /// Gets the user agent to use.
         /// </summary>
         protected virtual IReadOnlyCollection<ProductInfoHeaderValue>? UserAgent => null;
+
+        /// <summary>
+        /// Gets a value indicating whether an empty response should be allowed, in which case an empty page is assumed.
+        /// </summary>
+        protected virtual bool AllowEmptyResponse => false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AbstractBooruDriver{TInternalPost}"/> class.
@@ -113,9 +119,19 @@ namespace Argus.Collector.Driver.Minibooru
                 response.EnsureSuccessStatusCode();
 
                 await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
+
+                // Buffer the response so we can check the actual size of the response
+                await using var bufferedContentStream = new MemoryStream();
+                await contentStream.CopyToAsync(bufferedContentStream, ct);
+
+                if (bufferedContentStream.Length is 0 && this.AllowEmptyResponse)
+                {
+                    return Array.Empty<BooruPost>();
+                }
+
                 var internalPage = await JsonSerializer.DeserializeAsync<TInternalPage>
                 (
-                    contentStream,
+                    bufferedContentStream,
                     _jsonOptions,
                     ct
                 );
