@@ -77,43 +77,66 @@ namespace Argus.Collector.Common.Services
         /// <inheritdoc/>
         protected sealed override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var retryEnumerator = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5).GetEnumerator();
-            try
+            async Task<Result> ExecuteCollectionAsync(CancellationToken ct)
             {
-                while (!stoppingToken.IsCancellationRequested)
+                try
                 {
-                    var latestTry = DateTimeOffset.UtcNow;
-                    var collection = await CollectAsync(stoppingToken);
-                    if (collection.IsSuccess || collection.Error is ExceptionError { Exception: OperationCanceledException })
+                    var collection = await CollectAsync(ct);
+                    if (collection.IsSuccess)
                     {
                         // Finished
-                        return;
+                        return Result.FromSuccess();
                     }
 
-                    _log.LogWarning("Error in collector: {Message}", collection.Error.Message);
-                    if (DateTimeOffset.UtcNow - latestTry > TimeSpan.FromHours(1))
+                    if (collection.Error is ExceptionError { Exception: OperationCanceledException })
                     {
-                        // We've been running for long enough, reset the retry sequence
-                        retryEnumerator.Dispose();
-                        retryEnumerator = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5)
-                            .GetEnumerator();
+                        // Finished
+                        return Result.FromSuccess();
                     }
-
-                    if (!retryEnumerator.MoveNext())
-                    {
-                        // Too many retries
-                        return;
-                    }
-
-                    _log.LogInformation("Waiting a while before trying again ({Time})...", retryEnumerator.Current);
-                    await Task.Delay(retryEnumerator.Current, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return Result.FromSuccess();
+                }
+                catch (Exception ex)
+                {
+                    return ex;
                 }
 
-                retryEnumerator.Dispose();
+                return Result.FromSuccess();
             }
-            catch (OperationCanceledException)
+
+            var retryEnumerator = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5).GetEnumerator();
+            while (!stoppingToken.IsCancellationRequested)
             {
+                var latestTry = DateTimeOffset.UtcNow;
+                var collection = await ExecuteCollectionAsync(stoppingToken);
+                if (collection.IsSuccess)
+                {
+                    // Finished
+                    return;
+                }
+
+                _log.LogWarning("Error in collector: {Message}", collection.Error.Message);
+                if (DateTimeOffset.UtcNow - latestTry > TimeSpan.FromHours(1))
+                {
+                    // We've been running for long enough, reset the retry sequence
+                    retryEnumerator.Dispose();
+                    retryEnumerator = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5)
+                        .GetEnumerator();
+                }
+
+                if (!retryEnumerator.MoveNext())
+                {
+                    // Too many retries
+                    return;
+                }
+
+                _log.LogInformation("Waiting a while before trying again ({Time})...", retryEnumerator.Current);
+                await Task.Delay(retryEnumerator.Current, stoppingToken);
             }
+
+            retryEnumerator.Dispose();
         }
 
         /// <summary>
