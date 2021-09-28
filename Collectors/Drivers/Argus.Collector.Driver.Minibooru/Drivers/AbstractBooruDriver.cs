@@ -129,6 +129,7 @@ namespace Argus.Collector.Driver.Minibooru
                     return Array.Empty<BooruPost>();
                 }
 
+                bufferedContentStream.Seek(0, SeekOrigin.Begin);
                 var internalPage = await JsonSerializer.DeserializeAsync<TInternalPage>
                 (
                     bufferedContentStream,
