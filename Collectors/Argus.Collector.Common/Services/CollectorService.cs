@@ -31,6 +31,7 @@ using MassTransit;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly.Contrib.WaitAndRetry;
 using Remora.Results;
 
 namespace Argus.Collector.Common.Services
@@ -76,13 +77,39 @@ namespace Argus.Collector.Common.Services
         /// <inheritdoc/>
         protected sealed override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            var retryEnumerator = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5).GetEnumerator();
             try
             {
-                var collection = await CollectAsync(stoppingToken);
-                if (!collection.IsSuccess && collection.Error is not ExceptionError { Exception: OperationCanceledException })
+                while (!stoppingToken.IsCancellationRequested)
                 {
+                    var latestTry = DateTimeOffset.UtcNow;
+                    var collection = await CollectAsync(stoppingToken);
+                    if (collection.IsSuccess || collection.Error is ExceptionError { Exception: OperationCanceledException })
+                    {
+                        // Finished
+                        return;
+                    }
+
                     _log.LogWarning("Error in collector: {Message}", collection.Error.Message);
+                    if (DateTimeOffset.UtcNow - latestTry > TimeSpan.FromHours(1))
+                    {
+                        // We've been running for long enough, reset the retry sequence
+                        retryEnumerator.Dispose();
+                        retryEnumerator = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5)
+                            .GetEnumerator();
+                    }
+
+                    if (!retryEnumerator.MoveNext())
+                    {
+                        // Too many retries
+                        return;
+                    }
+
+                    _log.LogInformation("Waiting a while before trying again ({Time})...", retryEnumerator.Current);
+                    await Task.Delay(retryEnumerator.Current, stoppingToken);
                 }
+
+                retryEnumerator.Dispose();
             }
             catch (OperationCanceledException)
             {
