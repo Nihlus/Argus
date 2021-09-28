@@ -25,7 +25,6 @@ using System.Threading.Tasks;
 using Argus.Collector.Booru.Configuration;
 using Argus.Collector.Booru.Services;
 using Argus.Collector.Common.Extensions;
-using Argus.Collector.Driver.Minibooru;
 using Argus.Collector.Driver.Minibooru.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
