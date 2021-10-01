@@ -216,7 +216,7 @@ namespace Argus.Collector.FList.Services
                     this.ServiceName,
                     new Uri($"https://www.f-list.net/c/{characterName}"),
                     new Uri(location),
-                    await _repository.PutBytes(bytes, ct)
+                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
                 );
             }
             catch (Exception e)

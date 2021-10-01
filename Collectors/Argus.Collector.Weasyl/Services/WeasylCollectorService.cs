@@ -271,7 +271,7 @@ namespace Argus.Collector.Weasyl.Services
                     this.ServiceName,
                     new Uri(submission.Link),
                     new Uri(location),
-                    await _repository.PutBytes(bytes, ct)
+                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
                 );
 
                 return (statusReport, collectedImage);

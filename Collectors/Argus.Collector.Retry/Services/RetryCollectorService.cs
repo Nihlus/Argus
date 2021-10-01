@@ -164,7 +164,7 @@ namespace Argus.Collector.Retry.Services
                     statusReport.ServiceName,
                     statusReport.Source,
                     statusReport.Link,
-                    await _repository.PutBytes(bytes, ct)
+                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
                 );
 
                 return (statusReport, collectedImage);
