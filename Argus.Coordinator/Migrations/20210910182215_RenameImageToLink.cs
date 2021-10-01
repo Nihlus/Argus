@@ -2,6 +2,8 @@
 
 using Microsoft.EntityFrameworkCore.Migrations;
 
+#pragma warning disable CS1591
+
 namespace Argus.Coordinator.Migrations
 {
     public partial class RenameImageToLink : Migration

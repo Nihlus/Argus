@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
+#pragma warning disable CS1591
+
 namespace Argus.API.Migrations
 {
     [DbContext(typeof(ArgusAPIContext))]

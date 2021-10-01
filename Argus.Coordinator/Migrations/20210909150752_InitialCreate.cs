@@ -4,6 +4,8 @@ using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
+#pragma warning disable CS1591
+
 namespace Argus.Coordinator.Migrations
 {
     public partial class InitialCreate : Migration
