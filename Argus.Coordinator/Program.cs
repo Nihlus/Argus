@@ -28,6 +28,7 @@ using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
 using Argus.Coordinator.Model;
+using GreenPipes;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -124,6 +125,11 @@ namespace Argus.Coordinator
 
                 busConfig.AddConsumer<StatusReportConsumer>(consumer =>
                 {
+                    consumer.UseMessageRetry
+                    (
+                        c => c.Exponential(3, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(1))
+                    );
+
                     consumer.Options<BatchOptions>
                     (
                         options => options
@@ -134,6 +140,7 @@ namespace Argus.Coordinator
 
                 busConfig.AddConsumer<ResumeRequestConsumer>();
                 busConfig.AddConsumer<RetryRequestConsumer>();
+                busConfig.AddConsumer<FingerprintedImageFaultConsumer>();
             })
             .ConfigureAppConfiguration((_, configuration) =>
             {

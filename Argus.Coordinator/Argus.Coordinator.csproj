@@ -16,7 +16,7 @@
             The cluster coordinator load-balances incoming images across available workers, as well as tracking the
             state of units of work.
         </Description>
-        <Version>5.2.1</Version>
+        <Version>5.3.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
