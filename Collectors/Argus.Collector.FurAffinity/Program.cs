@@ -88,32 +88,15 @@ namespace Argus.Collector.FurAffinity
 
                 if (rateLimit == 0)
                 {
-                    rateLimit = 1;
+                    rateLimit = 10;
                 }
 
-                services.AddHttpClient(nameof(FurAffinityAPI), (_, client) =>
-                {
-                    var assemblyName = Assembly.GetExecutingAssembly().GetName();
-                    var name = assemblyName.Name ?? "Indexer";
-                    var version = assemblyName.Version ?? new Version(1, 0, 0);
-
-                    client.BaseAddress = new Uri("https://www.furaffinity.net");
-                    client.DefaultRequestHeaders.UserAgent.Add
-                    (
-                        new ProductInfoHeaderValue(name, version.ToString())
-                    );
-                })
-                .ConfigurePrimaryHttpMessageHandler(s =>
+                services.AddHttpClient(nameof(FurAffinityAPI), (s, client) =>
                 {
                     var options = s.GetRequiredService<IOptions<FurAffinityOptions>>();
 
-                    var handler = new HttpClientHandler();
-
                     var (a, b, _) = options.Value;
-                    handler.CookieContainer.Add(new Cookie("a", a, "/", ".furaffinity.net"));
-                    handler.CookieContainer.Add(new Cookie("b", b, "/", ".furaffinity.net"));
-
-                    return handler;
+                    client.DefaultRequestHeaders.Add("Cookie", $"a={a}; b={b}");
                 })
                 .AddTransientHttpErrorPolicy
                 (

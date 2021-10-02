@@ -132,7 +132,7 @@ namespace Argus.Collector.FurAffinity.Services
                 for
                 (
                     var submissionID = currentSubmissionID;
-                    submissionID < currentSubmissionID + 100 && submissionID < latestSubmissionID;
+                    submissionID < currentSubmissionID + 25 && submissionID < latestSubmissionID;
                     ++submissionID
                 )
                 {
@@ -146,6 +146,12 @@ namespace Argus.Collector.FurAffinity.Services
                     if (!collection.IsSuccess)
                     {
                         _log.LogWarning("Failed to collect image: {Reason}", collection.Error.Message);
+
+                        if (collection.Error is InvalidOperationError)
+                        {
+                            return Result.FromError(collection);
+                        }
+
                         continue;
                     }
 
@@ -173,7 +179,7 @@ namespace Argus.Collector.FurAffinity.Services
                     return push;
                 }
 
-                ++currentSubmissionID;
+                currentSubmissionID += 25;
             }
 
             return Result.FromSuccess();
@@ -243,7 +249,7 @@ namespace Argus.Collector.FurAffinity.Services
                     this.ServiceName,
                     statusReport.Source,
                     statusReport.Link,
-                    await _repository.PutBytes(bytes, ct)
+                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
                 );
 
                 return (statusReport, collectedImage);

@@ -61,7 +61,18 @@ namespace Argus.Collector.FurAffinity.API
                 var request = new HttpRequestMessage(HttpMethod.Get, $"https://www.furaffinity.net/full/{submissionID}");
 
                 var get = await client.SendAsync(request, ct);
+                get.EnsureSuccessStatusCode();
+
                 var content = await get.Content.ReadAsStringAsync(ct);
+
+                // Heuristic validity check
+                if (content.Contains("Log In</strong>"))
+                {
+                    return new InvalidOperationError
+                    (
+                        "The credentials are no longer valid. Collection cannot continue."
+                    );
+                }
 
                 var context = new BrowsingContext();
                 var document = await context.OpenAsync(req => req.Content(content), ct);
