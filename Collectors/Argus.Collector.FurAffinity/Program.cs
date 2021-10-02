@@ -21,9 +21,6 @@
 //
 
 using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Argus.Collector.Common.Extensions;
@@ -39,7 +36,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
-using Cookie = System.Net.Cookie;
 
 namespace Argus.Collector.FurAffinity
 {
