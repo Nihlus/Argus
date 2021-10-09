@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Argus.Common;
@@ -89,7 +90,10 @@ namespace Argus.Coordinator.MassTransit.Consumers
                 );
             }
 
+            // Skip images that have already been indexed for whatever reason
             var alreadyIndexed = indexChecks.Where(c => c.Result.IsSuccess && c.Result.Entity);
+
+            var alreadyIndexedReports = new List<StatusReport>();
             foreach (var check in alreadyIndexed)
             {
                 var (image, _) = check;
@@ -100,8 +104,24 @@ namespace Argus.Coordinator.MassTransit.Consumers
                     image.Source,
                     image.Link
                 );
+
+                alreadyIndexedReports.Add(new StatusReport
+                (
+                    DateTime.UtcNow,
+                    image.ServiceName,
+                    image.Source,
+                    image.Link,
+                    ImageStatus.Indexed,
+                    string.Empty
+                ));
             }
 
+            if (alreadyIndexedReports.Count > 0)
+            {
+                await _bus.PublishBatch(alreadyIndexedReports, context.CancellationToken);
+            }
+
+            // Index the new images
             var toIndex = indexChecks
                 .Where(c => c.Result.IsSuccess && !c.Result.Entity)
                 .Select(check => check.Image)
