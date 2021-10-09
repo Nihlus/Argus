@@ -9,6 +9,7 @@ declare -r OUTPUT="${LOCAL_DIRECTORY}/bin/deb"
 declare -ra PROJECTS=(
     "Collectors/Argus.Collector.Booru" 
     "Collectors/Argus.Collector.FList" 
+    "Collectors/Argus.Collector.FurAffinity" 
     "Collectors/Argus.Collector.Retry" 
     "Collectors/Argus.Collector.Weasyl" 
     "Argus.API"
