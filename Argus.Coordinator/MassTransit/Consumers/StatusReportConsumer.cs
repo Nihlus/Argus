@@ -27,6 +27,7 @@ using Argus.Coordinator.Model;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MoreLinq;
 
 namespace Argus.Coordinator.MassTransit.Consumers
 {
@@ -54,16 +55,20 @@ namespace Argus.Coordinator.MassTransit.Consumers
         {
             var statusReports = context.Message;
 
-            await _db.ServiceStatusReports.UpsertRange(statusReports.AsEnumerable().Select(t => t.Message))
+            var reports = statusReports.AsEnumerable().Select(t => t.Message)
+                .DistinctBy(m => (m.Source, m.Link))
+                .ToList();
+
+            await _db.ServiceStatusReports.UpsertRange(reports)
                 .RunAsync(context.CancellationToken);
 
-            foreach (var statusReport in statusReports)
+            foreach (var statusReport in reports)
             {
                 _log.LogInformation
                 (
                     "Logged status report regarding image {Link} from {Source}",
-                    statusReport.Message.Link,
-                    statusReport.Message.Source
+                    statusReport.Link,
+                    statusReport.Source
                 );
             }
         }
