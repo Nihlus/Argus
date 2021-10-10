@@ -65,7 +65,6 @@ namespace Argus.Coordinator.MassTransit.Consumers
             );
 
             await _db.ServiceStatusReports.Upsert(statusReport).RunAsync(context.CancellationToken);
-            await _db.SaveChangesAsync(context.CancellationToken);
         }
     }
 }
