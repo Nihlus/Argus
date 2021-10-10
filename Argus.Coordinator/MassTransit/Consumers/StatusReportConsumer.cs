@@ -54,7 +54,9 @@ namespace Argus.Coordinator.MassTransit.Consumers
         {
             var statusReports = context.Message;
 
-            _db.ServiceStatusReports.UpsertRange(statusReports.AsEnumerable().Select(t => t.Message));
+            await _db.ServiceStatusReports.UpsertRange(statusReports.AsEnumerable().Select(t => t.Message))
+                .RunAsync(context.CancellationToken);
+
             await _db.SaveChangesAsync(context.CancellationToken);
 
             foreach (var statusReport in statusReports)

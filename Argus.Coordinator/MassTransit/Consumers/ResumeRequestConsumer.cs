@@ -78,7 +78,8 @@ namespace Argus.Coordinator.MassTransit.Consumers
             ) ?? new ServiceState(context.Message.ServiceName);
 
             serviceStatus.ResumePoint = context.Message.ResumePoint;
-            _db.Upsert(serviceStatus);
+
+            await _db.Upsert(serviceStatus).RunAsync(context.CancellationToken);
             await _db.SaveChangesAsync(context.CancellationToken);
 
             var resumePoint = serviceStatus.ResumePoint;
