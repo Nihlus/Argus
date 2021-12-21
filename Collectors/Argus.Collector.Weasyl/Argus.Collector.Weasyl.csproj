@@ -15,7 +15,7 @@
 
             Collects images from https://www.weasyl.com, handing them to the coordinator.
         </Description>
-        <Version>4.2.0</Version>
+        <Version>4.2.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
