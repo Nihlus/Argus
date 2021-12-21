@@ -28,10 +28,10 @@
         </PackageReference>
         <PackageReference Include="EFCore.NamingConventions" Version="5.0.2" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.10" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
-        <PackageReference Include="NEST" Version="7.15.0" />
-        <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
-        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0" />
+        <PackageReference Include="NEST" Version="7.16.0" />
+        <PackageReference Include="Serilog.Extensions.Hosting" Version="4.2.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
     </ItemGroup>
 
     <ItemGroup>

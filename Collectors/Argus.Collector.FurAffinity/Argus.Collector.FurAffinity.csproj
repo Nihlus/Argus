@@ -25,7 +25,7 @@
     <ItemGroup>
         <PackageReference Include="AngleSharp" Version="0.16.1" />
         <PackageReference Include="AngleSharp.Io" Version="0.16.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.0" />
     </ItemGroup>
 
     <ItemGroup>

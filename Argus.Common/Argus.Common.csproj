@@ -9,15 +9,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MassTransit.AspNetCore" Version="7.2.2" />
-        <PackageReference Include="MassTransit.RabbitMQ" Version="7.2.2" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
+        <PackageReference Include="MassTransit.AspNetCore" Version="7.3.0" />
+        <PackageReference Include="MassTransit.RabbitMQ" Version="7.3.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
         <PackageReference Include="Puzzle" Version="3.0.0" />
         <PackageReference Include="Remora.Extensions.Options.Immutable" Version="1.0.1" />
-        <PackageReference Include="Remora.Results" Version="7.0.1" />
-        <PackageReference Include="NEST" Version="7.15.0" />
+        <PackageReference Include="Remora.Results" Version="7.1.0" />
+        <PackageReference Include="NEST" Version="7.16.0" />
         <PackageReference Include="morelinq" Version="3.3.2" />
     </ItemGroup>
 
