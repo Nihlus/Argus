@@ -86,7 +86,7 @@
 
     <ItemGroup>
         <PackageReference Include="Packaging.Targets">
-            <Version>0.1.189-*</Version>
+            <Version>0.1.189</Version>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
 
