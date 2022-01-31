@@ -72,7 +72,7 @@ namespace Argus.Collector.Weasyl.API
             try
             {
                 var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
-                var request = new HttpRequestMessage
+                using var request = new HttpRequestMessage
                 (
                     HttpMethod.Get,
                     $"https://www.weasyl.com/api/submissions/{submissionID}/view?anyway=true"
@@ -80,7 +80,7 @@ namespace Argus.Collector.Weasyl.API
 
                 request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
 
-                var response = await client.SendAsync(request, ct);
+                using var response = await client.SendAsync(request, ct);
                 if (response.IsSuccessStatusCode)
                 {
                     return await JsonSerializer.DeserializeAsync<WeasylSubmission>
@@ -144,7 +144,7 @@ namespace Argus.Collector.Weasyl.API
             try
             {
                 var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
-                var request = new HttpRequestMessage
+                using var request = new HttpRequestMessage
                 (
                     HttpMethod.Get,
                     $"https://www.weasyl.com/api/submissions/frontpage?count={count}"
@@ -152,7 +152,7 @@ namespace Argus.Collector.Weasyl.API
 
                 request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
 
-                var response = await client.SendAsync(request, ct);
+                using var response = await client.SendAsync(request, ct);
                 if (response.IsSuccessStatusCode)
                 {
                     return await JsonSerializer.DeserializeAsync<List<WeasylSubmission>>

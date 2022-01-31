@@ -103,7 +103,12 @@ namespace Argus.Collector.FList.API
             {
                 var client = _clientFactory.CreateClient();
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://www.f-list.net/json/getApiTicket.php");
+                using var request = new HttpRequestMessage
+                (
+                    HttpMethod.Post,
+                    "https://www.f-list.net/json/getApiTicket.php"
+                );
+
                 var executionContext = new Context
                 {
                     ["account"] = _account,
@@ -124,7 +129,8 @@ namespace Argus.Collector.FList.API
                 var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
                 request.Content = content;
 
-                var getTicket = await DeserializePayload<APITicket>(await client.SendAsync(request, ct), ct);
+                using var response = await client.SendAsync(request, ct);
+                var getTicket = await DeserializePayload<APITicket>(response, ct);
                 if (!getTicket.IsSuccess)
                 {
                     return Result.FromError(getTicket);
@@ -168,7 +174,7 @@ namespace Argus.Collector.FList.API
             {
                 var client = _clientFactory.CreateClient(nameof(FListAPI));
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
+                using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
                 var executionContext = new Context
                 {
                     ["account"] = _account,
@@ -187,7 +193,8 @@ namespace Argus.Collector.FList.API
                 var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
                 request.Content = content;
 
-                return await DeserializePayload<CharacterData>(await client.SendAsync(request, ct), ct);
+                using var response = await client.SendAsync(request, ct);
+                return await DeserializePayload<CharacterData>(response, ct);
             }
             catch (Exception e)
             {
@@ -216,7 +223,7 @@ namespace Argus.Collector.FList.API
             {
                 var client = _clientFactory.CreateClient(nameof(FListAPI));
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
+                using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
                 var executionContext = new Context
                 {
                     ["account"] = _account,
@@ -235,7 +242,8 @@ namespace Argus.Collector.FList.API
                 var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
                 request.Content = content;
 
-                return await DeserializePayload<CharacterData>(await client.SendAsync(request, ct), ct);
+                using var response = await client.SendAsync(request, ct);
+                return await DeserializePayload<CharacterData>(response, ct);
             }
             catch (Exception e)
             {

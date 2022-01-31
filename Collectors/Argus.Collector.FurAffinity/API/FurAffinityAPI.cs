@@ -58,9 +58,13 @@ namespace Argus.Collector.FurAffinity.API
             try
             {
                 var client = _clientFactory.CreateClient(nameof(FurAffinityAPI));
-                var request = new HttpRequestMessage(HttpMethod.Get, $"https://www.furaffinity.net/full/{submissionID}");
+                using var request = new HttpRequestMessage
+                (
+                    HttpMethod.Get,
+                    $"https://www.furaffinity.net/full/{submissionID}"
+                );
 
-                var get = await client.SendAsync(request, ct);
+                using var get = await client.SendAsync(request, ct);
                 get.EnsureSuccessStatusCode();
 
                 var content = await get.Content.ReadAsStringAsync(ct);
@@ -110,9 +114,9 @@ namespace Argus.Collector.FurAffinity.API
             try
             {
                 var client = _clientFactory.CreateClient(nameof(FurAffinityAPI));
-                var request = new HttpRequestMessage(HttpMethod.Get, "https://www.furaffinity.net/browse");
+                using var request = new HttpRequestMessage(HttpMethod.Get, "https://www.furaffinity.net/browse");
 
-                var get = await client.SendAsync(request, ct);
+                using var get = await client.SendAsync(request, ct);
                 var content = await get.Content.ReadAsStringAsync(ct);
 
                 var context = new BrowsingContext();

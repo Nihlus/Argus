@@ -105,7 +105,7 @@ namespace Argus.Collector.Driver.Minibooru
                 var client = _clientFactory.CreateClient(GetType().Name);
                 var searchUrl = GetSearchUrl(after, limit);
 
-                var request = new HttpRequestMessage(HttpMethod.Get, searchUrl);
+                using var request = new HttpRequestMessage(HttpMethod.Get, searchUrl);
                 if (this.UserAgent is not null)
                 {
                     foreach (var headerValue in this.UserAgent)
@@ -114,7 +114,7 @@ namespace Argus.Collector.Driver.Minibooru
                     }
                 }
 
-                var response = await client.SendAsync(request, ct);
+                using var response = await client.SendAsync(request, ct);
 
                 response.EnsureSuccessStatusCode();
 
