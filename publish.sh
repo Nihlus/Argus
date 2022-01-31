@@ -7,11 +7,11 @@ declare -r LOCAL_DIRECTORY=$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd
 declare -r OUTPUT="${LOCAL_DIRECTORY}/bin/deb"
 
 declare -ra PROJECTS=(
-    "Collectors/Argus.Collector.Booru" 
-    "Collectors/Argus.Collector.FList" 
-    "Collectors/Argus.Collector.FurAffinity" 
-    "Collectors/Argus.Collector.Retry" 
-    "Collectors/Argus.Collector.Weasyl" 
+    "Collectors/Argus.Collector.Booru"
+    "Collectors/Argus.Collector.FList"
+    "Collectors/Argus.Collector.FurAffinity"
+    "Collectors/Argus.Collector.Retry"
+    "Collectors/Argus.Collector.Weasyl"
     "Argus.API"
     "Argus.Coordinator"
     "Argus.Worker"
@@ -37,7 +37,7 @@ function main() {
     aptly publish update focal :argus
     aptly publish update bullseye :argus
 
-    rsync -ruvz -e 'ssh -p 21122' --progress "${HOME}/.aptly/public/argus/" jax@algiz.nu:/var/www/repo
+    rsync -ruvz -e 'ssh -p 21122' --progress "${HOME}/.aptly/public/argus/" jax@algiz.nu:/mnt/pool/sites/jarl/repo
 }
 
 main "${@}"
