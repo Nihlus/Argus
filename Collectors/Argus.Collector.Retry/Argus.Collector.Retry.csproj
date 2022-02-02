@@ -15,7 +15,7 @@
 
             Redownloads interrupted or failed images, retrying them after some time.
         </Description>
-        <Version>4.2.1</Version>
+        <Version>4.2.2</Version>
     </PropertyGroup>
 
     <ItemGroup>

@@ -99,12 +99,13 @@ namespace Argus.Coordinator
 
         private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
             .UseConsoleLifetime()
-            .UseSerilog((_, logging) =>
+            .UseSerilog((hostContext, logging) =>
             {
                 logging
                     .MinimumLevel.Information()
                     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-                    .WriteTo.Console();
+                    .WriteTo.Console()
+                    .ReadFrom.Configuration(hostContext.Configuration);
             })
         #if DEBUG
             .UseEnvironment("Development")

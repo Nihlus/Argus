@@ -112,11 +112,9 @@ namespace Argus.Collector.Common.Extensions
             where TCollector : CollectorService
         {
             hostBuilder
-                .UseSerilog((_, logging) =>
+                .UseSerilog((hostContext, logging) =>
                 {
-                    logging
-                        .MinimumLevel.Information()
-                        .WriteTo.Console();
+                    logging.ReadFrom.Configuration(hostContext.Configuration);
                 })
             #if DEBUG
                 .UseEnvironment("Development")
