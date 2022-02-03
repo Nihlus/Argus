@@ -163,7 +163,7 @@ namespace Argus.Fingerprint
                 log.LogInformation("Fingerprinting {File}", filename);
 
                 await using var file = File.OpenRead(absoluteFilePath);
-                using var sha256 = new SHA256Managed();
+                using var sha256 = SHA256.Create();
 
                 log.LogInformation("Computing hash...");
                 var hashBytes = await sha256.ComputeHashAsync(file);

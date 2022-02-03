@@ -56,7 +56,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
 
             var statusReport = new StatusReport
             (
-                DateTime.UtcNow,
+                DateTimeOffset.UtcNow,
                 message.ServiceName,
                 message.Source,
                 message.Link,

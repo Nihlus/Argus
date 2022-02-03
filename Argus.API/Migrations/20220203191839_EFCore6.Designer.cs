@@ -3,17 +3,21 @@ using System;
 using Argus.API.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
+#pragma warning disable CS1591
+
 namespace Argus.API.Migrations
 {
     [DbContext(typeof(ArgusAPIContext))]
-    partial class ArgusAPIContextModelSnapshot : ModelSnapshot
+    [Migration("20220203191839_EFCore6")]
+    partial class EFCore6
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

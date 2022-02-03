@@ -35,7 +35,7 @@ namespace Argus.Common.Messages.BulkData
     /// <param name="Message">The status message.</param>
     public record StatusReport
     (
-        DateTime Timestamp,
+        DateTimeOffset Timestamp,
         string ServiceName,
         Uri Source,
         Uri Link,

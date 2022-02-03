@@ -109,7 +109,7 @@ namespace Argus.API.Authentication
                 return AuthenticateResult.Fail("Unknown authorization key.");
             }
 
-            var now = DateTime.UtcNow;
+            var now = DateTimeOffset.UtcNow;
             if (knownKey.ExpiresAt <= now)
             {
                 return AuthenticateResult.Fail("Authorization key expired.");

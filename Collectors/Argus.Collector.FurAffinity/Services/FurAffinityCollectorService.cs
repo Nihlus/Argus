@@ -197,7 +197,7 @@ namespace Argus.Collector.FurAffinity.Services
                 var source = new Uri($"https://www.furaffinity.net/view/{submissionID}");
                 var statusReport = new StatusReport
                 (
-                    DateTime.UtcNow,
+                    DateTimeOffset.UtcNow,
                     this.ServiceName,
                     source,
                     new Uri("about:blank"),

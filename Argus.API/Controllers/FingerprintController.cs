@@ -78,7 +78,7 @@ namespace Argus.API.Controllers
 
                 stream.Seek(0, SeekOrigin.Begin);
 
-                using var sha256 = new SHA256Managed();
+                using var sha256 = SHA256.Create();
 
                 var hashBytes = await sha256.ComputeHashAsync(stream, ct);
                 var hash = BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLowerInvariant();

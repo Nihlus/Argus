@@ -98,7 +98,7 @@ namespace Argus.Worker.MassTransit.Consumers
             {
                 var message = new StatusReport
                 (
-                    DateTime.UtcNow,
+                    DateTimeOffset.UtcNow,
                     collectedImage.ServiceName,
                     collectedImage.Source,
                     collectedImage.Link,

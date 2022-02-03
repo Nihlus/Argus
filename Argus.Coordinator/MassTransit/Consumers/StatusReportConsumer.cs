@@ -27,7 +27,6 @@ using Argus.Coordinator.Model;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MoreLinq;
 
 namespace Argus.Coordinator.MassTransit.Consumers
 {

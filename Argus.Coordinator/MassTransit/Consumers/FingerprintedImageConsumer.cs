@@ -107,7 +107,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
 
                 alreadyIndexedReports.Add(new StatusReport
                 (
-                    DateTime.UtcNow,
+                    DateTimeOffset.UtcNow,
                     image.ServiceName,
                     image.Source,
                     image.Link,
@@ -160,7 +160,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
 
             var statusReports = toIndex.Select(indexedImage => new StatusReport
             (
-                DateTime.UtcNow,
+                DateTimeOffset.UtcNow,
                 indexedImage.Service,
                 new Uri(indexedImage.Source),
                 new Uri(indexedImage.Link),

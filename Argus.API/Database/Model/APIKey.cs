@@ -37,12 +37,12 @@ namespace Argus.API.Database.Model
         /// <summary>
         /// Gets the time at which the API key was created.
         /// </summary>
-        public DateTime CreatedAt { get; init; }
+        public DateTimeOffset CreatedAt { get; init; }
 
         /// <summary>
         /// Gets the time at which the API key expires.
         /// </summary>
-        public DateTime? ExpiresAt { get; init; }
+        public DateTimeOffset? ExpiresAt { get; init; }
 
         /// <summary>
         /// Gets the API key itself.
@@ -54,11 +54,11 @@ namespace Argus.API.Database.Model
         /// </summary>
         /// <param name="expiresAt">The time at which the key expires.</param>
         /// <returns>The key.</returns>
-        public static APIKey Create(DateTime? expiresAt = null)
+        public static APIKey Create(DateTimeOffset? expiresAt = null)
         {
             return new APIKey
             {
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
                 ExpiresAt = expiresAt,
                 Key = Guid.NewGuid()
             };

@@ -186,7 +186,7 @@ namespace Argus.Collector.Booru.Services
 
             var statusReport = new StatusReport
             (
-                DateTime.UtcNow,
+                DateTimeOffset.UtcNow,
                 this.ServiceName,
                 source,
                 new Uri("about:blank"),

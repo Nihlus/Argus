@@ -55,7 +55,7 @@ namespace Argus.Coordinator.MassTransit.Consumers
         /// <inheritdoc />
         public async Task Consume(ConsumeContext<GetImagesToRetry> context)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTimeOffset.UtcNow;
             var then = now - TimeSpan.FromHours(1);
 
             var reports = await _db.ServiceStatusReports.AsNoTracking()

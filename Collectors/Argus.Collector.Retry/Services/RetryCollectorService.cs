@@ -147,7 +147,7 @@ namespace Argus.Collector.Retry.Services
         {
             var statusReport = new StatusReport
             (
-                DateTime.UtcNow,
+                DateTimeOffset.UtcNow,
                 failedImage.ServiceName,
                 failedImage.Source,
                 failedImage.Link,

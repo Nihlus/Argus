@@ -207,7 +207,7 @@ namespace Argus.Collector.Weasyl.Services
             {
                 var statusReport = new StatusReport
                 (
-                    DateTime.UtcNow,
+                    DateTimeOffset.UtcNow,
                     this.ServiceName,
                     new Uri(submission.Link),
                     new Uri("about:blank"),
