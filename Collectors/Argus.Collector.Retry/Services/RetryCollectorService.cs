@@ -193,7 +193,15 @@ namespace Argus.Collector.Retry.Services
         private async Task<Result<IReadOnlyCollection<StatusReport>>> GetImagesToRetryAsync(CancellationToken ct = default)
         {
             var message = new GetImagesToRetry(_options.PageSize);
-            var response = await this.Bus.Request<GetImagesToRetry, ImagesToRetry>(message, ct);
+
+            // TODO: Figure out why this is timing out in the first place; workaround for now
+            var response = await this.Bus.Request<GetImagesToRetry, ImagesToRetry>
+            (
+                message,
+                ct,
+                TimeSpan.FromMinutes(5)
+            );
+
             return Result<IReadOnlyCollection<StatusReport>>.FromSuccess(response.Message.Value);
         }
     }
