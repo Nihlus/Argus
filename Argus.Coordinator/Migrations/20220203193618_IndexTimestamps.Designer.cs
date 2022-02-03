@@ -3,17 +3,21 @@ using System;
 using Argus.Coordinator.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
+#pragma warning disable CS1591
+
 namespace Argus.Coordinator.Migrations
 {
     [DbContext(typeof(CoordinatorContext))]
-    partial class CoordinatorContextModelSnapshot : ModelSnapshot
+    [Migration("20220203193618_IndexTimestamps")]
+    partial class IndexTimestamps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +56,6 @@ namespace Argus.Coordinator.Migrations
 
                     b.HasKey("Source", "Link")
                         .HasName("pk_service_status_reports");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("ix_service_status_reports_status");
 
                     b.HasIndex("Timestamp")
                         .HasDatabaseName("ix_service_status_reports_timestamp");

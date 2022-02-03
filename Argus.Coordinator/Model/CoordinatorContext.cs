@@ -67,6 +67,9 @@ namespace Argus.Coordinator.Model
 
             modelBuilder.Entity<StatusReport>()
                 .HasIndex(r => r.Timestamp);
+
+            modelBuilder.Entity<StatusReport>()
+                .HasIndex(r => r.Status);
         }
     }
 }
