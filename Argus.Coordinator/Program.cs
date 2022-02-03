@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Argus.Common.Extensions;
 using Argus.Common.Services.Elasticsearch;
@@ -145,9 +146,20 @@ namespace Argus.Coordinator
             })
             .ConfigureAppConfiguration((_, configuration) =>
             {
-                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "coordinator.json");
-                configuration.AddJsonFile(systemConfigFile, true);
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Add a set of config files for the /etc directory
+                    var systemConfigFolder = "/etc";
+
+                    var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "coordinator.json");
+                    configuration.AddJsonFile(systemConfigFile, true);
+                }
+
+                // equivalent to /home/someone/.config
+                var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+                var localConfigFile = Path.Combine(localConfigFolder, "argus", "coordinator.json");
+                configuration.AddJsonFile(localConfigFile, true);
             })
             .ConfigureServices((hostContext, services) =>
             {
