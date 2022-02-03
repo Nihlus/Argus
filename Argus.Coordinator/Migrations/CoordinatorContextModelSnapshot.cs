@@ -53,6 +53,9 @@ namespace Argus.Coordinator.Migrations
                     b.HasKey("Source", "Link")
                         .HasName("pk_service_status_reports");
 
+                    b.HasIndex("Timestamp")
+                        .HasDatabaseName("ix_service_status_reports_timestamp");
+
                     b.HasIndex("Source", "Link")
                         .IsUnique()
                         .HasDatabaseName("ix_service_status_reports_source_link");
