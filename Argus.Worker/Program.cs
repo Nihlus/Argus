@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Argus.Common.Extensions;
 using Argus.Worker.MassTransit.Consumers;
@@ -62,11 +63,25 @@ namespace Argus.Worker
             .UseEnvironment("Production")
         #endif
             .UseMassTransit((busConfig, _) => busConfig.AddConsumer<CollectedImageConsumer>())
-            .ConfigureAppConfiguration((_, configuration) =>
+            .ConfigureAppConfiguration((hostContext, configuration) =>
             {
-                var configFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var systemConfigFile = Path.Combine(configFolder, "argus", "worker.json");
-                configuration.AddJsonFile(systemConfigFile, true);
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Add a set of config files for the /etc directory
+                    var systemConfigFolder = "/etc";
+
+                    var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "worker.json");
+                    configuration.AddJsonFile(systemConfigFile, true);
+                }
+
+                var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var localConfigFile = Path.Combine(localConfigFolder, "argus", "worker.json");
+                configuration.AddJsonFile(localConfigFile, true);
+
+                if (hostContext.HostingEnvironment.IsDevelopment())
+                {
+                    configuration.AddUserSecrets<Program>();
+                }
             })
             .ConfigureServices((_, services) =>
             {
