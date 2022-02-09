@@ -67,6 +67,11 @@ namespace Argus.Collector.Driver.Minibooru.Extensions
                     services.AddBooruDriver<OuroborosDriver>(baseUrl, rateLimit),
                 _ when driverName == DanbooruDriver.Name =>
                     services.AddBooruDriver<DanbooruDriver>(baseUrl, rateLimit),
+                _ when driverName == PhilomenaDriver.Name =>
+                    services
+                        .Configure(() => new PhilomenaDriverOptions())
+                        .Configure<PhilomenaDriverOptions>(configuration.GetSection("PhilomenaOptions"))
+                        .AddBooruDriver<PhilomenaDriver>(baseUrl, rateLimit),
                 _ => throw new ArgumentOutOfRangeException(nameof(driverName), "Unknown driver.")
             };
         }
