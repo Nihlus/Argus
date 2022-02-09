@@ -208,16 +208,30 @@ namespace Argus.Collector.Booru.Services
                 }
 
                 var fileExtension = Path.GetExtension(file);
-                if (fileExtension is ".swf" or ".gif")
+                switch (fileExtension)
                 {
-                    var rejectionReport = statusReport with
+                    case ".swf" or ".gif" or ".webm":
                     {
-                        Status = ImageStatus.Rejected,
-                        Link = new Uri(file),
-                        Message = "Animation"
-                    };
+                        var rejectionReport = statusReport with
+                        {
+                            Status = ImageStatus.Rejected,
+                            Link = new Uri(file),
+                            Message = "Animation"
+                        };
 
-                    return (rejectionReport, null);
+                        return (rejectionReport, null);
+                    }
+                    case ".svg":
+                    {
+                        var rejectionReport = statusReport with
+                        {
+                            Status = ImageStatus.Rejected,
+                            Link = new Uri(file),
+                            Message = "Vector graphics"
+                        };
+
+                        return (rejectionReport, null);
+                    }
                 }
 
                 statusReport = statusReport with
