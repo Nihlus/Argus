@@ -108,7 +108,7 @@ public class WeasylAPI
             }
 
             var errorJson = errorProperty.ToString();
-            if (errorJson is null)
+            if (string.IsNullOrWhiteSpace(errorJson))
             {
                 if (response.StatusCode is HttpStatusCode.NotFound)
                 {
@@ -180,7 +180,7 @@ public class WeasylAPI
             }
 
             var errorJson = errorProperty.ToString();
-            if (errorJson is null)
+            if (string.IsNullOrWhiteSpace(errorJson))
             {
                 if (response.StatusCode is HttpStatusCode.NotFound)
                 {

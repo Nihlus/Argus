@@ -126,7 +126,7 @@ public class FListAPI
                 { "no_bookmarks", true.ToString() }
             };
 
-            var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
+            var content = new FormUrlEncodedContent(parameters.AsEnumerable());
             request.Content = content;
 
             using var response = await client.SendAsync(request, ct);
@@ -190,7 +190,7 @@ public class FListAPI
                 { "id", id.ToString() }
             };
 
-            var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
+            var content = new FormUrlEncodedContent(parameters.AsEnumerable());
             request.Content = content;
 
             using var response = await client.SendAsync(request, ct);
@@ -239,7 +239,7 @@ public class FListAPI
                 { "name", name }
             };
 
-            var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
+            var content = new FormUrlEncodedContent(parameters.AsEnumerable());
             request.Content = content;
 
             using var response = await client.SendAsync(request, ct);
