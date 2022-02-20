@@ -202,4 +202,16 @@ public abstract class CollectorService : BackgroundService
         await this.Bus.Publish(statusReport, ct);
         return Result.FromSuccess();
     }
+
+    /// <summary>
+    /// Pushes an image source out to the coordinator.
+    /// </summary>
+    /// <param name="imageSource">The image source.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>A result which may or may not have succeeded.</returns>
+    protected async Task<Result> PushImageSourceAsync(ImageSource imageSource, CancellationToken ct = default)
+    {
+        await this.Bus.Publish(imageSource, ct);
+        return Result.FromSuccess();
+    }
 }

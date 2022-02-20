@@ -3,17 +3,21 @@ using System;
 using Argus.Coordinator.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
+#pragma warning disable CS1591
+
 namespace Argus.Coordinator.Migrations
 {
     [DbContext(typeof(CoordinatorContext))]
-    partial class CoordinatorContextModelSnapshot : ModelSnapshot
+    [Migration("20220220144657_AddImageSource")]
+    partial class AddImageSource
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

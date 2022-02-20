@@ -144,6 +144,22 @@ public class FListCollectorService : CollectorService
             }
 
             var character = getCharacter.Entity;
+            var characterLink = new Uri($"https://www.f-list.net/c/{character.Name}");
+
+            var imageSource = new ImageSource
+            (
+                this.ServiceName,
+                characterLink,
+                DateTimeOffset.UtcNow,
+                currentCharacterId.ToString()
+            );
+
+            var source = await PushImageSourceAsync(imageSource, ct);
+            if (!source.IsSuccess)
+            {
+                return source;
+            }
+
             if (character.Images.Count <= 0)
             {
                 ++currentCharacterId;
@@ -152,7 +168,7 @@ public class FListCollectorService : CollectorService
 
             var client = _httpClientFactory.CreateClient("BulkDownload");
 
-            var collections = character.Images.Select(i => CollectImageAsync(character.Name, client, i, ct));
+            var collections = character.Images.Select(i => CollectImageAsync(client, characterLink, i, ct));
             var collectedImages = await Task.WhenAll(collections);
 
             foreach (var imageCollection in collectedImages)
@@ -200,8 +216,8 @@ public class FListCollectorService : CollectorService
 
     private async Task<Result<CollectedImage>> CollectImageAsync
     (
-        string characterName,
         HttpClient client,
+        Uri characterLink,
         CharacterImage image,
         CancellationToken ct = default
     )
@@ -214,7 +230,7 @@ public class FListCollectorService : CollectorService
             return new CollectedImage
             (
                 this.ServiceName,
-                new Uri($"https://www.f-list.net/c/{characterName}"),
+                characterLink,
                 new Uri(location),
                 await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
             );

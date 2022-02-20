@@ -195,6 +195,20 @@ public class FurAffinityCollectorService : CollectorService
         try
         {
             var source = new Uri($"https://www.furaffinity.net/view/{submissionID}");
+            var imageSource = new ImageSource
+            (
+                this.ServiceName,
+                source,
+                DateTimeOffset.UtcNow,
+                submissionID.ToString()
+            );
+
+            var pushSource = await PushImageSourceAsync(imageSource, ct);
+            if (!pushSource.IsSuccess)
+            {
+                return Result<(StatusReport Report, CollectedImage? Image)>.FromError(pushSource);
+            }
+
             var statusReport = new StatusReport
             (
                 DateTimeOffset.UtcNow,

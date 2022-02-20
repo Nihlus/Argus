@@ -140,6 +140,21 @@ internal class Program
                 );
             });
 
+            busConfig.AddConsumer<ImageSourceConsumer>(consumer =>
+            {
+                consumer.UseMessageRetry
+                (
+                    c => c.Exponential(3, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(1))
+                );
+
+                consumer.Options<BatchOptions>
+                (
+                    options => options
+                        .SetMessageLimit(100)
+                        .SetTimeLimit(TimeSpan.FromSeconds(10))
+                );
+            });
+
             busConfig.AddConsumer<ResumeRequestConsumer>();
             busConfig.AddConsumer<RetryRequestConsumer>();
             busConfig.AddConsumer<FingerprintedImageFaultConsumer>();

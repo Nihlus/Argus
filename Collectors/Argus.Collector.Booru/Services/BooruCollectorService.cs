@@ -120,7 +120,17 @@ public class BooruCollectorService : CollectorService
                 }
 
                 var client = _httpClientFactory.CreateClient("BulkDownload");
-                var collections = await Task.WhenAll(posts.Select(p => CollectImageAsync(client, p, ct)));
+                var collections = await Task.WhenAll(posts.Select(async p =>
+                {
+                    var imageSource = new ImageSource(this.ServiceName, p.Post, DateTimeOffset.UtcNow, p.ID.ToString());
+                    var source = await PushImageSourceAsync(imageSource, ct);
+                    if (!source.IsSuccess)
+                    {
+                        return Result<(StatusReport Report, CollectedImage? Image)>.FromError(source);
+                    }
+
+                    return await CollectImageAsync(client, p, ct);
+                }));
 
                 foreach (var collection in collections)
                 {

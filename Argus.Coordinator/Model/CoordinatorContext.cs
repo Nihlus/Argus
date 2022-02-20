@@ -49,12 +49,17 @@ public class CoordinatorContext : DbContext
     /// </summary>
     public DbSet<StatusReport> ServiceStatusReports => Set<StatusReport>();
 
+    /// <summary>
+    /// Gets indexed image sources.
+    /// </summary>
+    public DbSet<ImageSource> ServiceImageSources => Set<ImageSource>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Configure ServiceStates
         modelBuilder.Entity<ServiceState>()
-            .HasIndex(r => r.Id)
+            .HasIndex(s => s.Id)
             .IsUnique();
 
         // Configure StatusReports
@@ -70,5 +75,22 @@ public class CoordinatorContext : DbContext
 
         modelBuilder.Entity<StatusReport>()
             .HasIndex(r => r.Status);
+
+        // Configure image sources
+        modelBuilder.Entity<ImageSource>()
+            .HasKey(nameof(ImageSource.ServiceName), nameof(ImageSource.Source));
+
+        modelBuilder.Entity<ImageSource>()
+            .HasIndex(nameof(ImageSource.ServiceName), nameof(ImageSource.Source))
+            .IsUnique();
+
+        modelBuilder.Entity<ImageSource>()
+            .HasIndex(s => s.FirstVisitedAt);
+
+        modelBuilder.Entity<ImageSource>()
+            .HasIndex(s => s.RevisitCount);
+
+        modelBuilder.Entity<ImageSource>()
+            .HasIndex(s => s.LastRevisitedAt);
     }
 }

@@ -205,6 +205,20 @@ public class WeasylCollectorService : CollectorService
     {
         try
         {
+            var imageSource = new ImageSource
+            (
+                this.ServiceName,
+                new Uri(submission.Link),
+                DateTimeOffset.UtcNow,
+                submission.SubmitID.ToString()
+            );
+
+            var pushSource = await PushImageSourceAsync(imageSource, ct);
+            if (!pushSource.IsSuccess)
+            {
+                return Result<(StatusReport Report, CollectedImage? Image)>.FromError(pushSource);
+            }
+
             var statusReport = new StatusReport
             (
                 DateTimeOffset.UtcNow,
