@@ -33,60 +33,59 @@ using Microsoft.Extensions.Logging;
 using Puzzle;
 using Serilog;
 
-namespace Argus.Worker
+namespace Argus.Worker;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
+        using var host = CreateHostBuilder(args).Build();
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
+
+        await host.RunAsync();
+        log.LogInformation("Shutting down...");
+    }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+        .UseConsoleLifetime()
+        .UseSerilog((_, logging) =>
         {
-            using var host = CreateHostBuilder(args).Build();
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
-
-            await host.RunAsync();
-            log.LogInformation("Shutting down...");
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseConsoleLifetime()
-            .UseSerilog((_, logging) =>
-            {
-                logging
-                    .MinimumLevel.Information()
-                    .WriteTo.Console();
-            })
+            logging
+                .MinimumLevel.Information()
+                .WriteTo.Console();
+        })
         #if DEBUG
-            .UseEnvironment("Development")
+        .UseEnvironment("Development")
         #else
             .UseEnvironment("Production")
         #endif
-            .UseMassTransit((busConfig, _) => busConfig.AddConsumer<CollectedImageConsumer>())
-            .ConfigureAppConfiguration((hostContext, configuration) =>
+        .UseMassTransit((busConfig, _) => busConfig.AddConsumer<CollectedImageConsumer>())
+        .ConfigureAppConfiguration((hostContext, configuration) =>
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    // Add a set of config files for the /etc directory
-                    var systemConfigFolder = "/etc";
+                // Add a set of config files for the /etc directory
+                var systemConfigFolder = "/etc";
 
-                    var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "worker.json");
-                    configuration.AddJsonFile(systemConfigFile, true);
-                }
+                var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "worker.json");
+                configuration.AddJsonFile(systemConfigFile, true);
+            }
 
-                var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var localConfigFile = Path.Combine(localConfigFolder, "argus", "worker.json");
-                configuration.AddJsonFile(localConfigFile, true);
+            var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var localConfigFile = Path.Combine(localConfigFolder, "argus", "worker.json");
+            configuration.AddJsonFile(localConfigFile, true);
 
-                if (hostContext.HostingEnvironment.IsDevelopment())
-                {
-                    configuration.AddUserSecrets<Program>();
-                }
-            })
-            .ConfigureServices((_, services) =>
+            if (hostContext.HostingEnvironment.IsDevelopment())
             {
-                // Signature generation
-                services.AddSingleton<SignatureGenerator>();
-            });
-    }
+                configuration.AddUserSecrets<Program>();
+            }
+        })
+        .ConfigureServices((_, services) =>
+        {
+            // Signature generation
+            services.AddSingleton<SignatureGenerator>();
+        });
 }

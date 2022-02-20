@@ -31,71 +31,70 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Remora.Extensions.Options.Immutable;
 
-namespace Argus.Common.Extensions
+namespace Argus.Common.Extensions;
+
+/// <summary>
+/// Defines extension methods for the <see cref="IHostBuilder"/> interface.
+/// </summary>
+public static class HostBuilderExtensions
 {
     /// <summary>
-    /// Defines extension methods for the <see cref="IHostBuilder"/> interface.
+    /// Adds and configures MassTransit services.
     /// </summary>
-    public static class HostBuilderExtensions
+    /// <param name="hostBuilder">The host builder.</param>
+    /// <param name="busConfigurator">The bus configurator.</param>
+    /// <returns>The host builder, with MassTransit configured.</returns>
+    public static IHostBuilder UseMassTransit
+    (
+        this IHostBuilder hostBuilder,
+        Action<IServiceCollectionBusConfigurator, BrokerOptions>? busConfigurator = null
+    )
     {
-        /// <summary>
-        /// Adds and configures MassTransit services.
-        /// </summary>
-        /// <param name="hostBuilder">The host builder.</param>
-        /// <param name="busConfigurator">The bus configurator.</param>
-        /// <returns>The host builder, with MassTransit configured.</returns>
-        public static IHostBuilder UseMassTransit
-        (
-            this IHostBuilder hostBuilder,
-            Action<IServiceCollectionBusConfigurator, BrokerOptions>? busConfigurator = null
-        )
+        busConfigurator ??= (_, _) => { };
+
+        return hostBuilder.ConfigureServices((hostContext, services) =>
         {
-            busConfigurator ??= (_, _) => { };
+            var brokerOptions = new BrokerOptions
+            (
+                new Uri("about:blank"),
+                string.Empty,
+                string.Empty,
+                string.Empty
+            );
 
-            return hostBuilder.ConfigureServices((hostContext, services) =>
+            hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
+            services.Configure(() => brokerOptions);
+
+            // MassTransit
+            var dataRepository = new FileSystemMessageDataRepository
+            (
+                new DirectoryInfo(brokerOptions.DataRepository)
+            );
+
+            services.AddSingleton<IMessageDataRepository>(dataRepository);
+
+            MessageDataDefaults.TimeToLive = TimeSpan.FromDays(1);
+            MessageDataDefaults.AlwaysWriteToRepository = false;
+
+            services.AddMassTransit(busConfig =>
             {
-                var brokerOptions = new BrokerOptions
-                (
-                    new Uri("about:blank"),
-                    string.Empty,
-                    string.Empty,
-                    string.Empty
-                );
-
-                hostContext.Configuration.Bind(nameof(BrokerOptions), brokerOptions);
-                services.Configure(() => brokerOptions);
-
-                // MassTransit
-                var dataRepository = new FileSystemMessageDataRepository
-                (
-                    new DirectoryInfo(brokerOptions.DataRepository)
-                );
-
-                services.AddSingleton<IMessageDataRepository>(dataRepository);
-
-                MessageDataDefaults.TimeToLive = TimeSpan.FromDays(1);
-                MessageDataDefaults.AlwaysWriteToRepository = false;
-
-                services.AddMassTransit(busConfig =>
+                busConfig.SetKebabCaseEndpointNameFormatter();
+                busConfig.UsingRabbitMq((context, cfg) =>
                 {
-                    busConfig.SetKebabCaseEndpointNameFormatter();
-                    busConfig.UsingRabbitMq((context, cfg) =>
+                    cfg.UseMessageData(dataRepository);
+                    cfg.Host(brokerOptions.Host, "/argus", h =>
                     {
-                        cfg.UseMessageData(dataRepository);
-                        cfg.Host(brokerOptions.Host, "/argus", h =>
-                        {
-                            h.Username(brokerOptions.Username);
-                            h.Password(brokerOptions.Password);
-                        });
-
-                        cfg.ConfigureEndpoints(context);
+                        h.Username(brokerOptions.Username);
+                        h.Password(brokerOptions.Password);
                     });
 
-                    busConfigurator(busConfig, brokerOptions);
+                    cfg.ConfigureEndpoints(context);
                 });
 
-                services.AddMassTransitHostedService();
+                busConfigurator(busConfig, brokerOptions);
             });
-        }
+
+            services.AddMassTransitHostedService();
+        });
     }
 }

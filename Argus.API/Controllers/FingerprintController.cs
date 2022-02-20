@@ -35,57 +35,56 @@ using Puzzle;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace Argus.API.Controllers
+namespace Argus.API.Controllers;
+
+/// <summary>
+/// Controls fingerprinting requests.
+/// </summary>
+[Authorize]
+[RequireHttps]
+[Route("api/fingerprint")]
+[ApiController]
+[Produces("application/json")]
+public class FingerprintController : ControllerBase
 {
+    private readonly SignatureGenerator _signatureGenerator;
+
     /// <summary>
-    /// Controls fingerprinting requests.
+    /// Initializes a new instance of the <see cref="FingerprintController"/> class.
     /// </summary>
-    [Authorize]
-    [RequireHttps]
-    [Route("api/fingerprint")]
-    [ApiController]
-    [Produces("application/json")]
-    public class FingerprintController : ControllerBase
+    /// <param name="signatureGenerator">The signature generator.</param>
+    public FingerprintController(SignatureGenerator signatureGenerator)
     {
-        private readonly SignatureGenerator _signatureGenerator;
+        _signatureGenerator = signatureGenerator;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FingerprintController"/> class.
-        /// </summary>
-        /// <param name="signatureGenerator">The signature generator.</param>
-        public FingerprintController(SignatureGenerator signatureGenerator)
+    /// <summary>
+    /// Calculates the fingerprint of the uploaded images.
+    /// </summary>
+    /// <param name="files">The files to fingerprint.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The result.</returns>
+    [HttpPost]
+    public async IAsyncEnumerable<PortableFingerprint> PostFingerprintRequestAsync
+    (
+        IReadOnlyList<IFormFile> files,
+        [EnumeratorCancellation] CancellationToken ct = default
+    )
+    {
+        foreach (var file in files)
         {
-            _signatureGenerator = signatureGenerator;
-        }
+            await using var stream = file.OpenReadStream();
+            using var image = await Image.LoadAsync<L8>(stream);
 
-        /// <summary>
-        /// Calculates the fingerprint of the uploaded images.
-        /// </summary>
-        /// <param name="files">The files to fingerprint.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The result.</returns>
-        [HttpPost]
-        public async IAsyncEnumerable<PortableFingerprint> PostFingerprintRequestAsync
-        (
-            IReadOnlyList<IFormFile> files,
-            [EnumeratorCancellation] CancellationToken ct = default
-        )
-        {
-            foreach (var file in files)
-            {
-                await using var stream = file.OpenReadStream();
-                using var image = await Image.LoadAsync<L8>(stream);
+            stream.Seek(0, SeekOrigin.Begin);
 
-                stream.Seek(0, SeekOrigin.Begin);
+            using var sha256 = SHA256.Create();
 
-                using var sha256 = SHA256.Create();
+            var hashBytes = await sha256.ComputeHashAsync(stream, ct);
+            var hash = BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLowerInvariant();
 
-                var hashBytes = await sha256.ComputeHashAsync(stream, ct);
-                var hash = BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLowerInvariant();
-
-                var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image), ct);
-                yield return new PortableFingerprint(file.FileName, hash, signature);
-            }
+            var signature = await Task.Run(() => _signatureGenerator.GenerateSignature(image), ct);
+            yield return new PortableFingerprint(file.FileName, hash, signature);
         }
     }
 }

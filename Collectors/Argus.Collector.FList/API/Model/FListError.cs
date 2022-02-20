@@ -22,11 +22,10 @@
 
 using Remora.Results;
 
-namespace Argus.Collector.FList.API.Model
-{
-    /// <summary>
-    /// Represents an error returned by F-List.
-    /// </summary>
-    /// <param name="Error">The error message.</param>
-    public record FListError(string Error) : ResultError(Error);
-}
+namespace Argus.Collector.FList.API.Model;
+
+/// <summary>
+/// Represents an error returned by F-List.
+/// </summary>
+/// <param name="Error">The error message.</param>
+public record FListError(string Error) : ResultError(Error);

@@ -26,52 +26,51 @@ using System.Threading;
 using System.Threading.Tasks;
 using Polly;
 
-namespace Argus.Collector.Common.Polly
+namespace Argus.Collector.Common.Polly;
+
+/// <summary>
+/// Acts as a preemptive throttling policy, allowing at most N requests inside the interval T.
+/// </summary>
+public class ThrottlingPolicy : AsyncPolicy<HttpResponseMessage>
 {
+    private readonly SemaphoreSlim _semaphore;
+    private readonly TimeSpan _interval;
+
     /// <summary>
-    /// Acts as a preemptive throttling policy, allowing at most N requests inside the interval T.
+    /// Initializes a new instance of the <see cref="ThrottlingPolicy"/> class.
     /// </summary>
-    public class ThrottlingPolicy : AsyncPolicy<HttpResponseMessage>
+    /// <param name="requestCount">The number of requests allowed within a certain interval.</param>
+    /// <param name="interval">The interval between requests.</param>
+    public ThrottlingPolicy(int requestCount, TimeSpan interval)
     {
-        private readonly SemaphoreSlim _semaphore;
-        private readonly TimeSpan _interval;
+        _semaphore = new SemaphoreSlim(requestCount, requestCount);
+        _interval = interval;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ThrottlingPolicy"/> class.
-        /// </summary>
-        /// <param name="requestCount">The number of requests allowed within a certain interval.</param>
-        /// <param name="interval">The interval between requests.</param>
-        public ThrottlingPolicy(int requestCount, TimeSpan interval)
-        {
-            _semaphore = new SemaphoreSlim(requestCount, requestCount);
-            _interval = interval;
-        }
+    /// <inheritdoc />
+    protected override async Task<HttpResponseMessage> ImplementationAsync
+    (
+        Func<Context, CancellationToken, Task<HttpResponseMessage>> action,
+        Context context,
+        CancellationToken cancellationToken,
+        bool continueOnCapturedContext
+    )
+    {
+        await _semaphore.WaitAsync(cancellationToken);
 
-        /// <inheritdoc />
-        protected override async Task<HttpResponseMessage> ImplementationAsync
+        var actionTask = action(context, cancellationToken);
+
+        // While not very nice, the actual release itself will execute as an unobserved task
+        _ = actionTask.ContinueWith
         (
-            Func<Context, CancellationToken, Task<HttpResponseMessage>> action,
-            Context context,
-            CancellationToken cancellationToken,
-            bool continueOnCapturedContext
-        )
-        {
-            await _semaphore.WaitAsync(cancellationToken);
+            async _ =>
+            {
+                await Task.Delay(_interval, cancellationToken);
+                _semaphore.Release();
+            },
+            cancellationToken
+        );
 
-            var actionTask = action(context, cancellationToken);
-
-            // While not very nice, the actual release itself will execute as an unobserved task
-            _ = actionTask.ContinueWith
-            (
-                async _ =>
-                {
-                    await Task.Delay(_interval, cancellationToken);
-                    _semaphore.Release();
-                },
-                cancellationToken
-            );
-
-            return await actionTask;
-        }
+        return await actionTask;
     }
 }

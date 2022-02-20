@@ -20,13 +20,12 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Common.Messages.Requests
-{
-    /// <summary>
-    /// Represents a request to resume a collector.
-    /// </summary>
-    public record GetResumePoint
-    (
-        string ServiceName
-    );
-}
+namespace Argus.Common.Messages.Requests;
+
+/// <summary>
+/// Represents a request to resume a collector.
+/// </summary>
+public record GetResumePoint
+(
+    string ServiceName
+);

@@ -23,14 +23,13 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents a page of results.
-    /// </summary>
-    /// <param name="Posts">The posts in the page.</param>
-    public record OuroborosPage
-    (
-        [property: JsonPropertyName("posts")] IReadOnlyList<OuroborosPost> Posts
-    );
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents a page of results.
+/// </summary>
+/// <param name="Posts">The posts in the page.</param>
+public record OuroborosPage
+(
+    [property: JsonPropertyName("posts")] IReadOnlyList<OuroborosPost> Posts
+);

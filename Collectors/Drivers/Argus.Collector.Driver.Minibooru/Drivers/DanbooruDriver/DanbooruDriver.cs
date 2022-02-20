@@ -30,59 +30,58 @@ using Argus.Collector.Driver.Minibooru.Model;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.Driver.Minibooru
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Implements Danbooru-specific driver functionality.
+/// </summary>
+public class DanbooruDriver : AbstractBooruDriver<IReadOnlyList<DanbooruPost>>
 {
     /// <summary>
-    /// Implements Danbooru-specific driver functionality.
+    /// Gets the name of the driver.
     /// </summary>
-    public class DanbooruDriver : AbstractBooruDriver<IReadOnlyList<DanbooruPost>>
+    public static string Name => "danbooru";
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DanbooruDriver"/> class.
+    /// </summary>
+    /// <param name="clientFactory">The HTTP client to use.</param>
+    /// <param name="jsonOptions">The JSON serializer options.</param>
+    /// <param name="driverOptions">The driver options.</param>
+    public DanbooruDriver
+    (
+        IHttpClientFactory clientFactory,
+        IOptionsMonitor<JsonSerializerOptions> jsonOptions,
+        IOptionsMonitor<BooruDriverOptions> driverOptions
+    )
+        : base(clientFactory, jsonOptions, driverOptions)
     {
-        /// <summary>
-        /// Gets the name of the driver.
-        /// </summary>
-        public static string Name => "danbooru";
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DanbooruDriver"/> class.
-        /// </summary>
-        /// <param name="clientFactory">The HTTP client to use.</param>
-        /// <param name="jsonOptions">The JSON serializer options.</param>
-        /// <param name="driverOptions">The driver options.</param>
-        public DanbooruDriver
+    /// <inheritdoc />
+    protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(IReadOnlyList<DanbooruPost> internalPage)
+    {
+        return internalPage.Select
         (
-            IHttpClientFactory clientFactory,
-            IOptionsMonitor<JsonSerializerOptions> jsonOptions,
-            IOptionsMonitor<BooruDriverOptions> driverOptions
-        )
-            : base(clientFactory, jsonOptions, driverOptions)
-        {
-        }
-
-        /// <inheritdoc />
-        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(IReadOnlyList<DanbooruPost> internalPage)
-        {
-            return internalPage.Select
-            (
-                post =>
-                {
-                    var (id, fileUrl) = post;
-
-                    var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
-                    return new BooruPost(id, fileUrl, postUrl);
-                }
-            ).ToList();
-        }
-
-        /// <inheritdoc />
-        protected override Uri GetSearchUrl(ulong after, uint limit)
-        {
-            if (limit > 200)
+            post =>
             {
-                limit = 200;
-            }
+                var (id, fileUrl) = post;
 
-            var tags = HttpUtility.UrlEncode($"order:id id:>{after}");
-            return new Uri(this.DriverOptions.BaseUrl, $"posts.json?limit={limit}&tags={tags}");
+                var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
+                return new BooruPost(id, fileUrl, postUrl);
+            }
+        ).ToList();
+    }
+
+    /// <inheritdoc />
+    protected override Uri GetSearchUrl(ulong after, uint limit)
+    {
+        if (limit > 200)
+        {
+            limit = 200;
         }
+
+        var tags = HttpUtility.UrlEncode($"order:id id:>{after}");
+        return new Uri(this.DriverOptions.BaseUrl, $"posts.json?limit={limit}&tags={tags}");
     }
 }

@@ -22,29 +22,28 @@
 
 using OpenQA.Selenium;
 
-namespace Argus.Collector.FList.Extensions
+namespace Argus.Collector.FList.Extensions;
+
+/// <summary>
+/// Defines extension methods for the <see cref="IWebDriver"/> interface.
+/// </summary>
+public static class WebDriverExtensions
 {
     /// <summary>
-    /// Defines extension methods for the <see cref="IWebDriver"/> interface.
+    /// Attempts to find an element in the current page using the given selector.
     /// </summary>
-    public static class WebDriverExtensions
+    /// <param name="driver">The driver.</param>
+    /// <param name="by">The selector.</param>
+    /// <returns>The element, or null.</returns>
+    public static IWebElement? FindElementSafe(this IWebDriver driver, By by)
     {
-        /// <summary>
-        /// Attempts to find an element in the current page using the given selector.
-        /// </summary>
-        /// <param name="driver">The driver.</param>
-        /// <param name="by">The selector.</param>
-        /// <returns>The element, or null.</returns>
-        public static IWebElement? FindElementSafe(this IWebDriver driver, By by)
+        try
         {
-            try
-            {
-                return driver.FindElement(by);
-            }
-            catch (NoSuchElementException)
-            {
-                return null;
-            }
+            return driver.FindElement(by);
+        }
+        catch (NoSuchElementException)
+        {
+            return null;
         }
     }
 }

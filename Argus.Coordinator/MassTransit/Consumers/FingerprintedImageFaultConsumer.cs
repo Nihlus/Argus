@@ -29,42 +29,41 @@ using Argus.Coordinator.Model;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Argus.Coordinator.MassTransit.Consumers
+namespace Argus.Coordinator.MassTransit.Consumers;
+
+/// <summary>
+/// Handles faults produced by fingerprinted images.
+/// </summary>
+public class FingerprintedImageFaultConsumer : IConsumer<Fault<FingerprintedImage>>
 {
+    private readonly CoordinatorContext _db;
+
     /// <summary>
-    /// Handles faults produced by fingerprinted images.
+    /// Initializes a new instance of the <see cref="FingerprintedImageFaultConsumer"/> class.
     /// </summary>
-    public class FingerprintedImageFaultConsumer : IConsumer<Fault<FingerprintedImage>>
+    /// <param name="db">The database.</param>
+    public FingerprintedImageFaultConsumer(CoordinatorContext db)
     {
-        private readonly CoordinatorContext _db;
+        _db = db;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FingerprintedImageFaultConsumer"/> class.
-        /// </summary>
-        /// <param name="db">The database.</param>
-        public FingerprintedImageFaultConsumer(CoordinatorContext db)
-        {
-            _db = db;
-        }
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<Fault<FingerprintedImage>> context)
+    {
+        var fault = context.Message;
+        var message = fault.Message;
+        var reportMessage = string.Join(',', fault.Exceptions.Select(e => e.Message));
 
-        /// <inheritdoc />
-        public async Task Consume(ConsumeContext<Fault<FingerprintedImage>> context)
-        {
-            var fault = context.Message;
-            var message = fault.Message;
-            var reportMessage = string.Join(',', fault.Exceptions.Select(e => e.Message));
+        var statusReport = new StatusReport
+        (
+            DateTimeOffset.UtcNow,
+            message.ServiceName,
+            message.Source,
+            message.Link,
+            ImageStatus.Faulted,
+            reportMessage
+        );
 
-            var statusReport = new StatusReport
-            (
-                DateTimeOffset.UtcNow,
-                message.ServiceName,
-                message.Source,
-                message.Link,
-                ImageStatus.Faulted,
-                reportMessage
-            );
-
-            await _db.ServiceStatusReports.Upsert(statusReport).RunAsync(context.CancellationToken);
-        }
+        await _db.ServiceStatusReports.Upsert(statusReport).RunAsync(context.CancellationToken);
     }
 }

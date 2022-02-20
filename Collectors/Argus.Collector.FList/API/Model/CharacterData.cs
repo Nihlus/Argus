@@ -22,26 +22,25 @@
 
 using System.Collections.Generic;
 
-namespace Argus.Collector.FList.API.Model
+namespace Argus.Collector.FList.API.Model;
+
+/// <summary>
+/// Represents data related to a character.
+/// </summary>
+public class CharacterData
 {
     /// <summary>
-    /// Represents data related to a character.
+    /// Gets the ID of the character.
     /// </summary>
-    public class CharacterData
-    {
-        /// <summary>
-        /// Gets the ID of the character.
-        /// </summary>
-        public int Id { get; init; }
+    public int Id { get; init; }
 
-        /// <summary>
-        /// Gets the name of the character.
-        /// </summary>
-        public string Name { get; init; } = string.Empty;
+    /// <summary>
+    /// Gets the name of the character.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets the images associated with the character.
-        /// </summary>
-        public IReadOnlyCollection<CharacterImage> Images { get; init; } = new List<CharacterImage>();
-    }
+    /// <summary>
+    /// Gets the images associated with the character.
+    /// </summary>
+    public IReadOnlyCollection<CharacterImage> Images { get; init; } = new List<CharacterImage>();
 }

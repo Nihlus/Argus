@@ -36,327 +36,326 @@ using OpenQA.Selenium;
 using Polly;
 using Remora.Results;
 
-namespace Argus.Collector.FList.API
+namespace Argus.Collector.FList.API;
+
+/// <summary>
+/// Wraps the F-List API.
+/// </summary>
+public class FListAPI
 {
+    private readonly IHttpClientFactory _clientFactory;
+    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly FListOptions _options;
+    private readonly IWebDriver _driver;
+
+    private string _account;
+    private string _ticket;
+
     /// <summary>
-    /// Wraps the F-List API.
+    /// Initializes a new instance of the <see cref="FListAPI"/> class.
     /// </summary>
-    public class FListAPI
+    /// <param name="clientFactory">The HTTP client factory.</param>
+    /// <param name="jsonOptions">The JSON serializer options.</param>
+    /// <param name="driver">The Selenium web driver instance.</param>
+    /// <param name="options">The F-List options.</param>
+    public FListAPI
+    (
+        IHttpClientFactory clientFactory,
+        IOptions<JsonSerializerOptions> jsonOptions,
+        IWebDriver driver,
+        IOptions<FListOptions> options
+    )
     {
-        private readonly IHttpClientFactory _clientFactory;
-        private readonly JsonSerializerOptions _jsonOptions;
-        private readonly FListOptions _options;
-        private readonly IWebDriver _driver;
+        _clientFactory = clientFactory;
+        _jsonOptions = jsonOptions.Value;
+        _driver = driver;
+        _options = options.Value;
 
-        private string _account;
-        private string _ticket;
+        _account = string.Empty;
+        _ticket = string.Empty;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FListAPI"/> class.
-        /// </summary>
-        /// <param name="clientFactory">The HTTP client factory.</param>
-        /// <param name="jsonOptions">The JSON serializer options.</param>
-        /// <param name="driver">The Selenium web driver instance.</param>
-        /// <param name="options">The F-List options.</param>
-        public FListAPI
-        (
-            IHttpClientFactory clientFactory,
-            IOptions<JsonSerializerOptions> jsonOptions,
-            IWebDriver driver,
-            IOptions<FListOptions> options
-        )
+    /// <summary>
+    /// Gets an API ticket from F-List. The ticket will be valid for 30 minutes.
+    /// </summary>
+    /// <param name="account">The account to get a ticket for.</param>
+    /// <param name="password">The account's password.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The API ticket.</returns>
+    public async Task<Result> RefreshAPITicketAsync
+    (
+        string account,
+        string password,
+        CancellationToken ct = default
+    )
+    {
+        if (string.IsNullOrWhiteSpace(account))
         {
-            _clientFactory = clientFactory;
-            _jsonOptions = jsonOptions.Value;
-            _driver = driver;
-            _options = options.Value;
-
-            _account = string.Empty;
-            _ticket = string.Empty;
+            return new ArgumentOutOfRangeError(nameof(account), "The account name must be defined.");
         }
 
-        /// <summary>
-        /// Gets an API ticket from F-List. The ticket will be valid for 30 minutes.
-        /// </summary>
-        /// <param name="account">The account to get a ticket for.</param>
-        /// <param name="password">The account's password.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The API ticket.</returns>
-        public async Task<Result> RefreshAPITicketAsync
-        (
-            string account,
-            string password,
-            CancellationToken ct = default
-        )
+        if (string.IsNullOrWhiteSpace(password))
         {
-            if (string.IsNullOrWhiteSpace(account))
-            {
-                return new ArgumentOutOfRangeError(nameof(account), "The account name must be defined.");
-            }
-
-            if (string.IsNullOrWhiteSpace(password))
-            {
-                return new ArgumentOutOfRangeError(nameof(password), "The account password must be defined.");
-            }
-
-            try
-            {
-                var client = _clientFactory.CreateClient();
-
-                using var request = new HttpRequestMessage
-                (
-                    HttpMethod.Post,
-                    "https://www.f-list.net/json/getApiTicket.php"
-                );
-
-                var executionContext = new Context
-                {
-                    ["account"] = _account,
-                    ["ticket"] = _ticket
-                };
-
-                request.SetPolicyExecutionContext(executionContext);
-
-                var parameters = new Dictionary<string, string>
-                {
-                    { nameof(account), account },
-                    { nameof(password), password },
-                    { "no_characters", true.ToString() },
-                    { "no_friends", true.ToString() },
-                    { "no_bookmarks", true.ToString() }
-                };
-
-                var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
-                request.Content = content;
-
-                using var response = await client.SendAsync(request, ct);
-                var getTicket = await DeserializePayload<APITicket>(response, ct);
-                if (!getTicket.IsSuccess)
-                {
-                    return Result.FromError(getTicket);
-                }
-
-                var ticket = getTicket.Entity;
-                if (ticket is null || ticket.Ticket == string.Empty)
-                {
-                    throw new InvalidOperationException();
-                }
-
-                _account = account;
-                _ticket = ticket.Ticket;
-            }
-            catch (Exception e)
-            {
-                return e;
-            }
-
-            return Result.FromSuccess();
+            return new ArgumentOutOfRangeError(nameof(password), "The account password must be defined.");
         }
 
-        /// <summary>
-        /// Gets information about a character from F-List.
-        /// </summary>
-        /// <param name="id">The ID of the character.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The character data.</returns>
-        public async Task<Result<CharacterData>> GetCharacterDataAsync(int id, CancellationToken ct = default)
+        try
         {
-            if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
+            var client = _clientFactory.CreateClient();
+
+            using var request = new HttpRequestMessage
+            (
+                HttpMethod.Post,
+                "https://www.f-list.net/json/getApiTicket.php"
+            );
+
+            var executionContext = new Context
             {
-                var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
-                if (!refresh.IsSuccess)
-                {
-                    return Result<CharacterData>.FromError(refresh);
-                }
+                ["account"] = _account,
+                ["ticket"] = _ticket
+            };
+
+            request.SetPolicyExecutionContext(executionContext);
+
+            var parameters = new Dictionary<string, string>
+            {
+                { nameof(account), account },
+                { nameof(password), password },
+                { "no_characters", true.ToString() },
+                { "no_friends", true.ToString() },
+                { "no_bookmarks", true.ToString() }
+            };
+
+            var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
+            request.Content = content;
+
+            using var response = await client.SendAsync(request, ct);
+            var getTicket = await DeserializePayload<APITicket>(response, ct);
+            if (!getTicket.IsSuccess)
+            {
+                return Result.FromError(getTicket);
             }
 
-            try
+            var ticket = getTicket.Entity;
+            if (ticket is null || ticket.Ticket == string.Empty)
             {
-                var client = _clientFactory.CreateClient(nameof(FListAPI));
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
-                var executionContext = new Context
-                {
-                    ["account"] = _account,
-                    ["ticket"] = _ticket
-                };
-
-                request.SetPolicyExecutionContext(executionContext);
-
-                var parameters = new Dictionary<string, string>
-                {
-                    { "account", _account },
-                    { "ticket", _ticket },
-                    { "id", id.ToString() }
-                };
-
-                var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
-                request.Content = content;
-
-                using var response = await client.SendAsync(request, ct);
-                return await DeserializePayload<CharacterData>(response, ct);
+                throw new InvalidOperationException();
             }
-            catch (Exception e)
+
+            _account = account;
+            _ticket = ticket.Ticket;
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
+
+        return Result.FromSuccess();
+    }
+
+    /// <summary>
+    /// Gets information about a character from F-List.
+    /// </summary>
+    /// <param name="id">The ID of the character.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The character data.</returns>
+    public async Task<Result<CharacterData>> GetCharacterDataAsync(int id, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
+        {
+            var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
+            if (!refresh.IsSuccess)
             {
-                return e;
+                return Result<CharacterData>.FromError(refresh);
             }
         }
 
-        /// <summary>
-        /// Gets information about a character from F-List.
-        /// </summary>
-        /// <param name="name">The name of the character.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The character data.</returns>
-        public async Task<Result<CharacterData>> GetCharacterDataAsync(string name, CancellationToken ct = default)
+        try
         {
-            if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
+            var client = _clientFactory.CreateClient(nameof(FListAPI));
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
+            var executionContext = new Context
             {
-                var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
-                if (!refresh.IsSuccess)
-                {
-                    return Result<CharacterData>.FromError(refresh);
-                }
-            }
+                ["account"] = _account,
+                ["ticket"] = _ticket
+            };
 
-            try
+            request.SetPolicyExecutionContext(executionContext);
+
+            var parameters = new Dictionary<string, string>
             {
-                var client = _clientFactory.CreateClient(nameof(FListAPI));
+                { "account", _account },
+                { "ticket", _ticket },
+                { "id", id.ToString() }
+            };
 
-                using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
-                var executionContext = new Context
-                {
-                    ["account"] = _account,
-                    ["ticket"] = _ticket
-                };
+            var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
+            request.Content = content;
 
-                request.SetPolicyExecutionContext(executionContext);
+            using var response = await client.SendAsync(request, ct);
+            return await DeserializePayload<CharacterData>(response, ct);
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
+    }
 
-                var parameters = new Dictionary<string, string>
-                {
-                    { "account", _account },
-                    { "ticket", _ticket },
-                    { "name", name }
-                };
-
-                var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
-                request.Content = content;
-
-                using var response = await client.SendAsync(request, ct);
-                return await DeserializePayload<CharacterData>(response, ct);
-            }
-            catch (Exception e)
+    /// <summary>
+    /// Gets information about a character from F-List.
+    /// </summary>
+    /// <param name="name">The name of the character.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The character data.</returns>
+    public async Task<Result<CharacterData>> GetCharacterDataAsync(string name, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
+        {
+            var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
+            if (!refresh.IsSuccess)
             {
-                return e;
+                return Result<CharacterData>.FromError(refresh);
             }
         }
 
-        private async Task<Result<T>> DeserializePayload<T>
-        (
-            HttpResponseMessage responseMessage,
-            CancellationToken ct = default
-        )
+        try
         {
-            var content = await responseMessage.Content.ReadAsStreamAsync(ct);
-            var json = await JsonDocument.ParseAsync(content, cancellationToken: ct);
+            var client = _clientFactory.CreateClient(nameof(FListAPI));
 
-            if (json.RootElement.TryGetProperty("error", out var errorProperty) && !string.IsNullOrWhiteSpace(errorProperty.GetString()) )
+            using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
+            var executionContext = new Context
             {
-                var error = JsonSerializer.Deserialize<FListError>
-                (
-                    json.RootElement.ToString() ?? throw new InvalidOperationException(),
-                    _jsonOptions
-                );
+                ["account"] = _account,
+                ["ticket"] = _ticket
+            };
 
-                if (error is null)
-                {
-                    return new InvalidOperationError();
-                }
+            request.SetPolicyExecutionContext(executionContext);
 
-                return error;
-            }
+            var parameters = new Dictionary<string, string>
+            {
+                { "account", _account },
+                { "ticket", _ticket },
+                { "name", name }
+            };
 
-            var entity = JsonSerializer.Deserialize<T>
+            var content = new FormUrlEncodedContent(parameters.AsEnumerable()!);
+            request.Content = content;
+
+            using var response = await client.SendAsync(request, ct);
+            return await DeserializePayload<CharacterData>(response, ct);
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
+    }
+
+    private async Task<Result<T>> DeserializePayload<T>
+    (
+        HttpResponseMessage responseMessage,
+        CancellationToken ct = default
+    )
+    {
+        var content = await responseMessage.Content.ReadAsStreamAsync(ct);
+        var json = await JsonDocument.ParseAsync(content, cancellationToken: ct);
+
+        if (json.RootElement.TryGetProperty("error", out var errorProperty) && !string.IsNullOrWhiteSpace(errorProperty.GetString()) )
+        {
+            var error = JsonSerializer.Deserialize<FListError>
             (
                 json.RootElement.ToString() ?? throw new InvalidOperationException(),
                 _jsonOptions
             );
 
-            if (entity is null)
+            if (error is null)
             {
                 return new InvalidOperationError();
             }
 
-            return entity;
+            return error;
         }
 
-        /// <summary>
-        /// Gets the name of the most recently created character. This is an expensive, synchronous operation.
-        /// </summary>
-        /// <returns>The name.</returns>
-        public Result<string> GetMostRecentlyCreatedCharacter()
+        var entity = JsonSerializer.Deserialize<T>
+        (
+            json.RootElement.ToString() ?? throw new InvalidOperationException(),
+            _jsonOptions
+        );
+
+        if (entity is null)
         {
-            try
+            return new InvalidOperationError();
+        }
+
+        return entity;
+    }
+
+    /// <summary>
+    /// Gets the name of the most recently created character. This is an expensive, synchronous operation.
+    /// </summary>
+    /// <returns>The name.</returns>
+    public Result<string> GetMostRecentlyCreatedCharacter()
+    {
+        try
+        {
+            var homepage = new Uri("https://www.f-list.net/index.php");
+            var charactersPage = new Uri("https://www.f-list.net/character_browse.php?type=newest");
+
+            _driver.Navigate().GoToUrl(homepage);
+
+            var isLoggedIn = _driver.FindElementSafe(By.Id("NavigationLoggedIn")) is not null;
+            if (!isLoggedIn)
             {
-                var homepage = new Uri("https://www.f-list.net/index.php");
-                var charactersPage = new Uri("https://www.f-list.net/character_browse.php?type=newest");
+                var accountBox = _driver.FindElementSafe(By.Id("LoginBoxUsername"));
+                var passwordBox = _driver.FindElementSafe(By.Id("LoginBoxPassword"));
+                var loginButton = _driver.FindElementSafe(By.Id("LoginBoxSubmit"));
 
-                _driver.Navigate().GoToUrl(homepage);
-
-                var isLoggedIn = _driver.FindElementSafe(By.Id("NavigationLoggedIn")) is not null;
-                if (!isLoggedIn)
-                {
-                    var accountBox = _driver.FindElementSafe(By.Id("LoginBoxUsername"));
-                    var passwordBox = _driver.FindElementSafe(By.Id("LoginBoxPassword"));
-                    var loginButton = _driver.FindElementSafe(By.Id("LoginBoxSubmit"));
-
-                    if (accountBox is null || passwordBox is null || loginButton is null)
-                    {
-                        return new InvalidOperationError
-                        (
-                            "Failed to find a required element; The scraping logic is no longer valid."
-                        );
-                    }
-
-                    accountBox.SendKeys(_options.Username);
-                    passwordBox.SendKeys(_options.Password);
-                    loginButton.Click();
-
-                    var loggedInNow = _driver.FindElementSafe(By.Id("NavigationLoggedIn")) is not null;
-                    if (!loggedInNow)
-                    {
-                        return new InvalidOperationError("Failed to log in; The scraping logic is no longer valid.");
-                    }
-                }
-
-                _driver.Navigate().GoToUrl(charactersPage);
-                var latestCharacter = _driver.FindElementSafe(By.ClassName("ListedCharacter"));
-                if (latestCharacter is null)
-                {
-                    return new NotFoundError("No latest character found.");
-                }
-
-                var nameAttribute = latestCharacter.GetAttribute("href");
-                if (nameAttribute is null)
-                {
-                    return new InvalidOperationError("href attribute not found; The scraping logic is no longer valid.");
-                }
-
-                var nameComponents = nameAttribute.Split('/');
-                if (nameComponents.Length is not (2 or 5))
+                if (accountBox is null || passwordBox is null || loginButton is null)
                 {
                     return new InvalidOperationError
                     (
-                        "Element format not recognized; The scraping logic is no longer valid."
+                        "Failed to find a required element; The scraping logic is no longer valid."
                     );
                 }
 
-                return HttpUtility.UrlDecode(nameComponents[^1]);
+                accountBox.SendKeys(_options.Username);
+                passwordBox.SendKeys(_options.Password);
+                loginButton.Click();
+
+                var loggedInNow = _driver.FindElementSafe(By.Id("NavigationLoggedIn")) is not null;
+                if (!loggedInNow)
+                {
+                    return new InvalidOperationError("Failed to log in; The scraping logic is no longer valid.");
+                }
             }
-            catch (Exception e)
+
+            _driver.Navigate().GoToUrl(charactersPage);
+            var latestCharacter = _driver.FindElementSafe(By.ClassName("ListedCharacter"));
+            if (latestCharacter is null)
             {
-                return e;
+                return new NotFoundError("No latest character found.");
             }
+
+            var nameAttribute = latestCharacter.GetAttribute("href");
+            if (nameAttribute is null)
+            {
+                return new InvalidOperationError("href attribute not found; The scraping logic is no longer valid.");
+            }
+
+            var nameComponents = nameAttribute.Split('/');
+            if (nameComponents.Length is not (2 or 5))
+            {
+                return new InvalidOperationError
+                (
+                    "Element format not recognized; The scraping logic is no longer valid."
+                );
+            }
+
+            return HttpUtility.UrlDecode(nameComponents[^1]);
+        }
+        catch (Exception e)
+        {
+            return e;
         }
     }
 }

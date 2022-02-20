@@ -23,33 +23,32 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Weasyl.API.Model
+namespace Argus.Collector.Weasyl.API.Model;
+
+/// <summary>
+/// Represents a Weasyl submission.
+/// </summary>
+public class WeasylSubmission
 {
     /// <summary>
-    /// Represents a Weasyl submission.
+    /// Gets the submission ID.
     /// </summary>
-    public class WeasylSubmission
-    {
-        /// <summary>
-        /// Gets the submission ID.
-        /// </summary>
-        [JsonPropertyName("submitid")]
-        public int SubmitID { get; init; }
+    [JsonPropertyName("submitid")]
+    public int SubmitID { get; init; }
 
-        /// <summary>
-        /// Gets the submission subtype.
-        /// </summary>
-        public string Subtype { get; init; } = string.Empty;
+    /// <summary>
+    /// Gets the submission subtype.
+    /// </summary>
+    public string Subtype { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets the link to the submission.
-        /// </summary>
-        public string Link { get; init; } = string.Empty;
+    /// <summary>
+    /// Gets the link to the submission.
+    /// </summary>
+    public string Link { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets the media associated with the submission.
-        /// </summary>
-        public IReadOnlyDictionary<string, IReadOnlyList<WeasylMedia>> Media { get; init; }
-            = new Dictionary<string, IReadOnlyList<WeasylMedia>>();
-    }
+    /// <summary>
+    /// Gets the media associated with the submission.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<WeasylMedia>> Media { get; init; }
+        = new Dictionary<string, IReadOnlyList<WeasylMedia>>();
 }

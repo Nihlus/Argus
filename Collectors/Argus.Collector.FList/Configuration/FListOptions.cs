@@ -20,15 +20,14 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.FList.Configuration
-{
-    /// <summary>
-    /// Represents collector-specific configuration.
-    /// </summary>
-    /// <param name="Username">The username to log in with.</param>
-    /// <param name="Password">The password to log in with.</param>
-    /// <param name="RateLimit">
-    /// The rate limit to use for API requests, measured in requests per second.
-    /// </param>
-    public record FListOptions(string Username, string Password, int RateLimit = 1);
-}
+namespace Argus.Collector.FList.Configuration;
+
+/// <summary>
+/// Represents collector-specific configuration.
+/// </summary>
+/// <param name="Username">The username to log in with.</param>
+/// <param name="Password">The password to log in with.</param>
+/// <param name="RateLimit">
+/// The rate limit to use for API requests, measured in requests per second.
+/// </param>
+public record FListOptions(string Username, string Password, int RateLimit = 1);

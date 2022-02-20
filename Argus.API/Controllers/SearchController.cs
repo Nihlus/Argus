@@ -30,51 +30,50 @@ using Argus.Common.Services.Elasticsearch.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Argus.API.Controllers
+namespace Argus.API.Controllers;
+
+/// <summary>
+/// Controls search requests.
+/// </summary>
+[Authorize]
+[RequireHttps]
+[Route("api/search")]
+[ApiController]
+[Produces("application/json")]
+public class SearchController : ControllerBase
 {
+    private readonly NESTService _nestService;
+
     /// <summary>
-    /// Controls search requests.
+    /// Initializes a new instance of the <see cref="SearchController"/> class.
     /// </summary>
-    [Authorize]
-    [RequireHttps]
-    [Route("api/search")]
-    [ApiController]
-    [Produces("application/json")]
-    public class SearchController : ControllerBase
+    /// <param name="nestService">The NEST service.</param>
+    public SearchController(NESTService nestService)
     {
-        private readonly NESTService _nestService;
+        _nestService = nestService;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SearchController"/> class.
-        /// </summary>
-        /// <param name="nestService">The NEST service.</param>
-        public SearchController(NESTService nestService)
+    /// <summary>
+    /// Searches the database for matching images.
+    /// </summary>
+    /// <param name="fingerprint">The fingerprint to search for.</param>
+    /// <param name="after">The hit index after which to start returning results.</param>
+    /// <param name="limit">The limit on the number of hits to return per fingerprint.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The results.</returns>
+    [HttpPost]
+    public async IAsyncEnumerable<SearchResult> GetSearchAsync
+    (
+        [Required] PortableFingerprint fingerprint,
+        uint after = 0,
+        [Range(1, 100)] uint limit = 100,
+        [EnumeratorCancellation] CancellationToken ct = default
+    )
+    {
+        var signature = new ImageSignature(fingerprint.Fingerprint);
+        await foreach (var hit in _nestService.SearchAsync(signature, after, limit, ct))
         {
-            _nestService = nestService;
-        }
-
-        /// <summary>
-        /// Searches the database for matching images.
-        /// </summary>
-        /// <param name="fingerprint">The fingerprint to search for.</param>
-        /// <param name="after">The hit index after which to start returning results.</param>
-        /// <param name="limit">The limit on the number of hits to return per fingerprint.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The results.</returns>
-        [HttpPost]
-        public async IAsyncEnumerable<SearchResult> GetSearchAsync
-        (
-            [Required] PortableFingerprint fingerprint,
-            uint after = 0,
-            [Range(1, 100)] uint limit = 100,
-            [EnumeratorCancellation] CancellationToken ct = default
-        )
-        {
-            var signature = new ImageSignature(fingerprint.Fingerprint);
-            await foreach (var hit in _nestService.SearchAsync(signature, after, limit, ct))
-            {
-                yield return hit;
-            }
+            yield return hit;
         }
     }
 }

@@ -22,22 +22,21 @@
 
 using System;
 
-namespace Argus.Collector.Booru.Configuration
-{
-    /// <summary>
-    /// Represents collector-specific configuration.
-    /// </summary>
-    /// <param name="ServiceName">The name of the Booru that's being collected from.</param>
-    /// <param name="DriverName">The type name of the driver that should be used.</param>
-    /// <param name="BaseUrl">The base URL of the Booru.</param>
-    /// <param name="RateLimit">
-    /// The rate limit to use for API requests, measured in requests per second.
-    /// </param>
-    public record BooruOptions
-    (
-        string ServiceName,
-        string DriverName,
-        Uri BaseUrl,
-        int RateLimit = 1
-    );
-}
+namespace Argus.Collector.Booru.Configuration;
+
+/// <summary>
+/// Represents collector-specific configuration.
+/// </summary>
+/// <param name="ServiceName">The name of the Booru that's being collected from.</param>
+/// <param name="DriverName">The type name of the driver that should be used.</param>
+/// <param name="BaseUrl">The base URL of the Booru.</param>
+/// <param name="RateLimit">
+/// The rate limit to use for API requests, measured in requests per second.
+/// </param>
+public record BooruOptions
+(
+    string ServiceName,
+    string DriverName,
+    Uri BaseUrl,
+    int RateLimit = 1
+);

@@ -43,224 +43,223 @@ using Nest;
 using Puzzle;
 using Remora.Extensions.Options.Immutable;
 
-namespace Argus.API
+namespace Argus.API;
+
+/// <summary>
+/// Represents the main startup class.
+/// </summary>
+public class Startup
 {
     /// <summary>
-    /// Represents the main startup class.
+    /// Gets the configuration of the application.
     /// </summary>
-    public class Startup
+    public IConfiguration Configuration { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Startup"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    public Startup(IConfiguration configuration)
     {
-        /// <summary>
-        /// Gets the configuration of the application.
-        /// </summary>
-        public IConfiguration Configuration { get; }
+        this.Configuration = configuration;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Startup"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        public Startup(IConfiguration configuration)
+    /// <summary>
+    /// Configures the services of the application.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddControllers().AddJsonOptions(o =>
         {
-            this.Configuration = configuration;
-        }
+            o.JsonSerializerOptions.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+            o.JsonSerializerOptions.Converters.Add(new Base64FingerprintConverter());
+        });
 
-        /// <summary>
-        /// Configures the services of the application.
-        /// </summary>
-        /// <param name="services">The services.</param>
-        public void ConfigureServices(IServiceCollection services)
+        services.AddSwaggerGen(c =>
         {
-            services.AddControllers().AddJsonOptions(o =>
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Argus.API", Version = "v1" });
+
+            var securityScheme = new OpenApiSecurityScheme
             {
-                o.JsonSerializerOptions.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
-                o.JsonSerializerOptions.Converters.Add(new Base64FingerprintConverter());
-            });
+                BearerFormat = "guid",
+                Description = "Simple API key authorization",
+                In = ParameterLocation.Header,
+                Name = "Authorization",
+                Scheme = "Bearer",
+                Type = SecuritySchemeType.Http
+            };
 
-            services.AddSwaggerGen(c =>
+            c.AddSecurityDefinition("Argus API Key", securityScheme);
+
+            var securityRequirement = new OpenApiSecurityRequirement
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Argus.API", Version = "v1" });
-
-                var securityScheme = new OpenApiSecurityScheme
                 {
-                    BearerFormat = "guid",
-                    Description = "Simple API key authorization",
-                    In = ParameterLocation.Header,
-                    Name = "Authorization",
-                    Scheme = "Bearer",
-                    Type = SecuritySchemeType.Http
-                };
-
-                c.AddSecurityDefinition("Argus API Key", securityScheme);
-
-                var securityRequirement = new OpenApiSecurityRequirement
-                {
+                    new OpenApiSecurityScheme
                     {
-                        new OpenApiSecurityScheme
+                        Reference = new OpenApiReference
                         {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Argus API Key"
-                            }
-                        },
-                        new List<string>()
-                    }
-                };
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Argus API Key"
+                        }
+                    },
+                    new List<string>()
+                }
+            };
 
-                c.AddSecurityRequirement(securityRequirement);
-            });
+            c.AddSecurityRequirement(securityRequirement);
+        });
 
-            services.AddSingleton<SignatureGenerator>();
+        services.AddSingleton<SignatureGenerator>();
 
-            services.Configure(() =>
+        services.Configure(() =>
+        {
+            var options = new APIOptions
+            (
+                new Uri("about:blank"),
+                string.Empty,
+                string.Empty
+            );
+
+            this.Configuration.Bind(nameof(APIOptions), options);
+            return options;
+        });
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("_allowSpecificOrigins", policy =>
             {
-                var options = new APIOptions
-                (
-                    new Uri("about:blank"),
-                    string.Empty,
-                    string.Empty
-                );
-
-                this.Configuration.Bind(nameof(APIOptions), options);
-                return options;
+                policy
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
             });
+        });
 
-            services.AddCors(options =>
-            {
-                options.AddPolicy("_allowSpecificOrigins", policy =>
+        // Authentication
+        services
+            .AddAuthentication("Key")
+            .AddScheme<AuthenticationSchemeOptions, APIKeyAuthenticationHandler>("Key", null);
+
+        // Rate limiting
+        services.AddMemoryCache();
+
+        services.Configure<IpRateLimitOptions>(ConfigureRateLimitDefaults);
+        services.Configure<ClientRateLimitOptions>(ConfigureRateLimitDefaults);
+
+        services.Configure<IpRateLimitOptions>(this.Configuration.GetSection("IPRateLimiting"));
+        services.Configure<IpRateLimitPolicies>(this.Configuration.GetSection("IPRateLimitPolicies"));
+
+        services.Configure<ClientRateLimitOptions>(this.Configuration.GetSection("ClientRateLimiting"));
+        services.Configure<ClientRateLimitPolicies>(this.Configuration.GetSection("ClientRateLimitPolicies"));
+
+        services.AddInMemoryRateLimiting();
+        services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+        // Elasticsearch services
+        services
+            .AddTransient
+            (
+                transientServices =>
                 {
-                    policy
-                        .AllowAnyOrigin()
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
-                });
-            });
+                    var (node, username, password) = transientServices
+                        .GetRequiredService<IOptions<APIOptions>>().Value;
 
-            // Authentication
-            services
-                .AddAuthentication("Key")
-                .AddScheme<AuthenticationSchemeOptions, APIKeyAuthenticationHandler>("Key", null);
+                    var settings = new ConnectionSettings(node);
 
-            // Rate limiting
-            services.AddMemoryCache();
+                    settings.BasicAuthentication(username, password);
 
-            services.Configure<IpRateLimitOptions>(ConfigureRateLimitDefaults);
-            services.Configure<ClientRateLimitOptions>(ConfigureRateLimitDefaults);
+                    settings.DefaultIndex("argus");
 
-            services.Configure<IpRateLimitOptions>(this.Configuration.GetSection("IPRateLimiting"));
-            services.Configure<IpRateLimitPolicies>(this.Configuration.GetSection("IPRateLimitPolicies"));
+                    return settings;
+                }
+            )
+            .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
+            .AddTransient<NESTService>();
 
-            services.Configure<ClientRateLimitOptions>(this.Configuration.GetSection("ClientRateLimiting"));
-            services.Configure<ClientRateLimitPolicies>(this.Configuration.GetSection("ClientRateLimitPolicies"));
-
-            services.AddInMemoryRateLimiting();
-            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
-
-            // Elasticsearch services
-            services
-                .AddTransient
-                (
-                    transientServices =>
-                    {
-                        var (node, username, password) = transientServices
-                            .GetRequiredService<IOptions<APIOptions>>().Value;
-
-                        var settings = new ConnectionSettings(node);
-
-                        settings.BasicAuthentication(username, password);
-
-                        settings.DefaultIndex("argus");
-
-                        return settings;
-                    }
-                )
-                .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
-                .AddTransient<NESTService>();
-
-            // Database
-            services.AddDbContext<ArgusAPIContext>(options =>
-            {
-                options.UseNpgsql
+        // Database
+        services.AddDbContext<ArgusAPIContext>(options =>
+        {
+            options.UseNpgsql
                 (
                     this.Configuration.GetConnectionString("API")
                 )
                 .UseSnakeCaseNamingConvention();
-            });
-        }
+        });
+    }
 
-        private static void ConfigureRateLimitDefaults(RateLimitOptions options)
+    private static void ConfigureRateLimitDefaults(RateLimitOptions options)
+    {
+        options.ClientIdHeader = "Authorization";
+
+        // Don't rate limit the local network
+        options.IpWhitelist = new List<string>
         {
-            options.ClientIdHeader = "Authorization";
+            "127.0.0.1",
+            "::1",
+            "192.168.0.0/24"
+        };
 
-            // Don't rate limit the local network
-            options.IpWhitelist = new List<string>
-            {
-                "127.0.0.1",
-                "::1",
-                "192.168.0.0/24"
-            };
-
-            options.GeneralRules = new List<RateLimitRule>
-            {
-                new()
-                {
-                    Endpoint = "*",
-                    PeriodTimespan = TimeSpan.FromSeconds(1),
-                    Limit = 10
-                },
-                new()
-                {
-                    Endpoint = "*",
-                    PeriodTimespan = TimeSpan.FromMinutes(15),
-                    Limit = 100
-                },
-                new()
-                {
-                    Endpoint = "*",
-                    PeriodTimespan = TimeSpan.FromHours(12),
-                    Limit = 1000
-                },
-                new()
-                {
-                    Endpoint = "*",
-                    PeriodTimespan = TimeSpan.FromDays(7),
-                    Limit = 10000
-                }
-            };
-        }
-
-        /// <summary>
-        /// Configures the HTTP request pipeline of the application.
-        /// </summary>
-        /// <param name="app">The application builder.</param>
-        /// <param name="env">The environment builder.</param>
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        options.GeneralRules = new List<RateLimitRule>
         {
-            app.UseIpRateLimiting();
-            app.UseClientRateLimiting();
-
-            app.UseForwardedHeaders(new()
+            new()
             {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-                KnownProxies = { IPAddress.Loopback, IPAddress.IPv6Loopback }
-            });
-
-            if (env.IsDevelopment())
+                Endpoint = "*",
+                PeriodTimespan = TimeSpan.FromSeconds(1),
+                Limit = 10
+            },
+            new()
             {
-                app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Argus.API v1"));
+                Endpoint = "*",
+                PeriodTimespan = TimeSpan.FromMinutes(15),
+                Limit = 100
+            },
+            new()
+            {
+                Endpoint = "*",
+                PeriodTimespan = TimeSpan.FromHours(12),
+                Limit = 1000
+            },
+            new()
+            {
+                Endpoint = "*",
+                PeriodTimespan = TimeSpan.FromDays(7),
+                Limit = 10000
             }
+        };
+    }
 
-            app.UseRouting();
+    /// <summary>
+    /// Configures the HTTP request pipeline of the application.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <param name="env">The environment builder.</param>
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        app.UseIpRateLimiting();
+        app.UseClientRateLimiting();
 
-            app.UseCors("_allowSpecificOrigins");
+        app.UseForwardedHeaders(new()
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+            KnownProxies = { IPAddress.Loopback, IPAddress.IPv6Loopback }
+        });
 
-            app
-                .UseAuthentication()
-                .UseAuthorization();
-
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+            app.UseSwagger();
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Argus.API v1"));
         }
+
+        app.UseRouting();
+
+        app.UseCors("_allowSpecificOrigins");
+
+        app
+            .UseAuthentication()
+            .UseAuthorization();
+
+        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
     }
 }

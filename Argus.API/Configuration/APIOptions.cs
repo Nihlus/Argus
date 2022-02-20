@@ -22,18 +22,17 @@
 
 using System;
 
-namespace Argus.API.Configuration
-{
-    /// <summary>
-    /// Holds various API options.
-    /// </summary>
-    /// <param name="ElasticsearchServer">The Elasticsearch server to connect to.</param>
-    /// <param name="ElasticsearchUsername">The Elasticsearch username to use.</param>
-    /// <param name="ElasticsearchPassword">The Elasticsearch password to use.</param>
-    public record APIOptions
-    (
-        Uri ElasticsearchServer,
-        string ElasticsearchUsername,
-        string ElasticsearchPassword
-    );
-}
+namespace Argus.API.Configuration;
+
+/// <summary>
+/// Holds various API options.
+/// </summary>
+/// <param name="ElasticsearchServer">The Elasticsearch server to connect to.</param>
+/// <param name="ElasticsearchUsername">The Elasticsearch username to use.</param>
+/// <param name="ElasticsearchPassword">The Elasticsearch password to use.</param>
+public record APIOptions
+(
+    Uri ElasticsearchServer,
+    string ElasticsearchUsername,
+    string ElasticsearchPassword
+);

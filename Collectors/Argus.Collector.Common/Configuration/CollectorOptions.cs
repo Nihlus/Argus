@@ -20,16 +20,15 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.Common.Configuration
-{
-    /// <summary>
-    /// Represents the application configuration.
-    /// </summary>
-    /// <param name="BulkDownloadRateLimit">
-    /// The rate limit to use for bulk downloads, measured in requests per second.
-    /// </param>
-    public record CollectorOptions
-    (
-        int BulkDownloadRateLimit = 25
-    );
-}
+namespace Argus.Collector.Common.Configuration;
+
+/// <summary>
+/// Represents the application configuration.
+/// </summary>
+/// <param name="BulkDownloadRateLimit">
+/// The rate limit to use for bulk downloads, measured in requests per second.
+/// </param>
+public record CollectorOptions
+(
+    int BulkDownloadRateLimit = 25
+);

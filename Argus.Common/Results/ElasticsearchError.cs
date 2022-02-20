@@ -23,16 +23,15 @@
 using Elasticsearch.Net;
 using Remora.Results;
 
-namespace Argus.Common.Results
-{
-    /// <summary>
-    /// Represents an error resulting from Elasticsearch.
-    /// </summary>
-    /// <param name="Error">The error.</param>
-    /// <param name="Message">The error message.</param>
-    public record ElasticsearchError
-    (
-        ServerError Error,
-        string Message = "An error occurred in Elasticsearch."
-    ) : ResultError(Message);
-}
+namespace Argus.Common.Results;
+
+/// <summary>
+/// Represents an error resulting from Elasticsearch.
+/// </summary>
+/// <param name="Error">The error.</param>
+/// <param name="Message">The error message.</param>
+public record ElasticsearchError
+(
+    ServerError Error,
+    string Message = "An error occurred in Elasticsearch."
+) : ResultError(Message);

@@ -37,192 +37,191 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.FList.Services
+namespace Argus.Collector.FList.Services;
+
+/// <summary>
+/// Collects images from F-List.
+/// </summary>
+public class FListCollectorService : CollectorService
 {
+    private readonly FListAPI _flistAPI;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<FListCollectorService> _log;
+    private readonly IMessageDataRepository _repository;
+
+    /// <inheritdoc />
+    protected override string ServiceName => "f-list";
+
     /// <summary>
-    /// Collects images from F-List.
+    /// Initializes a new instance of the <see cref="FListCollectorService"/> class.
     /// </summary>
-    public class FListCollectorService : CollectorService
+    /// <param name="flistAPI">The F-List API.</param>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="repository">The data repository.</param>
+    /// <param name="bus">The message bus.</param>
+    /// <param name="options">The application options.</param>
+    /// <param name="log">The logging instance.</param>
+    public FListCollectorService
+    (
+        FListAPI flistAPI,
+        IHttpClientFactory httpClientFactory,
+        IMessageDataRepository repository,
+        IBus bus,
+        IOptions<CollectorOptions> options,
+        ILogger<FListCollectorService> log)
+        : base(bus, options, log)
     {
-        private readonly FListAPI _flistAPI;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<FListCollectorService> _log;
-        private readonly IMessageDataRepository _repository;
+        _log = log;
+        _repository = repository;
+        _flistAPI = flistAPI;
+        _httpClientFactory = httpClientFactory;
+    }
 
-        /// <inheritdoc />
-        protected override string ServiceName => "f-list";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FListCollectorService"/> class.
-        /// </summary>
-        /// <param name="flistAPI">The F-List API.</param>
-        /// <param name="httpClientFactory">The HTTP client factory.</param>
-        /// <param name="repository">The data repository.</param>
-        /// <param name="bus">The message bus.</param>
-        /// <param name="options">The application options.</param>
-        /// <param name="log">The logging instance.</param>
-        public FListCollectorService
-        (
-            FListAPI flistAPI,
-            IHttpClientFactory httpClientFactory,
-            IMessageDataRepository repository,
-            IBus bus,
-            IOptions<CollectorOptions> options,
-            ILogger<FListCollectorService> log)
-            : base(bus, options, log)
+    /// <inheritdoc />
+    protected override async Task<Result> CollectAsync(CancellationToken ct = default)
+    {
+        var getResume = await GetResumePointAsync(ct);
+        if (!getResume.IsSuccess)
         {
-            _log = log;
-            _repository = repository;
-            _flistAPI = flistAPI;
-            _httpClientFactory = httpClientFactory;
+            _log.LogWarning("Failed to get the resume point: {Reason}", getResume.Error.Message);
+            return Result.FromError(getResume);
         }
 
-        /// <inheritdoc />
-        protected override async Task<Result> CollectAsync(CancellationToken ct = default)
+        var resumePoint = getResume.Entity;
+        if (!int.TryParse(resumePoint, out var currentCharacterId))
         {
-            var getResume = await GetResumePointAsync(ct);
-            if (!getResume.IsSuccess)
-            {
-                _log.LogWarning("Failed to get the resume point: {Reason}", getResume.Error.Message);
-                return Result.FromError(getResume);
-            }
+            currentCharacterId = 0;
+        }
 
-            var resumePoint = getResume.Entity;
-            if (!int.TryParse(resumePoint, out var currentCharacterId))
-            {
-                currentCharacterId = 0;
-            }
+        int? latestCharacterId = null;
 
-            int? latestCharacterId = null;
-
-            while (!ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
+        {
+            if (currentCharacterId >= latestCharacterId || latestCharacterId is null)
             {
-                if (currentCharacterId >= latestCharacterId || latestCharacterId is null)
+                var getLatestName = _flistAPI.GetMostRecentlyCreatedCharacter();
+                if (!getLatestName.IsSuccess)
                 {
-                    var getLatestName = _flistAPI.GetMostRecentlyCreatedCharacter();
-                    if (!getLatestName.IsSuccess)
-                    {
-                        return Result.FromError(getLatestName);
-                    }
-
-                    var getLatestCharacter = await _flistAPI.GetCharacterDataAsync(getLatestName.Entity, ct);
-                    if (!getLatestCharacter.IsSuccess)
-                    {
-                        return Result.FromError(getLatestCharacter);
-                    }
-
-                    latestCharacterId = getLatestCharacter.Entity.Id;
-                    if (currentCharacterId >= latestCharacterId)
-                    {
-                        _log.LogInformation("Waiting for new characters to come in...");
-                        await Task.Delay(TimeSpan.FromHours(1), ct);
-                        continue;
-                    }
+                    return Result.FromError(getLatestName);
                 }
 
-                var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
-                if (!setResume.IsSuccess)
+                var getLatestCharacter = await _flistAPI.GetCharacterDataAsync(getLatestName.Entity, ct);
+                if (!getLatestCharacter.IsSuccess)
                 {
-                    return setResume;
+                    return Result.FromError(getLatestCharacter);
                 }
 
-                var getCharacter = await _flistAPI.GetCharacterDataAsync(currentCharacterId, ct);
-                if (!getCharacter.IsSuccess)
+                latestCharacterId = getLatestCharacter.Entity.Id;
+                if (currentCharacterId >= latestCharacterId)
                 {
-                    if (!getCharacter.Error.Message.Contains("Character not found"))
-                    {
-                        _log.LogWarning
-                        (
-                            "Failed to get data for character {ID}: {Reason}",
-                            currentCharacterId,
-                            getCharacter.Error.Message
-                        );
-                    }
-
-                    ++currentCharacterId;
+                    _log.LogInformation("Waiting for new characters to come in...");
+                    await Task.Delay(TimeSpan.FromHours(1), ct);
                     continue;
                 }
+            }
 
-                var character = getCharacter.Entity;
-                if (character.Images.Count <= 0)
+            var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
+            if (!setResume.IsSuccess)
+            {
+                return setResume;
+            }
+
+            var getCharacter = await _flistAPI.GetCharacterDataAsync(currentCharacterId, ct);
+            if (!getCharacter.IsSuccess)
+            {
+                if (!getCharacter.Error.Message.Contains("Character not found"))
                 {
-                    ++currentCharacterId;
-                    continue;
-                }
-
-                var client = _httpClientFactory.CreateClient("BulkDownload");
-
-                var collections = character.Images.Select(i => CollectImageAsync(character.Name, client, i, ct));
-                var collectedImages = await Task.WhenAll(collections);
-
-                foreach (var imageCollection in collectedImages)
-                {
-                    if (!imageCollection.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to collect image: {Reason}", imageCollection.Error.Message);
-                        continue;
-                    }
-
-                    var collectedImage = imageCollection.Entity;
-
-                    var statusReport = new StatusReport
+                    _log.LogWarning
                     (
-                        DateTimeOffset.UtcNow,
-                        this.ServiceName,
-                        collectedImage.Source,
-                        collectedImage.Link,
-                        ImageStatus.Collected,
-                        string.Empty
+                        "Failed to get data for character {ID}: {Reason}",
+                        currentCharacterId,
+                        getCharacter.Error.Message
                     );
-
-                    var report = await PushStatusReportAsync(statusReport, ct);
-                    if (!report.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
-                        return report;
-                    }
-
-                    var push = await PushCollectedImageAsync(collectedImage, ct);
-                    if (push.IsSuccess)
-                    {
-                        continue;
-                    }
-
-                    _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                    return push;
                 }
 
                 ++currentCharacterId;
+                continue;
             }
 
-            return Result.FromSuccess();
+            var character = getCharacter.Entity;
+            if (character.Images.Count <= 0)
+            {
+                ++currentCharacterId;
+                continue;
+            }
+
+            var client = _httpClientFactory.CreateClient("BulkDownload");
+
+            var collections = character.Images.Select(i => CollectImageAsync(character.Name, client, i, ct));
+            var collectedImages = await Task.WhenAll(collections);
+
+            foreach (var imageCollection in collectedImages)
+            {
+                if (!imageCollection.IsSuccess)
+                {
+                    _log.LogWarning("Failed to collect image: {Reason}", imageCollection.Error.Message);
+                    continue;
+                }
+
+                var collectedImage = imageCollection.Entity;
+
+                var statusReport = new StatusReport
+                (
+                    DateTimeOffset.UtcNow,
+                    this.ServiceName,
+                    collectedImage.Source,
+                    collectedImage.Link,
+                    ImageStatus.Collected,
+                    string.Empty
+                );
+
+                var report = await PushStatusReportAsync(statusReport, ct);
+                if (!report.IsSuccess)
+                {
+                    _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
+                    return report;
+                }
+
+                var push = await PushCollectedImageAsync(collectedImage, ct);
+                if (push.IsSuccess)
+                {
+                    continue;
+                }
+
+                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                return push;
+            }
+
+            ++currentCharacterId;
         }
 
-        private async Task<Result<CollectedImage>> CollectImageAsync
-        (
-            string characterName,
-            HttpClient client,
-            CharacterImage image,
-            CancellationToken ct = default
-        )
-        {
-            try
-            {
-                var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
-                var bytes = await client.GetByteArrayAsync(location, ct);
+        return Result.FromSuccess();
+    }
 
-                return new CollectedImage
-                (
-                    this.ServiceName,
-                    new Uri($"https://www.f-list.net/c/{characterName}"),
-                    new Uri(location),
-                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
-                );
-            }
-            catch (Exception e)
-            {
-                return e;
-            }
+    private async Task<Result<CollectedImage>> CollectImageAsync
+    (
+        string characterName,
+        HttpClient client,
+        CharacterImage image,
+        CancellationToken ct = default
+    )
+    {
+        try
+        {
+            var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
+            var bytes = await client.GetByteArrayAsync(location, ct);
+
+            return new CollectedImage
+            (
+                this.ServiceName,
+                new Uri($"https://www.f-list.net/c/{characterName}"),
+                new Uri(location),
+                await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
+            );
+        }
+        catch (Exception e)
+        {
+            return e;
         }
     }
 }

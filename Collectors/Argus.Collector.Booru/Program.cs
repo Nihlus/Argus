@@ -31,53 +31,52 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Argus.Collector.Booru
+namespace Argus.Collector.Booru;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
-        {
-            using var host = CreateHostBuilder(args).Build();
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
+        using var host = CreateHostBuilder(args).Build();
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
 
-            await host.RunAsync();
-            log.LogInformation("Shutting down...");
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<BooruCollectorService, BooruOptions>
-            (
-                "booru",
-                () => new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"))
-            )
-            .ConfigureAppConfiguration((hostContext, configuration) =>
-            {
-                if (hostContext.HostingEnvironment.IsDevelopment())
-                {
-                    configuration.AddUserSecrets<Program>();
-                }
-            })
-            .ConfigureServices((hostContext, services) =>
-            {
-                var options = new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"));
-                hostContext.Configuration.Bind(nameof(BooruOptions), options);
-
-                var rateLimit = options.RateLimit;
-                if (rateLimit == 0)
-                {
-                    rateLimit = 1;
-                }
-
-                services.AddBooruDriver
-                (
-                    hostContext.Configuration,
-                    options.DriverName,
-                    options.BaseUrl.ToString(),
-                    rateLimit
-                );
-            });
+        await host.RunAsync();
+        log.LogInformation("Shutting down...");
     }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+        .UseCollector<BooruCollectorService, BooruOptions>
+        (
+            "booru",
+            () => new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"))
+        )
+        .ConfigureAppConfiguration((hostContext, configuration) =>
+        {
+            if (hostContext.HostingEnvironment.IsDevelopment())
+            {
+                configuration.AddUserSecrets<Program>();
+            }
+        })
+        .ConfigureServices((hostContext, services) =>
+        {
+            var options = new BooruOptions(string.Empty, string.Empty, new Uri("about:blank"));
+            hostContext.Configuration.Bind(nameof(BooruOptions), options);
+
+            var rateLimit = options.RateLimit;
+            if (rateLimit == 0)
+            {
+                rateLimit = 1;
+            }
+
+            services.AddBooruDriver
+            (
+                hostContext.Configuration,
+                options.DriverName,
+                options.BaseUrl.ToString(),
+                rateLimit
+            );
+        });
 }

@@ -20,11 +20,10 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Common.Messages.Requests
-{
-    /// <summary>
-    /// Represents a request for a set of images to retry collection of.
-    /// </summary>
-    /// <param name="MaxCount">The maximum number of images to receive.</param>
-    public record GetImagesToRetry(int MaxCount);
-}
+namespace Argus.Common.Messages.Requests;
+
+/// <summary>
+/// Represents a request for a set of images to retry collection of.
+/// </summary>
+/// <param name="MaxCount">The maximum number of images to receive.</param>
+public record GetImagesToRetry(int MaxCount);

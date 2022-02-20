@@ -22,18 +22,17 @@
 
 using Puzzle;
 
-namespace Argus.Common.Portable
-{
-    /// <summary>
-    /// Represents a portable image fingerprint.
-    /// </summary>
-    /// <param name="Filename">The filename of the source file.</param>
-    /// <param name="Hash">The SHA256 hash of the image.</param>
-    /// <param name="Fingerprint">The perceptual hash of the image.</param>
-    public record PortableFingerprint
-    (
-        string Filename,
-        string Hash,
-        LuminosityLevel[] Fingerprint
-    );
-}
+namespace Argus.Common.Portable;
+
+/// <summary>
+/// Represents a portable image fingerprint.
+/// </summary>
+/// <param name="Filename">The filename of the source file.</param>
+/// <param name="Hash">The SHA256 hash of the image.</param>
+/// <param name="Fingerprint">The perceptual hash of the image.</param>
+public record PortableFingerprint
+(
+    string Filename,
+    string Hash,
+    LuminosityLevel[] Fingerprint
+);

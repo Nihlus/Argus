@@ -32,89 +32,88 @@ using Argus.Collector.FList.Configuration;
 using Microsoft.Extensions.Options;
 using Polly;
 
-namespace Argus.Collector.FList.Polly
+namespace Argus.Collector.FList.Polly;
+
+/// <summary>
+/// Automatically appends authentication information to F-List requests.
+/// </summary>
+public class FListAuthenticationRefreshPolicy : AsyncPolicy<HttpResponseMessage>
 {
+    private readonly FListAPI _fListAPI;
+    private readonly FListOptions _options;
+
     /// <summary>
-    /// Automatically appends authentication information to F-List requests.
+    /// Initializes a new instance of the <see cref="FListAuthenticationRefreshPolicy"/> class.
     /// </summary>
-    public class FListAuthenticationRefreshPolicy : AsyncPolicy<HttpResponseMessage>
+    /// <param name="fListAPI">The F-List API.</param>
+    /// <param name="options">The application options.</param>
+    /// <param name="policyBuilder">The policy builder.</param>
+    public FListAuthenticationRefreshPolicy
+    (
+        FListAPI fListAPI,
+        IOptions<FListOptions> options,
+        PolicyBuilder<HttpResponseMessage>? policyBuilder = null
+    )
+        : base(policyBuilder)
     {
-        private readonly FListAPI _fListAPI;
-        private readonly FListOptions _options;
+        _fListAPI = fListAPI;
+        _options = options.Value;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FListAuthenticationRefreshPolicy"/> class.
-        /// </summary>
-        /// <param name="fListAPI">The F-List API.</param>
-        /// <param name="options">The application options.</param>
-        /// <param name="policyBuilder">The policy builder.</param>
-        public FListAuthenticationRefreshPolicy
-        (
-            FListAPI fListAPI,
-            IOptions<FListOptions> options,
-            PolicyBuilder<HttpResponseMessage>? policyBuilder = null
-        )
-            : base(policyBuilder)
+    /// <inheritdoc />
+    protected override async Task<HttpResponseMessage> ImplementationAsync
+    (
+        Func<Context, CancellationToken, Task<HttpResponseMessage>> action,
+        Context context,
+        CancellationToken cancellationToken,
+        bool continueOnCapturedContext
+    )
+    {
+        // stupid bloody api
+        var ticketRefreshIndicators = new[]
         {
-            _fListAPI = fListAPI;
-            _options = options.Value;
-        }
+            "{\"error\":\"Ticket or account missing",
+            "{\"error\":\"Invalid ticket",
+            "{\"error\":\"Your login ticket has expired",
+        };
 
-        /// <inheritdoc />
-        protected override async Task<HttpResponseMessage> ImplementationAsync
-        (
-            Func<Context, CancellationToken, Task<HttpResponseMessage>> action,
-            Context context,
-            CancellationToken cancellationToken,
-            bool continueOnCapturedContext
-        )
+        if (!string.IsNullOrWhiteSpace((string)context["ticket"]))
         {
-            // stupid bloody api
-            var ticketRefreshIndicators = new[]
+            // We might have a good ticket
+            var result = await action(context, cancellationToken);
+
+            await result.Content.LoadIntoBufferAsync();
+            var contentStream = await result.Content.ReadAsStreamAsync(cancellationToken);
+            var reader = new StreamReader(contentStream);
+
+            var content = await reader.ReadToEndAsync();
+            contentStream.Seek(0, SeekOrigin.Begin);
+
+            // Retry once if we get an account issue
+            if (content.StartsWith("{\"error\":\"This account may not"))
             {
-                "{\"error\":\"Ticket or account missing",
-                "{\"error\":\"Invalid ticket",
-                "{\"error\":\"Your login ticket has expired",
-            };
-
-            if (!string.IsNullOrWhiteSpace((string)context["ticket"]))
-            {
-                // We might have a good ticket
-                var result = await action(context, cancellationToken);
-
-                await result.Content.LoadIntoBufferAsync();
-                var contentStream = await result.Content.ReadAsStreamAsync(cancellationToken);
-                var reader = new StreamReader(contentStream);
-
-                var content = await reader.ReadToEndAsync();
-                contentStream.Seek(0, SeekOrigin.Begin);
-
-                // Retry once if we get an account issue
-                if (content.StartsWith("{\"error\":\"This account may not"))
-                {
-                    result = await action(context, cancellationToken);
-                }
-
-                if (!this.ResultPredicates.AnyMatch(result) && !ticketRefreshIndicators.Any(content.StartsWith))
-                {
-                    return result;
-                }
+                result = await action(context, cancellationToken);
             }
 
-            var refreshResult = await _fListAPI.RefreshAPITicketAsync
-            (
-                _options.Username,
-                _options.Password,
-                cancellationToken
-            );
-
-            if (!refreshResult.IsSuccess)
+            if (!this.ResultPredicates.AnyMatch(result) && !ticketRefreshIndicators.Any(content.StartsWith))
             {
-                return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+                return result;
             }
-
-            // Do it again
-            return await action(context, cancellationToken);
         }
+
+        var refreshResult = await _fListAPI.RefreshAPITicketAsync
+        (
+            _options.Username,
+            _options.Password,
+            cancellationToken
+        );
+
+        if (!refreshResult.IsSuccess)
+        {
+            return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+        }
+
+        // Do it again
+        return await action(context, cancellationToken);
     }
 }

@@ -22,12 +22,11 @@
 
 using Puzzle;
 
-namespace Argus.Common.Services.Elasticsearch.Search
-{
-    /// <summary>
-    /// Represents a single search result.
-    /// </summary>
-    /// <param name="Similarity">The image similarity.</param>
-    /// <param name="Image">The image information.</param>
-    public record SearchResult(SignatureSimilarity Similarity, ImageInformation Image);
-}
+namespace Argus.Common.Services.Elasticsearch.Search;
+
+/// <summary>
+/// Represents a single search result.
+/// </summary>
+/// <param name="Similarity">The image similarity.</param>
+/// <param name="Image">The image information.</param>
+public record SearchResult(SignatureSimilarity Similarity, ImageInformation Image);

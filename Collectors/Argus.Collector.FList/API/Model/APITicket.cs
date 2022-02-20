@@ -20,16 +20,15 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.FList.API.Model
+namespace Argus.Collector.FList.API.Model;
+
+/// <summary>
+/// Represents a successful login.
+/// </summary>
+public class APITicket
 {
     /// <summary>
-    /// Represents a successful login.
+    /// Gets or sets the issued API ticket.
     /// </summary>
-    public class APITicket
-    {
-        /// <summary>
-        /// Gets or sets the issued API ticket.
-        /// </summary>
-        public string Ticket { get; set; } = string.Empty;
-    }
+    public string Ticket { get; set; } = string.Empty;
 }

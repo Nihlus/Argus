@@ -31,83 +31,82 @@ using Puzzle;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace Argus.Worker.MassTransit.Consumers
+namespace Argus.Worker.MassTransit.Consumers;
+
+/// <summary>
+/// Consumes images for fingerprinting.
+/// </summary>
+public class CollectedImageConsumer : IConsumer<CollectedImage>
 {
+    private readonly IBus _bus;
+    private readonly SignatureGenerator _signatureGenerator;
+    private readonly ILogger<CollectedImageConsumer> _log;
+
     /// <summary>
-    /// Consumes images for fingerprinting.
+    /// Initializes a new instance of the <see cref="CollectedImageConsumer"/> class.
     /// </summary>
-    public class CollectedImageConsumer : IConsumer<CollectedImage>
+    /// <param name="bus">The message bus.</param>
+    /// <param name="signatureGenerator">The signature generator.</param>
+    /// <param name="log">The logging instance.</param>
+    public CollectedImageConsumer
+    (
+        IBus bus,
+        SignatureGenerator signatureGenerator,
+        ILogger<CollectedImageConsumer> log
+    )
     {
-        private readonly IBus _bus;
-        private readonly SignatureGenerator _signatureGenerator;
-        private readonly ILogger<CollectedImageConsumer> _log;
+        _bus = bus;
+        _signatureGenerator = signatureGenerator;
+        _log = log;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CollectedImageConsumer"/> class.
-        /// </summary>
-        /// <param name="bus">The message bus.</param>
-        /// <param name="signatureGenerator">The signature generator.</param>
-        /// <param name="log">The logging instance.</param>
-        public CollectedImageConsumer
-        (
-            IBus bus,
-            SignatureGenerator signatureGenerator,
-            ILogger<CollectedImageConsumer> log
-        )
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<CollectedImage> context)
+    {
+        var collectedImage = context.Message;
+        try
         {
-            _bus = bus;
-            _signatureGenerator = signatureGenerator;
-            _log = log;
-        }
+            // CPU-intensive step 1
+            var data = await collectedImage.Data.Value;
 
-        /// <inheritdoc />
-        public async Task Consume(ConsumeContext<CollectedImage> context)
-        {
-            var collectedImage = context.Message;
-            try
-            {
-                // CPU-intensive step 1
-                var data = await collectedImage.Data.Value;
+            using var image = Image.Load<L8>(data);
+            context.CancellationToken.ThrowIfCancellationRequested();
 
-                using var image = Image.Load<L8>(data);
-                context.CancellationToken.ThrowIfCancellationRequested();
+            // CPU-intensive step 2
+            var signature = _signatureGenerator.GenerateSignature(image);
+            var fingerprint = new ImageSignature(signature);
 
-                // CPU-intensive step 2
-                var signature = _signatureGenerator.GenerateSignature(image);
-                var fingerprint = new ImageSignature(signature);
-
-                await _bus.Publish
+            await _bus.Publish
+            (
+                new FingerprintedImage
                 (
-                    new FingerprintedImage
-                    (
-                        collectedImage.ServiceName,
-                        collectedImage.Source,
-                        collectedImage.Link,
-                        fingerprint
-                    )
-                );
-
-                _log.LogInformation
-                (
-                    "Fingerprinted image {Link} from {Source}",
-                    collectedImage.Link,
-                    collectedImage.Source
-                );
-            }
-            catch (Exception e)
-            {
-                var message = new StatusReport
-                (
-                    DateTimeOffset.UtcNow,
                     collectedImage.ServiceName,
                     collectedImage.Source,
                     collectedImage.Link,
-                    ImageStatus.Faulted,
-                    e.Message
-                );
+                    fingerprint
+                )
+            );
 
-                await _bus.Publish(message);
-            }
+            _log.LogInformation
+            (
+                "Fingerprinted image {Link} from {Source}",
+                collectedImage.Link,
+                collectedImage.Source
+            );
+        }
+        catch (Exception e)
+        {
+            var message = new StatusReport
+            (
+                DateTimeOffset.UtcNow,
+                collectedImage.ServiceName,
+                collectedImage.Source,
+                collectedImage.Link,
+                ImageStatus.Faulted,
+                e.Message
+            );
+
+            await _bus.Publish(message);
         }
     }
 }

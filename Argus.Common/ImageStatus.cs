@@ -22,42 +22,41 @@
 
 using System;
 
-namespace Argus.Common
+namespace Argus.Common;
+
+/// <summary>
+/// Enumerates the various states an image can be in.
+/// </summary>
+public enum ImageStatus
 {
     /// <summary>
-    /// Enumerates the various states an image can be in.
+    /// The image has been collected, and has been submitted for processing.
     /// </summary>
-    public enum ImageStatus
-    {
-        /// <summary>
-        /// The image has been collected, and has been submitted for processing.
-        /// </summary>
-        Collected = 0,
+    Collected = 0,
 
-        /// <summary>
-        /// The image has been rejected by the collector.
-        /// </summary>
-        Rejected = 1,
+    /// <summary>
+    /// The image has been rejected by the collector.
+    /// </summary>
+    Rejected = 1,
 
-        /// <summary>
-        /// The image has been sent for processing by a worker.
-        /// </summary>
-        Processing = 2,
+    /// <summary>
+    /// The image has been sent for processing by a worker.
+    /// </summary>
+    Processing = 2,
 
-        /// <summary>
-        /// The image has been processed, and has been sent back to the coordinator.
-        /// </summary>
-        [Obsolete("Don't notify the coordinator of a processed image; send it instead and let it figure it out")]
-        Processed = 3,
+    /// <summary>
+    /// The image has been processed, and has been sent back to the coordinator.
+    /// </summary>
+    [Obsolete("Don't notify the coordinator of a processed image; send it instead and let it figure it out")]
+    Processed = 3,
 
-        /// <summary>
-        /// The image has been successfully indexed.
-        /// </summary>
-        Indexed = 5,
+    /// <summary>
+    /// The image has been successfully indexed.
+    /// </summary>
+    Indexed = 5,
 
-        /// <summary>
-        /// Processing of the image faulted in some way.
-        /// </summary>
-        Faulted = 4
-    }
+    /// <summary>
+    /// Processing of the image faulted in some way.
+    /// </summary>
+    Faulted = 4
 }

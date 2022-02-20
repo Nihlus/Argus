@@ -35,143 +35,142 @@ using Polly.Contrib.WaitAndRetry;
 using Remora.Extensions.Options.Immutable;
 using Serilog;
 
-namespace Argus.Collector.Common.Extensions
+namespace Argus.Collector.Common.Extensions;
+
+/// <summary>
+/// Defines extension methods for the <see cref="IHostBuilder"/> interface.
+/// </summary>
+public static class HostBuilderExtensions
 {
     /// <summary>
-    /// Defines extension methods for the <see cref="IHostBuilder"/> interface.
+    /// Adds and configures the given collector service.
     /// </summary>
-    public static class HostBuilderExtensions
+    /// <param name="hostBuilder">The host builder.</param>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="optionsFactory">The options factory.</param>
+    /// <typeparam name="TCollector">The collector service.</typeparam>
+    /// <typeparam name="TCollectorOptions">The options type.</typeparam>
+    /// <returns>The configured host builder.</returns>
+    public static IHostBuilder UseCollector<TCollector, TCollectorOptions>
+    (
+        this IHostBuilder hostBuilder,
+        string serviceName,
+        Func<TCollectorOptions> optionsFactory
+    )
+        where TCollector : CollectorService
+        where TCollectorOptions : class
     {
-        /// <summary>
-        /// Adds and configures the given collector service.
-        /// </summary>
-        /// <param name="hostBuilder">The host builder.</param>
-        /// <param name="serviceName">The name of the service.</param>
-        /// <param name="optionsFactory">The options factory.</param>
-        /// <typeparam name="TCollector">The collector service.</typeparam>
-        /// <typeparam name="TCollectorOptions">The options type.</typeparam>
-        /// <returns>The configured host builder.</returns>
-        public static IHostBuilder UseCollector<TCollector, TCollectorOptions>
-        (
-            this IHostBuilder hostBuilder,
-            string serviceName,
-            Func<TCollectorOptions> optionsFactory
-        )
-            where TCollector : CollectorService
-            where TCollectorOptions : class
-        {
-            hostBuilder.UseCollector<TCollector>();
+        hostBuilder.UseCollector<TCollector>();
 
-            hostBuilder.ConfigureAppConfiguration((_, configuration) =>
+        hostBuilder.ConfigureAppConfiguration((_, configuration) =>
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Add a set of config files for the /etc directory
+                var systemConfigFolder = "/etc";
+
+                var systemServiceConfigFile = Path.Combine
+                (
+                    systemConfigFolder,
+                    "argus",
+                    $"collector.{serviceName}.json"
+                );
+
+                configuration.AddJsonFile(systemServiceConfigFile, true);
+            }
+
+            // equivalent to /home/someone/.config
+            var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+            var localServiceConfigFile = Path.Combine(localConfigFolder, "argus", $"collector.{serviceName}.json");
+            configuration.AddJsonFile(localServiceConfigFile, true);
+        });
+
+        return hostBuilder.ConfigureServices((hostContext, services) =>
+        {
+            // Configure app-specific options
+            services.Configure(() =>
+            {
+                var options = optionsFactory();
+
+                hostContext.Configuration.Bind(typeof(TCollectorOptions).Name, options);
+                return options;
+            });
+        });
+    }
+
+    /// <summary>
+    /// Adds and configures the given collector service.
+    /// </summary>
+    /// <param name="hostBuilder">The host builder.</param>
+    /// <typeparam name="TCollector">The collector service.</typeparam>
+    /// <returns>The configured host builder.</returns>
+    public static IHostBuilder UseCollector<TCollector>
+    (
+        this IHostBuilder hostBuilder
+    )
+        where TCollector : CollectorService
+    {
+        hostBuilder
+            .UseSerilog((hostContext, logging) =>
+            {
+                logging.ReadFrom.Configuration(hostContext.Configuration);
+            })
+            #if DEBUG
+            .UseEnvironment("Development")
+            #else
+                .UseEnvironment("Production")
+            #endif
+            .UseConsoleLifetime()
+            .UseMassTransit()
+            .ConfigureAppConfiguration((_, configuration) =>
             {
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     // Add a set of config files for the /etc directory
                     var systemConfigFolder = "/etc";
 
-                    var systemServiceConfigFile = Path.Combine
-                    (
-                        systemConfigFolder,
-                        "argus",
-                        $"collector.{serviceName}.json"
-                    );
-
-                    configuration.AddJsonFile(systemServiceConfigFile, true);
+                    var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "collector.json");
+                    configuration.AddJsonFile(systemConfigFile, true);
                 }
 
                 // equivalent to /home/someone/.config
                 var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-                var localServiceConfigFile = Path.Combine(localConfigFolder, "argus", $"collector.{serviceName}.json");
-                configuration.AddJsonFile(localServiceConfigFile, true);
-            });
-
-            return hostBuilder.ConfigureServices((hostContext, services) =>
+                var localConfigFile = Path.Combine(localConfigFolder, "argus", "collector.json");
+                configuration.AddJsonFile(localConfigFile, true);
+            })
+            .ConfigureServices((hostContext, services) =>
             {
-                // Configure app-specific options
-                services.Configure(() =>
-                {
-                    var options = optionsFactory();
+                var options = new CollectorOptions();
 
-                    hostContext.Configuration.Bind(typeof(TCollectorOptions).Name, options);
-                    return options;
-                });
+                hostContext.Configuration.Bind(nameof(CollectorOptions), options);
+                services.Configure(() => options);
+
+                // Various
+                services
+                    .AddHttpClient()
+                    .AddMemoryCache();
+
+                var rateLimit = options.BulkDownloadRateLimit;
+                if (rateLimit == 0)
+                {
+                    rateLimit = 25;
+                }
+
+                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+                services
+                    .AddHttpClient("BulkDownload")
+                    .AddTransientHttpErrorPolicy
+                    (
+                        b => b
+                            .WaitAndRetryAsync(retryDelay)
+                            .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
+                    );
+
+                services.AddHostedService<TCollector>();
             });
-        }
 
-        /// <summary>
-        /// Adds and configures the given collector service.
-        /// </summary>
-        /// <param name="hostBuilder">The host builder.</param>
-        /// <typeparam name="TCollector">The collector service.</typeparam>
-        /// <returns>The configured host builder.</returns>
-        public static IHostBuilder UseCollector<TCollector>
-        (
-            this IHostBuilder hostBuilder
-        )
-            where TCollector : CollectorService
-        {
-            hostBuilder
-                .UseSerilog((hostContext, logging) =>
-                {
-                    logging.ReadFrom.Configuration(hostContext.Configuration);
-                })
-            #if DEBUG
-                .UseEnvironment("Development")
-            #else
-                .UseEnvironment("Production")
-            #endif
-                .UseConsoleLifetime()
-                .UseMassTransit()
-                .ConfigureAppConfiguration((_, configuration) =>
-                {
-                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        // Add a set of config files for the /etc directory
-                        var systemConfigFolder = "/etc";
-
-                        var systemConfigFile = Path.Combine(systemConfigFolder, "argus", "collector.json");
-                        configuration.AddJsonFile(systemConfigFile, true);
-                    }
-
-                    // equivalent to /home/someone/.config
-                    var localConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-
-                    var localConfigFile = Path.Combine(localConfigFolder, "argus", "collector.json");
-                    configuration.AddJsonFile(localConfigFile, true);
-                })
-                .ConfigureServices((hostContext, services) =>
-                {
-                    var options = new CollectorOptions();
-
-                    hostContext.Configuration.Bind(nameof(CollectorOptions), options);
-                    services.Configure(() => options);
-
-                    // Various
-                    services
-                        .AddHttpClient()
-                        .AddMemoryCache();
-
-                    var rateLimit = options.BulkDownloadRateLimit;
-                    if (rateLimit == 0)
-                    {
-                        rateLimit = 25;
-                    }
-
-                    var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
-                    services
-                        .AddHttpClient("BulkDownload")
-                        .AddTransientHttpErrorPolicy
-                        (
-                            b => b
-                                .WaitAndRetryAsync(retryDelay)
-                                .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
-                        );
-
-                    services.AddHostedService<TCollector>();
-                });
-
-            return hostBuilder;
-        }
+        return hostBuilder;
     }
 }

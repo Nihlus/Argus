@@ -37,212 +37,211 @@ using Serilog;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace Argus.Fingerprint
+namespace Argus.Fingerprint;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static Task<int> Main(string[] args) => Parser.Default.ParseArguments
+    (
+        () => new FingerprintOptions
+        (
+            Array.Empty<string>(),
+            Directory.GetCurrentDirectory()
+        ),
+        args
+    ).MapResult
+    (
+        RunAsync,
+        _ => Task.FromResult(1)
+    );
+
+    private static async Task<int> RunAsync(FingerprintOptions options)
     {
-        private static Task<int> Main(string[] args) => Parser.Default.ParseArguments
-        (
-            () => new FingerprintOptions
-            (
-                Array.Empty<string>(),
-                Directory.GetCurrentDirectory()
-            ),
-            args
-        ).MapResult
-        (
-            RunAsync,
-            _ => Task.FromResult(1)
-        );
+        var services = new ServiceCollection()
+            .AddLogging(logging =>
+            {
+                var loggingConfiguration = new LoggerConfiguration()
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console()
+                    .CreateLogger();
 
-        private static async Task<int> RunAsync(FingerprintOptions options)
+                logging
+                    .ClearProviders()
+                    .AddSerilog(loggingConfiguration, true);
+            })
+            .BuildServiceProvider();
+
+        var log = services.GetRequiredService<ILogger<Program>>();
+
+        try
         {
-            var services = new ServiceCollection()
-                .AddLogging(logging =>
-                {
-                    var loggingConfiguration = new LoggerConfiguration()
-                        .Enrich.FromLogContext()
-                        .WriteTo.Console()
-                        .CreateLogger();
-
-                    logging
-                        .ClearProviders()
-                        .AddSerilog(loggingConfiguration, true);
-                })
-                .BuildServiceProvider();
-
-            var log = services.GetRequiredService<ILogger<Program>>();
-
-            try
+            // Setup
+            var absoluteFilePaths = new List<string>();
+            foreach (var file in options.Files)
             {
-                // Setup
-                var absoluteFilePaths = new List<string>();
-                foreach (var file in options.Files)
+                var absolutePath = Path.GetFullPath(file);
+                if (!File.Exists(absolutePath))
                 {
-                    var absolutePath = Path.GetFullPath(file);
-                    if (!File.Exists(absolutePath))
-                    {
-                        log.LogWarning("File not found: {File}", absolutePath);
-                        return 1;
-                    }
-
-                    absoluteFilePaths.Add(absolutePath);
+                    log.LogWarning("File not found: {File}", absolutePath);
+                    return 1;
                 }
 
-                var absoluteOutputPath = Path.GetFullPath(options.OutputDirectory);
-                if (!Directory.Exists(absoluteOutputPath))
-                {
-                    log.LogInformation("Creating output directories...");
-                    Directory.CreateDirectory(absoluteOutputPath);
-                }
+                absoluteFilePaths.Add(absolutePath);
+            }
 
-                var jsonOptions = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
-                    Converters = { new Base64FingerprintConverter() },
-                    WriteIndented = true
-                };
+            var absoluteOutputPath = Path.GetFullPath(options.OutputDirectory);
+            if (!Directory.Exists(absoluteOutputPath))
+            {
+                log.LogInformation("Creating output directories...");
+                Directory.CreateDirectory(absoluteOutputPath);
+            }
 
-                // Processing
-                var portableFingerprints = await CreateFingerprints
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
+                Converters = { new Base64FingerprintConverter() },
+                WriteIndented = true
+            };
+
+            // Processing
+            var portableFingerprints = await CreateFingerprints
+            (
+                absoluteFilePaths,
+                log
+            );
+
+            // Output
+            if (options.ShouldPack)
+            {
+                await CreatePackedOutput
                 (
+                    options,
+                    absoluteOutputPath,
                     absoluteFilePaths,
-                    log
+                    portableFingerprints,
+                    jsonOptions
                 );
-
-                // Output
-                if (options.ShouldPack)
-                {
-                    await CreatePackedOutput
-                    (
-                        options,
-                        absoluteOutputPath,
-                        absoluteFilePaths,
-                        portableFingerprints,
-                        jsonOptions
-                    );
-                }
-                else
-                {
-                    await CreateOutput
-                    (
-                        options,
-                        absoluteFilePaths,
-                        absoluteOutputPath,
-                        portableFingerprints,
-                        jsonOptions
-                    );
-                }
-
-                log.LogInformation("Fingerprinting completed");
-
-                return 0;
             }
-            catch (Exception e)
+            else
             {
-                log.LogError(e, "Unexpected error during execution");
-                return 1;
+                await CreateOutput
+                (
+                    options,
+                    absoluteFilePaths,
+                    absoluteOutputPath,
+                    portableFingerprints,
+                    jsonOptions
+                );
             }
+
+            log.LogInformation("Fingerprinting completed");
+
+            return 0;
+        }
+        catch (Exception e)
+        {
+            log.LogError(e, "Unexpected error during execution");
+            return 1;
+        }
+    }
+
+    private static async Task<List<PortableFingerprint>> CreateFingerprints
+    (
+        List<string> absoluteFilePaths,
+        ILogger<Program> log
+    )
+    {
+        var signatureGenerator = new SignatureGenerator();
+
+        var portableFingerprints = new List<PortableFingerprint>();
+        foreach (var absoluteFilePath in absoluteFilePaths)
+        {
+            var filename = Path.GetFileName(absoluteFilePath);
+            log.LogInformation("Fingerprinting {File}", filename);
+
+            await using var file = File.OpenRead(absoluteFilePath);
+            using var sha256 = SHA256.Create();
+
+            log.LogInformation("Computing hash...");
+            var hashBytes = await sha256.ComputeHashAsync(file);
+            var hash = BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLowerInvariant();
+
+            // Rewind file stream
+            file.Seek(0, SeekOrigin.Begin);
+
+            log.LogInformation("Computing perceptual fingerprint...");
+            using var image = await Image.LoadAsync<L8>(file);
+            var fingerprint = signatureGenerator.GenerateSignature(image);
+
+            portableFingerprints.Add(new PortableFingerprint(filename, hash, fingerprint));
         }
 
-        private static async Task<List<PortableFingerprint>> CreateFingerprints
-        (
-            List<string> absoluteFilePaths,
-            ILogger<Program> log
-        )
-        {
-            var signatureGenerator = new SignatureGenerator();
+        return portableFingerprints;
+    }
 
-            var portableFingerprints = new List<PortableFingerprint>();
+    private static async Task CreateOutput
+    (
+        FingerprintOptions options,
+        List<string> absoluteFilePaths,
+        string absoluteOutputPath,
+        List<PortableFingerprint> portableFingerprints,
+        JsonSerializerOptions jsonOptions
+    )
+    {
+        if (options.IncludeSourceImages)
+        {
             foreach (var absoluteFilePath in absoluteFilePaths)
             {
                 var filename = Path.GetFileName(absoluteFilePath);
-                log.LogInformation("Fingerprinting {File}", filename);
-
-                await using var file = File.OpenRead(absoluteFilePath);
-                using var sha256 = SHA256.Create();
-
-                log.LogInformation("Computing hash...");
-                var hashBytes = await sha256.ComputeHashAsync(file);
-                var hash = BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLowerInvariant();
-
-                // Rewind file stream
-                file.Seek(0, SeekOrigin.Begin);
-
-                log.LogInformation("Computing perceptual fingerprint...");
-                using var image = await Image.LoadAsync<L8>(file);
-                var fingerprint = signatureGenerator.GenerateSignature(image);
-
-                portableFingerprints.Add(new PortableFingerprint(filename, hash, fingerprint));
-            }
-
-            return portableFingerprints;
-        }
-
-        private static async Task CreateOutput
-        (
-            FingerprintOptions options,
-            List<string> absoluteFilePaths,
-            string absoluteOutputPath,
-            List<PortableFingerprint> portableFingerprints,
-            JsonSerializerOptions jsonOptions
-        )
-        {
-            if (options.IncludeSourceImages)
-            {
-                foreach (var absoluteFilePath in absoluteFilePaths)
-                {
-                    var filename = Path.GetFileName(absoluteFilePath);
-                    var output = Path.Combine(absoluteOutputPath, "source", filename);
-                    File.Copy(absoluteFilePath, output);
-                }
-            }
-
-            foreach (var portableFingerprint in portableFingerprints)
-            {
-                var filename = $"{Path.GetFileNameWithoutExtension(portableFingerprint.Filename)}.json";
-                var output = Path.Combine(absoluteOutputPath, filename);
-
-                await using var outputStream = File.OpenWrite(output);
-                await JsonSerializer.SerializeAsync(outputStream, portableFingerprint, jsonOptions);
+                var output = Path.Combine(absoluteOutputPath, "source", filename);
+                File.Copy(absoluteFilePath, output);
             }
         }
 
-        private static async Task CreatePackedOutput
-        (
-            FingerprintOptions options,
-            string absoluteOutputPath,
-            List<string> absoluteFilePaths,
-            List<PortableFingerprint> portableFingerprints,
-            JsonSerializerOptions jsonOptions
-        )
+        foreach (var portableFingerprint in portableFingerprints)
         {
-            var now = DateTimeOffset.UtcNow.ToString("s").Replace(":", ".");
-            await using var output = File.Open(Path.Combine(absoluteOutputPath, $"{now}.fpkg"), FileMode.Create);
+            var filename = $"{Path.GetFileNameWithoutExtension(portableFingerprint.Filename)}.json";
+            var output = Path.Combine(absoluteOutputPath, filename);
 
-            using var archive = new ZipArchive(output, ZipArchiveMode.Create);
+            await using var outputStream = File.OpenWrite(output);
+            await JsonSerializer.SerializeAsync(outputStream, portableFingerprint, jsonOptions);
+        }
+    }
 
-            if (options.IncludeSourceImages)
+    private static async Task CreatePackedOutput
+    (
+        FingerprintOptions options,
+        string absoluteOutputPath,
+        List<string> absoluteFilePaths,
+        List<PortableFingerprint> portableFingerprints,
+        JsonSerializerOptions jsonOptions
+    )
+    {
+        var now = DateTimeOffset.UtcNow.ToString("s").Replace(":", ".");
+        await using var output = File.Open(Path.Combine(absoluteOutputPath, $"{now}.fpkg"), FileMode.Create);
+
+        using var archive = new ZipArchive(output, ZipArchiveMode.Create);
+
+        if (options.IncludeSourceImages)
+        {
+            foreach (var absoluteFilePath in absoluteFilePaths)
             {
-                foreach (var absoluteFilePath in absoluteFilePaths)
-                {
-                    var entryName = Path.Combine("source", Path.GetFileName(absoluteFilePath));
-                    archive.CreateEntryFromFile(absoluteFilePath, entryName);
-                }
+                var entryName = Path.Combine("source", Path.GetFileName(absoluteFilePath));
+                archive.CreateEntryFromFile(absoluteFilePath, entryName);
             }
+        }
 
-            foreach (var portableFingerprint in portableFingerprints)
-            {
-                var filename = $"{Path.GetFileNameWithoutExtension(portableFingerprint.Filename)}.json";
+        foreach (var portableFingerprint in portableFingerprints)
+        {
+            var filename = $"{Path.GetFileNameWithoutExtension(portableFingerprint.Filename)}.json";
 
-                var entry = archive.CreateEntry(filename);
-                await using var entryStream = entry.Open();
+            var entry = archive.CreateEntry(filename);
+            await using var entryStream = entry.Open();
 
-                await JsonSerializer.SerializeAsync(entryStream, portableFingerprint, jsonOptions);
-            }
+            await JsonSerializer.SerializeAsync(entryStream, portableFingerprint, jsonOptions);
         }
     }
 }

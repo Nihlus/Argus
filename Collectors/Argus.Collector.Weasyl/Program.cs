@@ -38,58 +38,58 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 
-namespace Argus.Collector.Weasyl
+namespace Argus.Collector.Weasyl;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
+        using var host = CreateHostBuilder(args).Build();
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
+
+        await host.RunAsync();
+        log.LogInformation("Shutting down...");
+    }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+        .UseCollector<WeasylCollectorService, WeasylOptions>
+        (
+            "weasyl",
+            () => new WeasylOptions(string.Empty)
+        )
+        .ConfigureAppConfiguration((hostContext, configuration) =>
         {
-            using var host = CreateHostBuilder(args).Build();
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
-
-            await host.RunAsync();
-            log.LogInformation("Shutting down...");
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<WeasylCollectorService, WeasylOptions>
-            (
-                "weasyl",
-                () => new WeasylOptions(string.Empty)
-            )
-            .ConfigureAppConfiguration((hostContext, configuration) =>
+            if (hostContext.HostingEnvironment.IsDevelopment())
             {
-                if (hostContext.HostingEnvironment.IsDevelopment())
-                {
-                    configuration.AddUserSecrets<Program>();
-                }
-            })
-            .ConfigureServices((hostContext, services) =>
+                configuration.AddUserSecrets<Program>();
+            }
+        })
+        .ConfigureServices((hostContext, services) =>
+        {
+            var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+
+            services.Configure<JsonSerializerOptions>(o =>
             {
-                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+                o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                o.PropertyNameCaseInsensitive = true;
+            });
 
-                services.Configure<JsonSerializerOptions>(o =>
-                {
-                    o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
-                    o.PropertyNameCaseInsensitive = true;
-                });
+            services
+                .AddSingleton<WeasylAPI>();
 
-                services
-                    .AddSingleton<WeasylAPI>();
+            var rateLimit = hostContext.Configuration
+                .GetSection(nameof(WeasylOptions))
+                .GetValue<int>(nameof(WeasylOptions.RateLimit));
 
-                var rateLimit = hostContext.Configuration
-                    .GetSection(nameof(WeasylOptions))
-                    .GetValue<int>(nameof(WeasylOptions.RateLimit));
+            if (rateLimit == 0)
+            {
+                rateLimit = 1;
+            }
 
-                if (rateLimit == 0)
-                {
-                    rateLimit = 1;
-                }
-
-                services.AddHttpClient(nameof(WeasylAPI), (_, client) =>
+            services.AddHttpClient(nameof(WeasylAPI), (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
                     var name = assemblyName.Name ?? "Indexer";
@@ -107,6 +107,5 @@ namespace Argus.Collector.Weasyl
                         .WaitAndRetryAsync(retryDelay)
                         .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
                 );
-            });
-    }
+        });
 }

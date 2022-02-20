@@ -23,16 +23,15 @@
 using System.Net;
 using Remora.Results;
 
-namespace Argus.Collector.Weasyl.API.Model
-{
-    /// <summary>
-    /// Represents an error returned by Weasyl.
-    /// </summary>
-    /// <param name="StatusCode">The Http status code.</param>
-    /// <param name="Code">The error code.</param>
-    /// <param name="Name">The error name.</param>
-    public record WeasylError(HttpStatusCode StatusCode, int? Code, string? Name) : ResultError
-    (
-        $"A Weasyl error occurred: {Name ?? string.Empty}{(Code is null ? string.Empty : $" (code {Code})")}"
-    );
-}
+namespace Argus.Collector.Weasyl.API.Model;
+
+/// <summary>
+/// Represents an error returned by Weasyl.
+/// </summary>
+/// <param name="StatusCode">The Http status code.</param>
+/// <param name="Code">The error code.</param>
+/// <param name="Name">The error name.</param>
+public record WeasylError(HttpStatusCode StatusCode, int? Code, string? Name) : ResultError
+(
+    $"A Weasyl error occurred: {Name ?? string.Empty}{(Code is null ? string.Empty : $" (code {Code})")}"
+);

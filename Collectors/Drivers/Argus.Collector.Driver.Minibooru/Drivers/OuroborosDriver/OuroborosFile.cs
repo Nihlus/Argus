@@ -23,14 +23,13 @@
 using System;
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents an Ouroboros file.
-    /// </summary>
-    /// <param name="Url">The full URL to the file.</param>
-    public record OuroborosFile
-    (
-        [property: JsonPropertyName("url")] Uri? Url
-    );
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents an Ouroboros file.
+/// </summary>
+/// <param name="Url">The full URL to the file.</param>
+public record OuroborosFile
+(
+    [property: JsonPropertyName("url")] Uri? Url
+);

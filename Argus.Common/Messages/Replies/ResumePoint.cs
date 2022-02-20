@@ -20,13 +20,12 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Common.Messages.Replies
-{
-    /// <summary>
-    /// Represents a reply with a resume point.
-    /// </summary>
-    public record ResumePoint
-    (
-        string Value
-    );
-}
+namespace Argus.Common.Messages.Replies;
+
+/// <summary>
+/// Represents a reply with a resume point.
+/// </summary>
+public record ResumePoint
+(
+    string Value
+);

@@ -37,57 +37,57 @@ using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 
-namespace Argus.Collector.FurAffinity
+namespace Argus.Collector.FurAffinity;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
+        using var host = CreateHostBuilder(args).Build();
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
+
+        await host.RunAsync();
+        log.LogInformation("Shutting down...");
+    }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+        .UseCollector<FurAffinityCollectorService, FurAffinityOptions>
+        (
+            "furaffinity",
+            () => new FurAffinityOptions(string.Empty, string.Empty)
+        )
+        .ConfigureAppConfiguration((hostContext, configuration) =>
         {
-            using var host = CreateHostBuilder(args).Build();
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
-
-            await host.RunAsync();
-            log.LogInformation("Shutting down...");
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<FurAffinityCollectorService, FurAffinityOptions>
-            (
-                "furaffinity",
-                () => new FurAffinityOptions(string.Empty, string.Empty)
-            )
-            .ConfigureAppConfiguration((hostContext, configuration) =>
+            if (hostContext.HostingEnvironment.IsDevelopment())
             {
-                if (hostContext.HostingEnvironment.IsDevelopment())
-                {
-                    configuration.AddUserSecrets<Program>();
-                }
-            })
-            .ConfigureServices((hostContext, services) =>
+                configuration.AddUserSecrets<Program>();
+            }
+        })
+        .ConfigureServices((hostContext, services) =>
+        {
+            var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+
+            services.Configure<JsonSerializerOptions>(o =>
             {
-                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+                o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                o.PropertyNameCaseInsensitive = true;
+            });
 
-                services.Configure<JsonSerializerOptions>(o =>
-                {
-                    o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
-                    o.PropertyNameCaseInsensitive = true;
-                });
+            services.AddSingleton<FurAffinityAPI>();
 
-                services.AddSingleton<FurAffinityAPI>();
+            var rateLimit = hostContext.Configuration
+                .GetSection(nameof(FurAffinityOptions))
+                .GetValue<int>(nameof(FurAffinityOptions.RateLimit));
 
-                var rateLimit = hostContext.Configuration
-                    .GetSection(nameof(FurAffinityOptions))
-                    .GetValue<int>(nameof(FurAffinityOptions.RateLimit));
+            if (rateLimit == 0)
+            {
+                rateLimit = 10;
+            }
 
-                if (rateLimit == 0)
-                {
-                    rateLimit = 10;
-                }
-
-                services.AddHttpClient(nameof(FurAffinityAPI), (s, client) =>
+            services.AddHttpClient(nameof(FurAffinityAPI), (s, client) =>
                 {
                     var options = s.GetRequiredService<IOptions<FurAffinityOptions>>();
 
@@ -100,6 +100,5 @@ namespace Argus.Collector.FurAffinity
                         .WaitAndRetryAsync(retryDelay)
                         .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
                 );
-            });
-    }
+        });
 }

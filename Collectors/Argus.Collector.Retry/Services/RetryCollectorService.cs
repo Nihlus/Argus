@@ -40,169 +40,168 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.Retry.Services
+namespace Argus.Collector.Retry.Services;
+
+/// <summary>
+/// Retries failed images.
+/// </summary>
+public class RetryCollectorService : CollectorService
 {
+    private readonly RetryOptions _options;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<RetryCollectorService> _log;
+    private readonly IMessageDataRepository _repository;
+
+    /// <inheritdoc />
+    protected override string ServiceName => "retry";
+
     /// <summary>
-    /// Retries failed images.
+    /// Initializes a new instance of the <see cref="RetryCollectorService"/> class.
     /// </summary>
-    public class RetryCollectorService : CollectorService
+    /// <param name="retryOptions">The retryOptions.</param>
+    /// <param name="httpClientFactory">The http client factory.</param>
+    /// <param name="bus">The message bus.</param>
+    /// <param name="repository">The message data repository.</param>
+    /// <param name="options">The collector retryOptions.</param>
+    /// <param name="log">The logging instance.</param>
+    public RetryCollectorService
+    (
+        IOptions<RetryOptions> retryOptions,
+        IHttpClientFactory httpClientFactory,
+        IBus bus,
+        IMessageDataRepository repository,
+        IOptions<CollectorOptions> options,
+        ILogger<RetryCollectorService> log)
+        : base(bus, options, log)
     {
-        private readonly RetryOptions _options;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<RetryCollectorService> _log;
-        private readonly IMessageDataRepository _repository;
+        _options = retryOptions.Value;
+        _httpClientFactory = httpClientFactory;
+        _log = log;
+        _repository = repository;
+    }
 
-        /// <inheritdoc />
-        protected override string ServiceName => "retry";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RetryCollectorService"/> class.
-        /// </summary>
-        /// <param name="retryOptions">The retryOptions.</param>
-        /// <param name="httpClientFactory">The http client factory.</param>
-        /// <param name="bus">The message bus.</param>
-        /// <param name="repository">The message data repository.</param>
-        /// <param name="options">The collector retryOptions.</param>
-        /// <param name="log">The logging instance.</param>
-        public RetryCollectorService
-        (
-            IOptions<RetryOptions> retryOptions,
-            IHttpClientFactory httpClientFactory,
-            IBus bus,
-            IMessageDataRepository repository,
-            IOptions<CollectorOptions> options,
-            ILogger<RetryCollectorService> log)
-            : base(bus, options, log)
+    /// <inheritdoc />
+    protected override async Task<Result> CollectAsync(CancellationToken ct = default)
+    {
+        while (!ct.IsCancellationRequested)
         {
-            _options = retryOptions.Value;
-            _httpClientFactory = httpClientFactory;
-            _log = log;
-            _repository = repository;
-        }
-
-        /// <inheritdoc />
-        protected override async Task<Result> CollectAsync(CancellationToken ct = default)
-        {
-            while (!ct.IsCancellationRequested)
+            var getPage = await GetImagesToRetryAsync(ct);
+            if (!getPage.IsSuccess)
             {
-                var getPage = await GetImagesToRetryAsync(ct);
-                if (!getPage.IsSuccess)
-                {
-                    return Result.FromError(getPage);
-                }
+                return Result.FromError(getPage);
+            }
 
-                var page = getPage.Entity;
-                if (page.Count == 0)
+            var page = getPage.Entity;
+            if (page.Count == 0)
+            {
+                _log.LogInformation("Waiting for new images to retry...");
+                await Task.Delay(TimeSpan.FromHours(1), ct);
+                continue;
+            }
+
+            var client = _httpClientFactory.CreateClient("BulkDownload");
+            var collections = await Task.WhenAll(page.Select(report => CollectImageAsync(client, report, ct)));
+
+            foreach (var collection in collections)
+            {
+                if (!collection.IsSuccess)
                 {
-                    _log.LogInformation("Waiting for new images to retry...");
-                    await Task.Delay(TimeSpan.FromHours(1), ct);
+                    _log.LogWarning("Failed to collect image: {Reason}", collection.Error.Message);
                     continue;
                 }
 
-                var client = _httpClientFactory.CreateClient("BulkDownload");
-                var collections = await Task.WhenAll(page.Select(report => CollectImageAsync(client, report, ct)));
+                var (statusReport, collectedImage) = collection.Entity;
 
-                foreach (var collection in collections)
+                var report = await PushStatusReportAsync(statusReport, ct);
+                if (!report.IsSuccess)
                 {
-                    if (!collection.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to collect image: {Reason}", collection.Error.Message);
-                        continue;
-                    }
-
-                    var (statusReport, collectedImage) = collection.Entity;
-
-                    var report = await PushStatusReportAsync(statusReport, ct);
-                    if (!report.IsSuccess)
-                    {
-                        _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
-                        return report;
-                    }
-
-                    if (collectedImage is null)
-                    {
-                        continue;
-                    }
-
-                    var push = await PushCollectedImageAsync(collectedImage, ct);
-                    if (push.IsSuccess)
-                    {
-                        continue;
-                    }
-
-                    _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                    return push;
+                    _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
+                    return report;
                 }
-            }
 
-            return Result.FromSuccess();
-        }
-
-        private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync
-        (
-            HttpClient client,
-            StatusReport failedImage,
-            CancellationToken ct = default
-        )
-        {
-            var statusReport = new StatusReport
-            (
-                DateTimeOffset.UtcNow,
-                failedImage.ServiceName,
-                failedImage.Source,
-                failedImage.Link,
-                ImageStatus.Collected,
-                string.Empty
-            );
-
-            try
-            {
-                var bytes = await client.GetByteArrayAsync(failedImage.Link, ct);
-
-                var collectedImage = new CollectedImage
-                (
-                    statusReport.ServiceName,
-                    statusReport.Source,
-                    statusReport.Link,
-                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
-                );
-
-                return (statusReport, collectedImage);
-            }
-            catch (HttpRequestException hex) when (hex.StatusCode is HttpStatusCode.NotFound)
-            {
-                var rejectionReport = statusReport with
+                if (collectedImage is null)
                 {
-                    Status = ImageStatus.Rejected,
-                    Message = "File not found (deleted?)"
-                };
+                    continue;
+                }
 
-                return (rejectionReport, null);
-            }
-            catch (Exception e)
-            {
-                return e;
+                var push = await PushCollectedImageAsync(collectedImage, ct);
+                if (push.IsSuccess)
+                {
+                    continue;
+                }
+
+                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                return push;
             }
         }
 
-        /// <summary>
-        /// Gets a page of images to retry.
-        /// </summary>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The resume point.</returns>
-        private async Task<Result<IReadOnlyCollection<StatusReport>>> GetImagesToRetryAsync(CancellationToken ct = default)
-        {
-            var message = new GetImagesToRetry(_options.PageSize);
+        return Result.FromSuccess();
+    }
 
-            // TODO: Figure out why this is timing out in the first place; workaround for now
-            var response = await this.Bus.Request<GetImagesToRetry, ImagesToRetry>
+    private async Task<Result<(StatusReport Report, CollectedImage? Image)>> CollectImageAsync
+    (
+        HttpClient client,
+        StatusReport failedImage,
+        CancellationToken ct = default
+    )
+    {
+        var statusReport = new StatusReport
+        (
+            DateTimeOffset.UtcNow,
+            failedImage.ServiceName,
+            failedImage.Source,
+            failedImage.Link,
+            ImageStatus.Collected,
+            string.Empty
+        );
+
+        try
+        {
+            var bytes = await client.GetByteArrayAsync(failedImage.Link, ct);
+
+            var collectedImage = new CollectedImage
             (
-                message,
-                ct,
-                TimeSpan.FromMinutes(5)
+                statusReport.ServiceName,
+                statusReport.Source,
+                statusReport.Link,
+                await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
             );
 
-            return Result<IReadOnlyCollection<StatusReport>>.FromSuccess(response.Message.Value);
+            return (statusReport, collectedImage);
         }
+        catch (HttpRequestException hex) when (hex.StatusCode is HttpStatusCode.NotFound)
+        {
+            var rejectionReport = statusReport with
+            {
+                Status = ImageStatus.Rejected,
+                Message = "File not found (deleted?)"
+            };
+
+            return (rejectionReport, null);
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
+    }
+
+    /// <summary>
+    /// Gets a page of images to retry.
+    /// </summary>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The resume point.</returns>
+    private async Task<Result<IReadOnlyCollection<StatusReport>>> GetImagesToRetryAsync(CancellationToken ct = default)
+    {
+        var message = new GetImagesToRetry(_options.PageSize);
+
+        // TODO: Figure out why this is timing out in the first place; workaround for now
+        var response = await this.Bus.Request<GetImagesToRetry, ImagesToRetry>
+        (
+            message,
+            ct,
+            TimeSpan.FromMinutes(5)
+        );
+
+        return Result<IReadOnlyCollection<StatusReport>>.FromSuccess(response.Message.Value);
     }
 }

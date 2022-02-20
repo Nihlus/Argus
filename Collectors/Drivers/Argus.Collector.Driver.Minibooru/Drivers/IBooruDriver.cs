@@ -26,25 +26,24 @@ using System.Threading.Tasks;
 using Argus.Collector.Driver.Minibooru.Model;
 using Remora.Results;
 
-namespace Argus.Collector.Driver.Minibooru
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents the public interface of a Booru driver.
+/// </summary>
+public interface IBooruDriver
 {
     /// <summary>
-    /// Represents the public interface of a Booru driver.
+    /// Gets a set of posts from the Booru.
     /// </summary>
-    public interface IBooruDriver
-    {
-        /// <summary>
-        /// Gets a set of posts from the Booru.
-        /// </summary>
-        /// <param name="after">The ID after which posts should be retrieved.</param>
-        /// <param name="limit">The maximum number of posts to retrieve.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>A set of posts.</returns>
-        Task<Result<IReadOnlyList<BooruPost>>> GetPostsAsync
-        (
-            ulong after = 0,
-            uint limit = 100,
-            CancellationToken ct = default
-        );
-    }
+    /// <param name="after">The ID after which posts should be retrieved.</param>
+    /// <param name="limit">The maximum number of posts to retrieve.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>A set of posts.</returns>
+    Task<Result<IReadOnlyList<BooruPost>>> GetPostsAsync
+    (
+        ulong after = 0,
+        uint limit = 100,
+        CancellationToken ct = default
+    );
 }

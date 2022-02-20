@@ -22,11 +22,10 @@
 
 using System;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents various options related to Gelbooru-specific behaviour.
-    /// </summary>
-    /// <param name="BaseCDNUrl">The CDN URL to build image links from.</param>
-    public record GelbooruDriverOptions(Uri BaseCDNUrl);
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents various options related to Gelbooru-specific behaviour.
+/// </summary>
+/// <param name="BaseCDNUrl">The CDN URL to build image links from.</param>
+public record GelbooruDriverOptions(Uri BaseCDNUrl);

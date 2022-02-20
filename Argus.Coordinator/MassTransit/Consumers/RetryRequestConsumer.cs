@@ -31,48 +31,47 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Argus.Coordinator.MassTransit.Consumers
+namespace Argus.Coordinator.MassTransit.Consumers;
+
+/// <summary>
+/// Consumes various retry-related requests.
+/// </summary>
+public class RetryRequestConsumer : IConsumer<GetImagesToRetry>
 {
+    private readonly CoordinatorContext _db;
+    private readonly ILogger<RetryRequestConsumer> _log;
+
     /// <summary>
-    /// Consumes various retry-related requests.
+    /// Initializes a new instance of the <see cref="RetryRequestConsumer"/> class.
     /// </summary>
-    public class RetryRequestConsumer : IConsumer<GetImagesToRetry>
+    /// <param name="db">The database context.</param>
+    /// <param name="log">The logging instance.</param>
+    public RetryRequestConsumer(CoordinatorContext db, ILogger<RetryRequestConsumer> log)
     {
-        private readonly CoordinatorContext _db;
-        private readonly ILogger<RetryRequestConsumer> _log;
+        _db = db;
+        _log = log;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RetryRequestConsumer"/> class.
-        /// </summary>
-        /// <param name="db">The database context.</param>
-        /// <param name="log">The logging instance.</param>
-        public RetryRequestConsumer(CoordinatorContext db, ILogger<RetryRequestConsumer> log)
-        {
-            _db = db;
-            _log = log;
-        }
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<GetImagesToRetry> context)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var then = now - TimeSpan.FromHours(1);
 
-        /// <inheritdoc />
-        public async Task Consume(ConsumeContext<GetImagesToRetry> context)
-        {
-            var now = DateTimeOffset.UtcNow;
-            var then = now - TimeSpan.FromHours(1);
+        var reports = await _db.ServiceStatusReports.AsNoTracking()
+            .OrderBy(r => r.Timestamp)
+            .Where(r => r.Timestamp < then)
+            .Where
+            (
+                r =>
+                    r.Status != ImageStatus.Faulted &&
+                    r.Status != ImageStatus.Rejected &&
+                    r.Status != ImageStatus.Indexed
+            )
+            .Take(context.Message.MaxCount)
+            .ToListAsync(context.CancellationToken);
 
-            var reports = await _db.ServiceStatusReports.AsNoTracking()
-                .OrderBy(r => r.Timestamp)
-                .Where(r => r.Timestamp < then)
-                .Where
-                (
-                    r =>
-                        r.Status != ImageStatus.Faulted &&
-                        r.Status != ImageStatus.Rejected &&
-                        r.Status != ImageStatus.Indexed
-                )
-                .Take(context.Message.MaxCount)
-                .ToListAsync(context.CancellationToken);
-
-            await context.RespondAsync(new ImagesToRetry(reports));
-            _log.LogInformation("Sent {Count} images for retrying", reports.Count);
-        }
+        await context.RespondAsync(new ImagesToRetry(reports));
+        _log.LogInformation("Sent {Count} images for retrying", reports.Count);
     }
 }

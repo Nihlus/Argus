@@ -22,14 +22,13 @@
 
 using System;
 
-namespace Argus.Common.Services.Elasticsearch.Search
-{
-    /// <summary>
-    /// Represents minimal information about an indexed image.
-    /// </summary>
-    /// <param name="IndexedAt">The time at which the image was indexed.</param>
-    /// <param name="Service">The name of the service the image was indexed from.</param>
-    /// <param name="Source">The source link from which the image was indexed.</param>
-    /// <param name="Link">The direct link to the image.</param>
-    public record ImageInformation(DateTimeOffset IndexedAt, string Service, Uri Source, Uri Link);
-}
+namespace Argus.Common.Services.Elasticsearch.Search;
+
+/// <summary>
+/// Represents minimal information about an indexed image.
+/// </summary>
+/// <param name="IndexedAt">The time at which the image was indexed.</param>
+/// <param name="Service">The name of the service the image was indexed from.</param>
+/// <param name="Source">The source link from which the image was indexed.</param>
+/// <param name="Link">The direct link to the image.</param>
+public record ImageInformation(DateTimeOffset IndexedAt, string Service, Uri Source, Uri Link);

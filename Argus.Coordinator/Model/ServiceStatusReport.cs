@@ -23,38 +23,37 @@
 using Argus.Common.Messages.BulkData;
 using JetBrains.Annotations;
 
-namespace Argus.Coordinator.Model
+namespace Argus.Coordinator.Model;
+
+/// <summary>
+/// Represents a service report stored in the database.
+/// </summary>
+public class ServiceStatusReport
 {
     /// <summary>
-    /// Represents a service report stored in the database.
+    /// Gets the database ID of the service state.
     /// </summary>
-    public class ServiceStatusReport
+    public int Id { get; init; }
+
+    /// <summary>
+    /// Gets or sets the report.
+    /// </summary>
+    public StatusReport Report { get; set; } = null!;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServiceStatusReport"/> class. Required by EF Core.
+    /// </summary>
+    [UsedImplicitly]
+    protected ServiceStatusReport()
     {
-        /// <summary>
-        /// Gets the database ID of the service state.
-        /// </summary>
-        public int Id { get; init; }
+    }
 
-        /// <summary>
-        /// Gets or sets the report.
-        /// </summary>
-        public StatusReport Report { get; set; } = null!;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceStatusReport"/> class. Required by EF Core.
-        /// </summary>
-        [UsedImplicitly]
-        protected ServiceStatusReport()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceStatusReport"/> class.
-        /// </summary>
-        /// <param name="report">The status report.</param>
-        public ServiceStatusReport(StatusReport report)
-        {
-            this.Report = report;
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServiceStatusReport"/> class.
+    /// </summary>
+    /// <param name="report">The status report.</param>
+    public ServiceStatusReport(StatusReport report)
+    {
+        this.Report = report;
     }
 }

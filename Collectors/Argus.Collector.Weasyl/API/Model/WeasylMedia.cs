@@ -20,16 +20,15 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.Weasyl.API.Model
+namespace Argus.Collector.Weasyl.API.Model;
+
+/// <summary>
+/// Represents a set of Weasyl media items.
+/// </summary>
+public class WeasylMedia
 {
     /// <summary>
-    /// Represents a set of Weasyl media items.
+    /// Gets the URL of the media item.
     /// </summary>
-    public class WeasylMedia
-    {
-        /// <summary>
-        /// Gets the URL of the media item.
-        /// </summary>
-        public string URL { get; init; } = string.Empty;
-    }
+    public string URL { get; init; } = string.Empty;
 }

@@ -26,35 +26,34 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Puzzle;
 
-namespace Argus.Common.Json
-{
-    /// <summary>
-    /// Converts a fingerprint to and from a base64 encoded string.
-    /// </summary>
-    public class Base64FingerprintConverter : JsonConverter<LuminosityLevel[]>
-    {
-        /// <inheritdoc />
-        public override LuminosityLevel[] Read
-        (
-            ref Utf8JsonReader reader,
-            Type typeToConvert,
-            JsonSerializerOptions options
-        )
-        {
-            var bytes = reader.GetBytesFromBase64();
-            return MemoryMarshal.Cast<byte, LuminosityLevel>(bytes).ToArray();
-        }
+namespace Argus.Common.Json;
 
-        /// <inheritdoc />
-        public override void Write
-        (
-            Utf8JsonWriter writer,
-            LuminosityLevel[] value,
-            JsonSerializerOptions options
-        )
-        {
-            var span = MemoryMarshal.Cast<LuminosityLevel, byte>(value);
-            writer.WriteBase64StringValue(span);
-        }
+/// <summary>
+/// Converts a fingerprint to and from a base64 encoded string.
+/// </summary>
+public class Base64FingerprintConverter : JsonConverter<LuminosityLevel[]>
+{
+    /// <inheritdoc />
+    public override LuminosityLevel[] Read
+    (
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
+    {
+        var bytes = reader.GetBytesFromBase64();
+        return MemoryMarshal.Cast<byte, LuminosityLevel>(bytes).ToArray();
+    }
+
+    /// <inheritdoc />
+    public override void Write
+    (
+        Utf8JsonWriter writer,
+        LuminosityLevel[] value,
+        JsonSerializerOptions options
+    )
+    {
+        var span = MemoryMarshal.Cast<LuminosityLevel, byte>(value);
+        writer.WriteBase64StringValue(span);
     }
 }

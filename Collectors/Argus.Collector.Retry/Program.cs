@@ -29,34 +29,33 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Argus.Collector.Retry
+namespace Argus.Collector.Retry;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
-        {
-            using var host = CreateHostBuilder(args).Build();
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
+        using var host = CreateHostBuilder(args).Build();
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
 
-            await host.RunAsync();
-            log.LogInformation("Shutting down...");
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<RetryCollectorService, RetryOptions>
-            (
-                "retry",
-                () => new RetryOptions()
-            )
-            .ConfigureAppConfiguration((hostContext, configuration) =>
-            {
-                if (hostContext.HostingEnvironment.IsDevelopment())
-                {
-                    configuration.AddUserSecrets<Program>();
-                }
-            });
+        await host.RunAsync();
+        log.LogInformation("Shutting down...");
     }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+        .UseCollector<RetryCollectorService, RetryOptions>
+        (
+            "retry",
+            () => new RetryOptions()
+        )
+        .ConfigureAppConfiguration((hostContext, configuration) =>
+        {
+            if (hostContext.HostingEnvironment.IsDevelopment())
+            {
+                configuration.AddUserSecrets<Program>();
+            }
+        });
 }

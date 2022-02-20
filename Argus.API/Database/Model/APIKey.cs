@@ -22,46 +22,45 @@
 
 using System;
 
-namespace Argus.API.Database.Model
+namespace Argus.API.Database.Model;
+
+/// <summary>
+/// Represents an API key.
+/// </summary>
+public class APIKey
 {
     /// <summary>
-    /// Represents an API key.
+    /// Gets the ID of the key.
     /// </summary>
-    public class APIKey
+    public long ID { get; init; }
+
+    /// <summary>
+    /// Gets the time at which the API key was created.
+    /// </summary>
+    public DateTimeOffset CreatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the time at which the API key expires.
+    /// </summary>
+    public DateTimeOffset? ExpiresAt { get; init; }
+
+    /// <summary>
+    /// Gets the API key itself.
+    /// </summary>
+    public Guid Key { get; init; }
+
+    /// <summary>
+    /// Creates a new API key.
+    /// </summary>
+    /// <param name="expiresAt">The time at which the key expires.</param>
+    /// <returns>The key.</returns>
+    public static APIKey Create(DateTimeOffset? expiresAt = null)
     {
-        /// <summary>
-        /// Gets the ID of the key.
-        /// </summary>
-        public long ID { get; init; }
-
-        /// <summary>
-        /// Gets the time at which the API key was created.
-        /// </summary>
-        public DateTimeOffset CreatedAt { get; init; }
-
-        /// <summary>
-        /// Gets the time at which the API key expires.
-        /// </summary>
-        public DateTimeOffset? ExpiresAt { get; init; }
-
-        /// <summary>
-        /// Gets the API key itself.
-        /// </summary>
-        public Guid Key { get; init; }
-
-        /// <summary>
-        /// Creates a new API key.
-        /// </summary>
-        /// <param name="expiresAt">The time at which the key expires.</param>
-        /// <returns>The key.</returns>
-        public static APIKey Create(DateTimeOffset? expiresAt = null)
+        return new APIKey
         {
-            return new APIKey
-            {
-                CreatedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = expiresAt,
-                Key = Guid.NewGuid()
-            };
-        }
+            CreatedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = expiresAt,
+            Key = Guid.NewGuid()
+        };
     }
 }

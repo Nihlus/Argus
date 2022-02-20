@@ -31,65 +31,64 @@ using Argus.Collector.Driver.Minibooru.Model;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.Driver.Minibooru
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Implements Ouroboros-specific driver functionality.
+/// </summary>
+public class OuroborosDriver : AbstractBooruDriver<OuroborosPage>
 {
     /// <summary>
-    /// Implements Ouroboros-specific driver functionality.
+    /// Gets the name of the driver.
     /// </summary>
-    public class OuroborosDriver : AbstractBooruDriver<OuroborosPage>
+    public static string Name => "ouroboros";
+
+    /// <inheritdoc />
+    protected override IReadOnlyList<ProductInfoHeaderValue> UserAgent => new[]
     {
-        /// <summary>
-        /// Gets the name of the driver.
-        /// </summary>
-        public static string Name => "ouroboros";
+        new ProductInfoHeaderValue("Argus", Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0"),
+        new ProductInfoHeaderValue("(by Jax#7487 on Discord)")
+    };
 
-        /// <inheritdoc />
-        protected override IReadOnlyList<ProductInfoHeaderValue> UserAgent => new[]
-        {
-            new ProductInfoHeaderValue("Argus", Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0"),
-            new ProductInfoHeaderValue("(by Jax#7487 on Discord)")
-        };
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OuroborosDriver"/> class.
+    /// </summary>
+    /// <param name="clientFactory">The HTTP client to use.</param>
+    /// <param name="jsonOptions">The JSON serializer options.</param>
+    /// <param name="driverOptions">The driver options.</param>
+    public OuroborosDriver
+    (
+        IHttpClientFactory clientFactory,
+        IOptionsMonitor<JsonSerializerOptions> jsonOptions,
+        IOptionsMonitor<BooruDriverOptions> driverOptions
+    )
+        : base(clientFactory, jsonOptions, driverOptions)
+    {
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OuroborosDriver"/> class.
-        /// </summary>
-        /// <param name="clientFactory">The HTTP client to use.</param>
-        /// <param name="jsonOptions">The JSON serializer options.</param>
-        /// <param name="driverOptions">The driver options.</param>
-        public OuroborosDriver
+    /// <inheritdoc />
+    protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(OuroborosPage internalPage)
+    {
+        return internalPage.Posts.Select
         (
-            IHttpClientFactory clientFactory,
-            IOptionsMonitor<JsonSerializerOptions> jsonOptions,
-            IOptionsMonitor<BooruDriverOptions> driverOptions
-        )
-            : base(clientFactory, jsonOptions, driverOptions)
-        {
-        }
-
-        /// <inheritdoc />
-        protected override Result<IReadOnlyList<BooruPost>> MapInternalPage(OuroborosPage internalPage)
-        {
-            return internalPage.Posts.Select
-            (
-                post =>
-                {
-                    var (id, file) = post;
-
-                    var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
-                    return new BooruPost(id, file.Url?.ToString(), postUrl);
-                }
-            ).ToList();
-        }
-
-        /// <inheritdoc />
-        protected override Uri GetSearchUrl(ulong after, uint limit)
-        {
-            if (limit > 320)
+            post =>
             {
-                limit = 320;
-            }
+                var (id, file) = post;
 
-            return new Uri(this.DriverOptions.BaseUrl, $"posts.json?limit={limit}&page=a{after}");
+                var postUrl = new Uri(this.DriverOptions.BaseUrl, $"posts/{id}");
+                return new BooruPost(id, file.Url?.ToString(), postUrl);
+            }
+        ).ToList();
+    }
+
+    /// <inheritdoc />
+    protected override Uri GetSearchUrl(ulong after, uint limit)
+    {
+        if (limit > 320)
+        {
+            limit = 320;
         }
+
+        return new Uri(this.DriverOptions.BaseUrl, $"posts.json?limit={limit}&page=a{after}");
     }
 }

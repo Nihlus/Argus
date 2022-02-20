@@ -22,20 +22,19 @@
 
 using System;
 
-namespace Argus.Common.Configuration
-{
-    /// <summary>
-    /// Holds options related to the message broker.
-    /// </summary>
-    /// <param name="Host">The host at which the broker is available.</param>
-    /// <param name="Username">The username to use for authentication with the broker.</param>
-    /// <param name="Password">The password to use for authentication with the broker.</param>
-    /// <param name="DataRepository">The path to the data repository.</param>
-    public record BrokerOptions
-    (
-        Uri Host,
-        string Username,
-        string Password,
-        string DataRepository
-    );
-}
+namespace Argus.Common.Configuration;
+
+/// <summary>
+/// Holds options related to the message broker.
+/// </summary>
+/// <param name="Host">The host at which the broker is available.</param>
+/// <param name="Username">The username to use for authentication with the broker.</param>
+/// <param name="Password">The password to use for authentication with the broker.</param>
+/// <param name="DataRepository">The path to the data repository.</param>
+public record BrokerOptions
+(
+    Uri Host,
+    string Username,
+    string Password,
+    string DataRepository
+);

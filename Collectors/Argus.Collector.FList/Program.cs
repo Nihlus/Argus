@@ -45,59 +45,59 @@ using OpenQA.Selenium.Firefox;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 
-namespace Argus.Collector.FList
+namespace Argus.Collector.FList;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+internal class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    internal class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
+        using var host = CreateHostBuilder(args).Build();
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
+
+        await host.RunAsync();
+        log.LogInformation("Shutting down...");
+    }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+        .UseCollector<FListCollectorService, FListOptions>
+        (
+            "f-list",
+            () => new FListOptions(string.Empty, string.Empty)
+        )
+        .ConfigureAppConfiguration((hostContext, configuration) =>
         {
-            using var host = CreateHostBuilder(args).Build();
-            var log = host.Services.GetRequiredService<ILogger<Program>>();
-
-            await host.RunAsync();
-            log.LogInformation("Shutting down...");
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-            .UseCollector<FListCollectorService, FListOptions>
-            (
-                "f-list",
-                () => new FListOptions(string.Empty, string.Empty)
-            )
-            .ConfigureAppConfiguration((hostContext, configuration) =>
+            if (hostContext.HostingEnvironment.IsDevelopment())
             {
-                if (hostContext.HostingEnvironment.IsDevelopment())
-                {
-                    configuration.AddUserSecrets<Program>();
-                }
-            })
-            .ConfigureServices((hostContext, services) =>
+                configuration.AddUserSecrets<Program>();
+            }
+        })
+        .ConfigureServices((hostContext, services) =>
+        {
+            var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+
+            services.Configure<JsonSerializerOptions>(o =>
             {
-                var retryDelay = Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 5);
+                o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
+                o.PropertyNameCaseInsensitive = true;
+            });
 
-                services.Configure<JsonSerializerOptions>(o =>
-                {
-                    o.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
-                    o.PropertyNameCaseInsensitive = true;
-                });
+            services
+                .AddSingleton<FListAPI>()
+                .AddSingleton<FListAuthenticationRefreshPolicy>();
 
-                services
-                    .AddSingleton<FListAPI>()
-                    .AddSingleton<FListAuthenticationRefreshPolicy>();
+            var rateLimit = hostContext.Configuration
+                .GetSection(nameof(FListOptions))
+                .GetValue<int>(nameof(FListOptions.RateLimit));
 
-                var rateLimit = hostContext.Configuration
-                    .GetSection(nameof(FListOptions))
-                    .GetValue<int>(nameof(FListOptions.RateLimit));
+            if (rateLimit == 0)
+            {
+                rateLimit = 1;
+            }
 
-                if (rateLimit == 0)
-                {
-                    rateLimit = 1;
-                }
-
-                services.AddHttpClient(nameof(FListAPI), (_, client) =>
+            services.AddHttpClient(nameof(FListAPI), (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
                     var name = assemblyName.Name ?? "Indexer";
@@ -129,23 +129,22 @@ namespace Argus.Collector.FList
                     );
                 });
 
-                CodePagesEncodingProvider.Instance.GetEncoding(437);
-                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            CodePagesEncodingProvider.Instance.GetEncoding(437);
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-                // Selenium
-                services.Configure<FirefoxProfile>(p => p.DeleteAfterUse = true);
-                services.Configure<FirefoxOptions>(o => o.AddArgument("--headless"));
+            // Selenium
+            services.Configure<FirefoxProfile>(p => p.DeleteAfterUse = true);
+            services.Configure<FirefoxOptions>(o => o.AddArgument("--headless"));
 
-                services.AddTransient<IWebDriver>(s => s.GetRequiredService<FirefoxDriver>());
-                services.AddTransient(s =>
-                {
-                    var profile = s.GetRequiredService<IOptions<FirefoxProfile>>().Value;
-                    var options = s.GetRequiredService<IOptions<FirefoxOptions>>().Value;
+            services.AddTransient<IWebDriver>(s => s.GetRequiredService<FirefoxDriver>());
+            services.AddTransient(s =>
+            {
+                var profile = s.GetRequiredService<IOptions<FirefoxProfile>>().Value;
+                var options = s.GetRequiredService<IOptions<FirefoxOptions>>().Value;
 
-                    options.Profile = profile;
+                options.Profile = profile;
 
-                    return new FirefoxDriver(options);
-                });
+                return new FirefoxDriver(options);
             });
-    }
+        });
 }

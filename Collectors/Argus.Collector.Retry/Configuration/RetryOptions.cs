@@ -20,11 +20,10 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.Retry.Configuration
-{
-    /// <summary>
-    /// Represents collector-specific configuration.
-    /// </summary>
-    /// <param name="PageSize">The size of a single page of images to retry, requested from the coordinator.</param>
-    public record RetryOptions(int PageSize = 100);
-}
+namespace Argus.Collector.Retry.Configuration;
+
+/// <summary>
+/// Represents collector-specific configuration.
+/// </summary>
+/// <param name="PageSize">The size of a single page of images to retry, requested from the coordinator.</param>
+public record RetryOptions(int PageSize = 100);

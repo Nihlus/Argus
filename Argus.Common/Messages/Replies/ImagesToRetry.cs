@@ -23,14 +23,13 @@
 using System.Collections.Generic;
 using Argus.Common.Messages.BulkData;
 
-namespace Argus.Common.Messages.Replies
-{
-    /// <summary>
-    /// Represents a response with a set of images to retry.
-    /// </summary>
-    /// <param name="Value">The images to retry.</param>
-    public record ImagesToRetry
-    (
-        IReadOnlyCollection<StatusReport> Value
-    );
-}
+namespace Argus.Common.Messages.Replies;
+
+/// <summary>
+/// Represents a response with a set of images to retry.
+/// </summary>
+/// <param name="Value">The images to retry.</param>
+public record ImagesToRetry
+(
+    IReadOnlyCollection<StatusReport> Value
+);

@@ -22,11 +22,10 @@
 
 using System;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents options for a Booru driver.
-    /// </summary>
-    /// <param name="BaseUrl">The base URL of the Booru.</param>
-    public record BooruDriverOptions(Uri BaseUrl);
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents options for a Booru driver.
+/// </summary>
+/// <param name="BaseUrl">The base URL of the Booru.</param>
+public record BooruDriverOptions(Uri BaseUrl);

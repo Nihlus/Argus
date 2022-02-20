@@ -28,62 +28,61 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Argus.Coordinator.MassTransit.Consumers
+namespace Argus.Coordinator.MassTransit.Consumers;
+
+/// <summary>
+/// Consumes various resume requests.
+/// </summary>
+public class ResumeRequestConsumer : IConsumer<GetResumePoint>, IConsumer<SetResumePoint>
 {
+    private readonly CoordinatorContext _db;
+    private readonly ILogger<ResumeRequestConsumer> _log;
+
     /// <summary>
-    /// Consumes various resume requests.
+    /// Initializes a new instance of the <see cref="ResumeRequestConsumer"/> class.
     /// </summary>
-    public class ResumeRequestConsumer : IConsumer<GetResumePoint>, IConsumer<SetResumePoint>
+    /// <param name="db">The database context.</param>
+    /// <param name="log">The logging instance.</param>
+    public ResumeRequestConsumer(CoordinatorContext db, ILogger<ResumeRequestConsumer> log)
     {
-        private readonly CoordinatorContext _db;
-        private readonly ILogger<ResumeRequestConsumer> _log;
+        _db = db;
+        _log = log;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResumeRequestConsumer"/> class.
-        /// </summary>
-        /// <param name="db">The database context.</param>
-        /// <param name="log">The logging instance.</param>
-        public ResumeRequestConsumer(CoordinatorContext db, ILogger<ResumeRequestConsumer> log)
-        {
-            _db = db;
-            _log = log;
-        }
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<GetResumePoint> context)
+    {
+        var serviceStatus = await _db.ServiceStates.AsNoTracking().FirstOrDefaultAsync
+        (
+            s => s.Name == context.Message.ServiceName,
+            context.CancellationToken
+        );
 
-        /// <inheritdoc />
-        public async Task Consume(ConsumeContext<GetResumePoint> context)
-        {
-            var serviceStatus = await _db.ServiceStates.AsNoTracking().FirstOrDefaultAsync
-            (
-                s => s.Name == context.Message.ServiceName,
-                context.CancellationToken
-            );
+        var resumePoint = serviceStatus?.ResumePoint;
+        await context.RespondAsync(new ResumePoint(resumePoint ?? string.Empty));
 
-            var resumePoint = serviceStatus?.ResumePoint;
-            await context.RespondAsync(new ResumePoint(resumePoint ?? string.Empty));
+        _log.LogInformation
+        (
+            "Told collector for service \"{Service}\" its resume point",
+            context.Message.ServiceName
+        );
+    }
 
-            _log.LogInformation
-            (
-                "Told collector for service \"{Service}\" its resume point",
-                context.Message.ServiceName
-            );
-        }
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<SetResumePoint> context)
+    {
+        var serviceStatus = await _db.ServiceStates.FirstOrDefaultAsync
+        (
+            s => s.Name == context.Message.ServiceName,
+            context.CancellationToken
+        ) ?? new ServiceState(context.Message.ServiceName);
 
-        /// <inheritdoc />
-        public async Task Consume(ConsumeContext<SetResumePoint> context)
-        {
-            var serviceStatus = await _db.ServiceStates.FirstOrDefaultAsync
-            (
-                s => s.Name == context.Message.ServiceName,
-                context.CancellationToken
-            ) ?? new ServiceState(context.Message.ServiceName);
+        serviceStatus.ResumePoint = context.Message.ResumePoint;
 
-            serviceStatus.ResumePoint = context.Message.ResumePoint;
+        _db.Update(serviceStatus);
+        await _db.SaveChangesAsync(context.CancellationToken);
 
-            _db.Update(serviceStatus);
-            await _db.SaveChangesAsync(context.CancellationToken);
-
-            var resumePoint = serviceStatus.ResumePoint;
-            await context.RespondAsync(new ResumePoint(resumePoint ?? string.Empty));
-        }
+        var resumePoint = serviceStatus.ResumePoint;
+        await context.RespondAsync(new ResumePoint(resumePoint ?? string.Empty));
     }
 }

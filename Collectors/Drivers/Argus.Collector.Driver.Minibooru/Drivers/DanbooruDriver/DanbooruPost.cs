@@ -22,16 +22,15 @@
 
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents the internal post representation of the Danbooru driver.
-    /// </summary>
-    /// <param name="ID">The ID of the post.</param>
-    /// <param name="FileUrl">The full URL to the image file.</param>
-    public record DanbooruPost
-    (
-        [property: JsonPropertyName("id")] ulong ID,
-        [property: JsonPropertyName("file_url")] string? FileUrl
-    );
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents the internal post representation of the Danbooru driver.
+/// </summary>
+/// <param name="ID">The ID of the post.</param>
+/// <param name="FileUrl">The full URL to the image file.</param>
+public record DanbooruPost
+(
+    [property: JsonPropertyName("id")] ulong ID,
+    [property: JsonPropertyName("file_url")] string? FileUrl
+);

@@ -28,48 +28,47 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Argus.Coordinator.MassTransit.Consumers
+namespace Argus.Coordinator.MassTransit.Consumers;
+
+/// <summary>
+/// Consumes status reports, logging them for later use.
+/// </summary>
+public class StatusReportConsumer : IConsumer<Batch<StatusReport>>
 {
+    private readonly CoordinatorContext _db;
+    private readonly ILogger<StatusReportConsumer> _log;
+
     /// <summary>
-    /// Consumes status reports, logging them for later use.
+    /// Initializes a new instance of the <see cref="StatusReportConsumer"/> class.
     /// </summary>
-    public class StatusReportConsumer : IConsumer<Batch<StatusReport>>
+    /// <param name="db">The database context.</param>
+    /// <param name="log">The logging instance.</param>
+    public StatusReportConsumer(CoordinatorContext db, ILogger<StatusReportConsumer> log)
     {
-        private readonly CoordinatorContext _db;
-        private readonly ILogger<StatusReportConsumer> _log;
+        _db = db;
+        _log = log;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="StatusReportConsumer"/> class.
-        /// </summary>
-        /// <param name="db">The database context.</param>
-        /// <param name="log">The logging instance.</param>
-        public StatusReportConsumer(CoordinatorContext db, ILogger<StatusReportConsumer> log)
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<Batch<StatusReport>> context)
+    {
+        var statusReports = context.Message;
+
+        var reports = statusReports.AsEnumerable().Select(t => t.Message)
+            .DistinctBy(m => (m.Source, m.Link))
+            .ToList();
+
+        await _db.ServiceStatusReports.UpsertRange(reports)
+            .RunAsync(context.CancellationToken);
+
+        foreach (var statusReport in reports)
         {
-            _db = db;
-            _log = log;
-        }
-
-        /// <inheritdoc />
-        public async Task Consume(ConsumeContext<Batch<StatusReport>> context)
-        {
-            var statusReports = context.Message;
-
-            var reports = statusReports.AsEnumerable().Select(t => t.Message)
-                .DistinctBy(m => (m.Source, m.Link))
-                .ToList();
-
-            await _db.ServiceStatusReports.UpsertRange(reports)
-                .RunAsync(context.CancellationToken);
-
-            foreach (var statusReport in reports)
-            {
-                _log.LogInformation
-                (
-                    "Logged status report regarding image {Link} from {Source}",
-                    statusReport.Link,
-                    statusReport.Source
-                );
-            }
+            _log.LogInformation
+            (
+                "Logged status report regarding image {Link} from {Source}",
+                statusReport.Link,
+                statusReport.Source
+            );
         }
     }
 }

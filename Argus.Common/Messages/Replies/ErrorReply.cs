@@ -20,14 +20,13 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Common.Messages.Replies
-{
-    /// <summary>
-    /// Represents a reply that signifies an error occurred.
-    /// </summary>
-    /// <param name="Message">The user-visible message to reply with.</param>
-    public record ErrorReply
-    (
-        string Message
-    );
-}
+namespace Argus.Common.Messages.Replies;
+
+/// <summary>
+/// Represents a reply that signifies an error occurred.
+/// </summary>
+/// <param name="Message">The user-visible message to reply with.</param>
+public record ErrorReply
+(
+    string Message
+);

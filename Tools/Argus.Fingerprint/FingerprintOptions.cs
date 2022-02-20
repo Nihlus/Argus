@@ -23,20 +23,19 @@
 using System.Collections.Generic;
 using CommandLine;
 
-namespace Argus.Fingerprint
-{
-    /// <summary>
-    /// Represents the program options.
-    /// </summary>
-    /// <param name="Files">The input files.</param>
-    /// <param name="OutputDirectory">The output directory.</param>
-    /// <param name="ShouldPack">Whether the results should be packed into a single file.</param>
-    /// <param name="IncludeSourceImages">Whether the source images should be included in the output.</param>
-    public record FingerprintOptions
-    (
-        [property: Option('f', "files", HelpText = "The input files.", Required = true)] IReadOnlyList<string> Files,
-        [property: Option('o', "output", HelpText = "The output directory.")] string OutputDirectory,
-        [property: Option('p', "pack", HelpText = "Whether the results should be packed into a single file.")] bool ShouldPack = true,
-        [property: Option('s', "include-source", HelpText = "Whether the source images should be included in the output.")] bool IncludeSourceImages = false
-    );
-}
+namespace Argus.Fingerprint;
+
+/// <summary>
+/// Represents the program options.
+/// </summary>
+/// <param name="Files">The input files.</param>
+/// <param name="OutputDirectory">The output directory.</param>
+/// <param name="ShouldPack">Whether the results should be packed into a single file.</param>
+/// <param name="IncludeSourceImages">Whether the source images should be included in the output.</param>
+public record FingerprintOptions
+(
+    [property: Option('f', "files", HelpText = "The input files.", Required = true)] IReadOnlyList<string> Files,
+    [property: Option('o', "output", HelpText = "The output directory.")] string OutputDirectory,
+    [property: Option('p', "pack", HelpText = "Whether the results should be packed into a single file.")] bool ShouldPack = true,
+    [property: Option('s', "include-source", HelpText = "Whether the source images should be included in the output.")] bool IncludeSourceImages = false
+);

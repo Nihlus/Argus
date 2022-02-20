@@ -22,20 +22,19 @@
 
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents the internal post representation of the Gelbooru driver.
-    /// </summary>
-    /// <param name="ID">The ID of the post.</param>
-    /// <param name="FileUrl">A direct link to the image file. May not be present.</param>
-    /// <param name="Directory">The subdirectory of the image store where the image is.</param>
-    /// <param name="Image">The filename of the image.</param>
-    public record GelbooruPost
-    (
-        [property: JsonPropertyName("id")] ulong ID,
-        [property: JsonPropertyName("file_url")] string? FileUrl,
-        [property: JsonPropertyName("directory")] string Directory,
-        [property: JsonPropertyName("image")] string Image
-    );
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents the internal post representation of the Gelbooru driver.
+/// </summary>
+/// <param name="ID">The ID of the post.</param>
+/// <param name="FileUrl">A direct link to the image file. May not be present.</param>
+/// <param name="Directory">The subdirectory of the image store where the image is.</param>
+/// <param name="Image">The filename of the image.</param>
+public record GelbooruPost
+(
+    [property: JsonPropertyName("id")] ulong ID,
+    [property: JsonPropertyName("file_url")] string? FileUrl,
+    [property: JsonPropertyName("directory")] string Directory,
+    [property: JsonPropertyName("image")] string Image
+);

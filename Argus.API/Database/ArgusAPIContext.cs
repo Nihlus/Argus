@@ -23,37 +23,36 @@
 using Argus.API.Database.Model;
 using Microsoft.EntityFrameworkCore;
 
-namespace Argus.API.Database
+namespace Argus.API.Database;
+
+/// <summary>
+/// Represents the database context for the REST API.
+/// </summary>
+public class ArgusAPIContext : DbContext
 {
     /// <summary>
-    /// Represents the database context for the REST API.
+    /// Initializes a new instance of the <see cref="ArgusAPIContext"/> class.
     /// </summary>
-    public class ArgusAPIContext : DbContext
+    /// <param name="options">The context options.</param>
+    public ArgusAPIContext(DbContextOptions options)
+        : base(options)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ArgusAPIContext"/> class.
-        /// </summary>
-        /// <param name="options">The context options.</param>
-        public ArgusAPIContext(DbContextOptions options)
-            : base(options)
-        {
-        }
+    }
 
-        /// <summary>
-        /// Gets the API keys in the database.
-        /// </summary>
-        public DbSet<APIKey> APIKeys => Set<APIKey>();
+    /// <summary>
+    /// Gets the API keys in the database.
+    /// </summary>
+    public DbSet<APIKey> APIKeys => Set<APIKey>();
 
-        /// <inheritdoc />
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<APIKey>()
-                .HasIndex(k => k.ID)
-                .IsUnique();
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<APIKey>()
+            .HasIndex(k => k.ID)
+            .IsUnique();
 
-            modelBuilder.Entity<APIKey>()
-                .HasIndex(k => k.Key)
-                .IsUnique();
-        }
+        modelBuilder.Entity<APIKey>()
+            .HasIndex(k => k.Key)
+            .IsUnique();
     }
 }

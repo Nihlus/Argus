@@ -20,21 +20,20 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.FList.API.Model
+namespace Argus.Collector.FList.API.Model;
+
+/// <summary>
+/// Represents an image associated with a character.
+/// </summary>
+public class CharacterImage
 {
     /// <summary>
-    /// Represents an image associated with a character.
+    /// Gets the ID of the image.
     /// </summary>
-    public class CharacterImage
-    {
-        /// <summary>
-        /// Gets the ID of the image.
-        /// </summary>
-        public string ImageId { get; init; } = string.Empty;
+    public string ImageId { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets the file extension of the image.
-        /// </summary>
-        public string Extension { get; init; } = string.Empty;
-    }
+    /// <summary>
+    /// Gets the file extension of the image.
+    /// </summary>
+    public string Extension { get; init; } = string.Empty;
 }

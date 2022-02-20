@@ -23,53 +23,52 @@
 using Argus.Common.Messages.BulkData;
 using Microsoft.EntityFrameworkCore;
 
-namespace Argus.Coordinator.Model
+namespace Argus.Coordinator.Model;
+
+/// <summary>
+/// Represents the database context for the coordinator.
+/// </summary>
+public class CoordinatorContext : DbContext
 {
     /// <summary>
-    /// Represents the database context for the coordinator.
+    /// Initializes a new instance of the <see cref="CoordinatorContext"/> class.
     /// </summary>
-    public class CoordinatorContext : DbContext
+    /// <param name="options">The context options.</param>
+    public CoordinatorContext(DbContextOptions options)
+        : base(options)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CoordinatorContext"/> class.
-        /// </summary>
-        /// <param name="options">The context options.</param>
-        public CoordinatorContext(DbContextOptions options)
-            : base(options)
-        {
-        }
+    }
 
-        /// <summary>
-        /// Gets the service states.
-        /// </summary>
-        public DbSet<ServiceState> ServiceStates => Set<ServiceState>();
+    /// <summary>
+    /// Gets the service states.
+    /// </summary>
+    public DbSet<ServiceState> ServiceStates => Set<ServiceState>();
 
-        /// <summary>
-        /// Gets received status reports.
-        /// </summary>
-        public DbSet<StatusReport> ServiceStatusReports => Set<StatusReport>();
+    /// <summary>
+    /// Gets received status reports.
+    /// </summary>
+    public DbSet<StatusReport> ServiceStatusReports => Set<StatusReport>();
 
-        /// <inheritdoc />
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            // Configure ServiceStates
-            modelBuilder.Entity<ServiceState>()
-                .HasIndex(r => r.Id)
-                .IsUnique();
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Configure ServiceStates
+        modelBuilder.Entity<ServiceState>()
+            .HasIndex(r => r.Id)
+            .IsUnique();
 
-            // Configure StatusReports
-            modelBuilder.Entity<StatusReport>()
-                .HasKey(nameof(StatusReport.Source), nameof(StatusReport.Link));
+        // Configure StatusReports
+        modelBuilder.Entity<StatusReport>()
+            .HasKey(nameof(StatusReport.Source), nameof(StatusReport.Link));
 
-            modelBuilder.Entity<StatusReport>()
-                .HasIndex(nameof(StatusReport.Source), nameof(StatusReport.Link))
-                .IsUnique();
+        modelBuilder.Entity<StatusReport>()
+            .HasIndex(nameof(StatusReport.Source), nameof(StatusReport.Link))
+            .IsUnique();
 
-            modelBuilder.Entity<StatusReport>()
-                .HasIndex(r => r.Timestamp);
+        modelBuilder.Entity<StatusReport>()
+            .HasIndex(r => r.Timestamp);
 
-            modelBuilder.Entity<StatusReport>()
-                .HasIndex(r => r.Status);
-        }
+        modelBuilder.Entity<StatusReport>()
+            .HasIndex(r => r.Status);
     }
 }

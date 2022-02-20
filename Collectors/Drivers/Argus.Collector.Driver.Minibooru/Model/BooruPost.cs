@@ -22,13 +22,12 @@
 
 using System;
 
-namespace Argus.Collector.Driver.Minibooru.Model
-{
-    /// <summary>
-    /// Represents minimal information about a Booru post.
-    /// </summary>
-    /// <param name="ID">The numeric ID of the post.</param>
-    /// <param name="File">The full URL to the image file, or null if none was available.</param>
-    /// <param name="Post">The full URL to the source post.</param>
-    public record BooruPost(ulong ID, string? File, Uri Post);
-}
+namespace Argus.Collector.Driver.Minibooru.Model;
+
+/// <summary>
+/// Represents minimal information about a Booru post.
+/// </summary>
+/// <param name="ID">The numeric ID of the post.</param>
+/// <param name="File">The full URL to the image file, or null if none was available.</param>
+/// <param name="Post">The full URL to the source post.</param>
+public record BooruPost(ulong ID, string? File, Uri Post);

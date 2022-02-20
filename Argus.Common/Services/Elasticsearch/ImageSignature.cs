@@ -25,73 +25,72 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using Puzzle;
 
-namespace Argus.Common.Services.Elasticsearch
+namespace Argus.Common.Services.Elasticsearch;
+
+/// <summary>
+/// Represents the signature of an indexed image in Elasticsearch.
+/// </summary>
+public class ImageSignature
 {
     /// <summary>
-    /// Represents the signature of an indexed image in Elasticsearch.
+    /// Gets the raw signature of the image.
     /// </summary>
-    public class ImageSignature
+    public LuminosityLevel[] Signature { get; }
+
+    /// <summary>
+    /// Gets a composite signature, used for rapid full-text search.
+    /// </summary>
+    public SignatureWords Words { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImageSignature"/> class.
+    /// </summary>
+    /// <param name="signature">The raw signature to wrap.</param>
+    public ImageSignature(LuminosityLevel[] signature)
     {
-        /// <summary>
-        /// Gets the raw signature of the image.
-        /// </summary>
-        public LuminosityLevel[] Signature { get; }
+        const int wordSize = 16;
+        const int wordCount = 63;
 
-        /// <summary>
-        /// Gets a composite signature, used for rapid full-text search.
-        /// </summary>
-        public SignatureWords Words { get; }
+        this.Signature = signature;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ImageSignature"/> class.
-        /// </summary>
-        /// <param name="signature">The raw signature to wrap.</param>
-        public ImageSignature(LuminosityLevel[] signature)
+        var words = ArrayPool<int>.Shared.Rent(63);
+        Span<sbyte> word = stackalloc sbyte[wordSize];
+
+        for (var i = 0; i < wordCount; i++)
         {
-            const int wordSize = 16;
-            const int wordCount = 63;
+            word.Fill(0);
 
-            this.Signature = signature;
+            var slice = signature.AsSpan().Slice(i, wordSize);
+            var asByte = MemoryMarshal.Cast<LuminosityLevel, sbyte>(slice);
+            asByte.CopyTo(word);
 
-            var words = ArrayPool<int>.Shared.Rent(63);
-            Span<sbyte> word = stackalloc sbyte[wordSize];
-
-            for (var i = 0; i < wordCount; i++)
+            // See https://github.com/ProvenanceLabs/image-match/blob/master/image_match/signature_database_base.py#L124
+            var sum = 0;
+            for (var index = 0; index < word.Length; index++)
             {
-                word.Fill(0);
+                var syllable = word[index];
 
-                var slice = signature.AsSpan().Slice(i, wordSize);
-                var asByte = MemoryMarshal.Cast<LuminosityLevel, sbyte>(slice);
-                asByte.CopyTo(word);
+                // Squish the contrast range
+                var squishedSyllable = syllable > 0
+                    ? 1
+                    : syllable < 0
+                        ? -1
+                        : 0;
 
-                // See https://github.com/ProvenanceLabs/image-match/blob/master/image_match/signature_database_base.py#L124
-                var sum = 0;
-                for (var index = 0; index < word.Length; index++)
-                {
-                    var syllable = word[index];
+                // Convert the syllable into a positive number
+                var a = squishedSyllable + 1;
 
-                    // Squish the contrast range
-                    var squishedSyllable = syllable > 0
-                        ? 1
-                        : syllable < 0
-                            ? -1
-                            : 0;
+                // Compute the rolling coding vector value
+                var b = (byte)Math.Pow(3, index);
 
-                    // Convert the syllable into a positive number
-                    var a = squishedSyllable + 1;
-
-                    // Compute the rolling coding vector value
-                    var b = (byte)Math.Pow(3, index);
-
-                    // Then push the value into the rolling dot product
-                    sum += a * b;
-                }
-
-                words[i] = sum;
+                // Then push the value into the rolling dot product
+                sum += a * b;
             }
 
-            this.Words = SignatureWords.FromArray(words);
-            ArrayPool<int>.Shared.Return(words);
+            words[i] = sum;
         }
+
+        this.Words = SignatureWords.FromArray(words);
+        ArrayPool<int>.Shared.Return(words);
     }
 }

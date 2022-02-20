@@ -22,16 +22,15 @@
 
 using System.Text.Json.Serialization;
 
-namespace Argus.Collector.Driver.Minibooru
-{
-    /// <summary>
-    /// Represents an Ouroboros post.
-    /// </summary>
-    /// <param name="ID">The ID of the post.</param>
-    /// <param name="File">The file associated with the post.</param>
-    public record OuroborosPost
-    (
-        [property: JsonPropertyName("id")] ulong ID,
-        [property: JsonPropertyName("file")] OuroborosFile File
-    );
-}
+namespace Argus.Collector.Driver.Minibooru;
+
+/// <summary>
+/// Represents an Ouroboros post.
+/// </summary>
+/// <param name="ID">The ID of the post.</param>
+/// <param name="File">The file associated with the post.</param>
+public record OuroborosPost
+(
+    [property: JsonPropertyName("id")] ulong ID,
+    [property: JsonPropertyName("file")] OuroborosFile File
+);

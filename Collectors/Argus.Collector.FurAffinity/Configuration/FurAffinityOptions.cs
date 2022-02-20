@@ -20,13 +20,12 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace Argus.Collector.FurAffinity.Configuration
-{
-    /// <summary>
-    /// Represents FurAffinity-specific options.
-    /// </summary>
-    /// <param name="A">The A portion of the login cookie.</param>
-    /// <param name="B">The B portion of the login cookie.</param>
-    /// <param name="RateLimit">The rate limit for API requests.</param>
-    public record FurAffinityOptions(string A, string B, int RateLimit = 25);
-}
+namespace Argus.Collector.FurAffinity.Configuration;
+
+/// <summary>
+/// Represents FurAffinity-specific options.
+/// </summary>
+/// <param name="A">The A portion of the login cookie.</param>
+/// <param name="B">The B portion of the login cookie.</param>
+/// <param name="RateLimit">The rate limit for API requests.</param>
+public record FurAffinityOptions(string A, string B, int RateLimit = 25);

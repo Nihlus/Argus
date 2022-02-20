@@ -33,98 +33,97 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Argus.API.Authentication
+namespace Argus.API.Authentication;
+
+/// <summary>
+/// Handles API key authentication.
+/// </summary>
+public class APIKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
+    private readonly ArgusAPIContext _db;
+
     /// <summary>
-    /// Handles API key authentication.
+    /// Initializes a new instance of the <see cref="APIKeyAuthenticationHandler"/> class.
     /// </summary>
-    public class APIKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-    {
-        private readonly ArgusAPIContext _db;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="APIKeyAuthenticationHandler"/> class.
-        /// </summary>
-        /// <param name="db">The database context.</param>
-        /// <param name="options">The authentication scheme options.</param>
-        /// <param name="logger">The logging instance.</param>
-        /// <param name="encoder">The URL encoder.</param>
-        /// <param name="clock">The system clock.</param>
-        public APIKeyAuthenticationHandler
+    /// <param name="db">The database context.</param>
+    /// <param name="options">The authentication scheme options.</param>
+    /// <param name="logger">The logging instance.</param>
+    /// <param name="encoder">The URL encoder.</param>
+    /// <param name="clock">The system clock.</param>
+    public APIKeyAuthenticationHandler
+    (
+        ArgusAPIContext db,
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        ISystemClock clock)
+        : base
         (
-            ArgusAPIContext db,
-            IOptionsMonitor<AuthenticationSchemeOptions> options,
-            ILoggerFactory logger,
-            UrlEncoder encoder,
-            ISystemClock clock)
-            : base
-            (
-                options,
-                logger,
-                encoder,
-                clock
-            )
+            options,
+            logger,
+            encoder,
+            clock
+        )
+    {
+        _db = db;
+    }
+
+    /// <inheritdoc />
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        var endpoint = this.Context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
         {
-            _db = db;
+            return AuthenticateResult.NoResult();
         }
 
-        /// <inheritdoc />
-        protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+        if (!this.Request.Headers.TryGetValue("Authorization", out var authorizationHeader))
         {
-            var endpoint = this.Context.GetEndpoint();
-            if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
-            {
-                return AuthenticateResult.NoResult();
-            }
-
-            if (!this.Request.Headers.TryGetValue("Authorization", out var authorizationHeader))
-            {
-                return AuthenticateResult.Fail("No authorization header provided.");
-            }
-
-            if (!AuthenticationHeaderValue.TryParse(authorizationHeader, out var authorization))
-            {
-                return AuthenticateResult.Fail("Invalid authorization header provided.");
-            }
-
-            if (authorization.Scheme is not "Bearer")
-            {
-                return AuthenticateResult.Fail("Invalid authorization scheme.");
-            }
-
-            if (authorization.Parameter is null)
-            {
-                return AuthenticateResult.Fail("Missing authorization key.");
-            }
-
-            var parameter = authorization.Parameter;
-            if (!Guid.TryParse(parameter, out var apiKey))
-            {
-                return AuthenticateResult.Fail("Invalid authorization key.");
-            }
-
-            var knownKey = await _db.APIKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == apiKey);
-            if (knownKey is null)
-            {
-                return AuthenticateResult.Fail("Unknown authorization key.");
-            }
-
-            var now = DateTimeOffset.UtcNow;
-            if (knownKey.ExpiresAt <= now)
-            {
-                return AuthenticateResult.Fail("Authorization key expired.");
-            }
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, knownKey.ID.ToString())
-            };
-
-            var identity = new ClaimsIdentity(claims, this.Scheme.Name);
-            var principal = new ClaimsPrincipal(identity);
-
-            var ticket = new AuthenticationTicket(principal, this.Scheme.Name);
-            return AuthenticateResult.Success(ticket);
+            return AuthenticateResult.Fail("No authorization header provided.");
         }
+
+        if (!AuthenticationHeaderValue.TryParse(authorizationHeader, out var authorization))
+        {
+            return AuthenticateResult.Fail("Invalid authorization header provided.");
+        }
+
+        if (authorization.Scheme is not "Bearer")
+        {
+            return AuthenticateResult.Fail("Invalid authorization scheme.");
+        }
+
+        if (authorization.Parameter is null)
+        {
+            return AuthenticateResult.Fail("Missing authorization key.");
+        }
+
+        var parameter = authorization.Parameter;
+        if (!Guid.TryParse(parameter, out var apiKey))
+        {
+            return AuthenticateResult.Fail("Invalid authorization key.");
+        }
+
+        var knownKey = await _db.APIKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == apiKey);
+        if (knownKey is null)
+        {
+            return AuthenticateResult.Fail("Unknown authorization key.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (knownKey.ExpiresAt <= now)
+        {
+            return AuthenticateResult.Fail("Authorization key expired.");
+        }
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, knownKey.ID.ToString())
+        };
+
+        var identity = new ClaimsIdentity(claims, this.Scheme.Name);
+        var principal = new ClaimsPrincipal(identity);
+
+        var ticket = new AuthenticationTicket(principal, this.Scheme.Name);
+        return AuthenticateResult.Success(ticket);
     }
 }

@@ -28,34 +28,33 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Argus.API
+namespace Argus.API;
+
+/// <summary>
+/// The main class of the program.
+/// </summary>
+public class Program
 {
-    /// <summary>
-    /// The main class of the program.
-    /// </summary>
-    public class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
-        {
-            var host = CreateHostBuilder(args).Build();
+        var host = CreateHostBuilder(args).Build();
 
-            // Perform migrations
-            using var scope = host.Services.CreateScope();
-            await using var db = scope.ServiceProvider.GetRequiredService<ArgusAPIContext>();
-            await db.Database.MigrateAsync();
+        // Perform migrations
+        using var scope = host.Services.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<ArgusAPIContext>();
+        await db.Database.MigrateAsync();
 
-            // Seed policy stores
-            var policyStore = scope.ServiceProvider.GetRequiredService<IIpPolicyStore>();
-            await policyStore.SeedAsync();
+        // Seed policy stores
+        var policyStore = scope.ServiceProvider.GetRequiredService<IIpPolicyStore>();
+        await policyStore.SeedAsync();
 
-            var clientPolicyStore = scope.ServiceProvider.GetRequiredService<IClientPolicyStore>();
-            await clientPolicyStore.SeedAsync();
+        var clientPolicyStore = scope.ServiceProvider.GetRequiredService<IClientPolicyStore>();
+        await clientPolicyStore.SeedAsync();
 
-            await host.RunAsync();
-        }
-
-        private static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+        await host.RunAsync();
     }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
 }

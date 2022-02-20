@@ -23,20 +23,19 @@
 using System;
 using Argus.Common.Services.Elasticsearch;
 
-namespace Argus.Common.Messages.BulkData
-{
-    /// <summary>
-    /// Represents an image that has been fingerprinted by a worker.
-    /// </summary>
-    /// <param name="ServiceName">The name of the service the original collector retrieved the image from.</param>
-    /// <param name="Source">The source URL where the image was retrieved.</param>
-    /// <param name="Link">A direct link to the image.</param>
-    /// <param name="Signature">The image signature.</param>
-    public record FingerprintedImage
-    (
-        string ServiceName,
-        Uri Source,
-        Uri Link,
-        ImageSignature Signature
-    );
-}
+namespace Argus.Common.Messages.BulkData;
+
+/// <summary>
+/// Represents an image that has been fingerprinted by a worker.
+/// </summary>
+/// <param name="ServiceName">The name of the service the original collector retrieved the image from.</param>
+/// <param name="Source">The source URL where the image was retrieved.</param>
+/// <param name="Link">A direct link to the image.</param>
+/// <param name="Signature">The image signature.</param>
+public record FingerprintedImage
+(
+    string ServiceName,
+    Uri Source,
+    Uri Link,
+    ImageSignature Signature
+);

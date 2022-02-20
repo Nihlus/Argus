@@ -22,24 +22,23 @@
 
 using System;
 
-namespace Argus.Common.Messages.BulkData
-{
-    /// <summary>
-    /// Represents a report regarding the processing status of an image.
-    /// </summary>
-    /// <param name="Timestamp">The time at which the report was created.</param>
-    /// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
-    /// <param name="Source">The source URL where the image was retrieved.</param>
-    /// <param name="Link">A direct link to the image.</param>
-    /// <param name="Status">The status of the image.</param>
-    /// <param name="Message">The status message.</param>
-    public record StatusReport
-    (
-        DateTimeOffset Timestamp,
-        string ServiceName,
-        Uri Source,
-        Uri Link,
-        ImageStatus Status,
-        string Message
-    );
-}
+namespace Argus.Common.Messages.BulkData;
+
+/// <summary>
+/// Represents a report regarding the processing status of an image.
+/// </summary>
+/// <param name="Timestamp">The time at which the report was created.</param>
+/// <param name="ServiceName">The name of the service the collector retrieved the image from.</param>
+/// <param name="Source">The source URL where the image was retrieved.</param>
+/// <param name="Link">A direct link to the image.</param>
+/// <param name="Status">The status of the image.</param>
+/// <param name="Message">The status message.</param>
+public record StatusReport
+(
+    DateTimeOffset Timestamp,
+    string ServiceName,
+    Uri Source,
+    Uri Link,
+    ImageStatus Status,
+    string Message
+);

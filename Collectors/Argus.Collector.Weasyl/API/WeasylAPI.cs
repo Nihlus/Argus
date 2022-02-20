@@ -32,173 +32,172 @@ using Argus.Collector.Weasyl.Configuration;
 using Microsoft.Extensions.Options;
 using Remora.Results;
 
-namespace Argus.Collector.Weasyl.API
+namespace Argus.Collector.Weasyl.API;
+
+/// <summary>
+/// Interfaces with the Weasyl API.
+/// </summary>
+public class WeasylAPI
 {
+    private readonly WeasylOptions _options;
+    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly IHttpClientFactory _httpClientFactory;
+
     /// <summary>
-    /// Interfaces with the Weasyl API.
+    /// Initializes a new instance of the <see cref="WeasylAPI"/> class.
     /// </summary>
-    public class WeasylAPI
+    /// <param name="options">The Weasyl options.</param>
+    /// <param name="jsonOptions">The JSON options.</param>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    public WeasylAPI
+    (
+        IOptions<WeasylOptions> options,
+        IOptions<JsonSerializerOptions> jsonOptions,
+        IHttpClientFactory httpClientFactory
+    )
     {
-        private readonly WeasylOptions _options;
-        private readonly JsonSerializerOptions _jsonOptions;
-        private readonly IHttpClientFactory _httpClientFactory;
+        _options = options.Value;
+        _jsonOptions = jsonOptions.Value;
+        _httpClientFactory = httpClientFactory;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WeasylAPI"/> class.
-        /// </summary>
-        /// <param name="options">The Weasyl options.</param>
-        /// <param name="jsonOptions">The JSON options.</param>
-        /// <param name="httpClientFactory">The HTTP client factory.</param>
-        public WeasylAPI
-        (
-            IOptions<WeasylOptions> options,
-            IOptions<JsonSerializerOptions> jsonOptions,
-            IHttpClientFactory httpClientFactory
-        )
+    /// <summary>
+    /// Gets a submission by its ID.
+    /// </summary>
+    /// <param name="submissionID">The ID of the submission.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The submission.</returns>
+    public async Task<Result<WeasylSubmission>> GetSubmissionAsync(int submissionID, CancellationToken ct = default)
+    {
+        try
         {
-            _options = options.Value;
-            _jsonOptions = jsonOptions.Value;
-            _httpClientFactory = httpClientFactory;
-        }
+            var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
+            using var request = new HttpRequestMessage
+            (
+                HttpMethod.Get,
+                $"https://www.weasyl.com/api/submissions/{submissionID}/view?anyway=true"
+            );
 
-        /// <summary>
-        /// Gets a submission by its ID.
-        /// </summary>
-        /// <param name="submissionID">The ID of the submission.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The submission.</returns>
-        public async Task<Result<WeasylSubmission>> GetSubmissionAsync(int submissionID, CancellationToken ct = default)
-        {
-            try
+            request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
+
+            using var response = await client.SendAsync(request, ct);
+            if (response.IsSuccessStatusCode)
             {
-                var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
-                using var request = new HttpRequestMessage
-                (
-                    HttpMethod.Get,
-                    $"https://www.weasyl.com/api/submissions/{submissionID}/view?anyway=true"
-                );
-
-                request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
-
-                using var response = await client.SendAsync(request, ct);
-                if (response.IsSuccessStatusCode)
-                {
-                    return await JsonSerializer.DeserializeAsync<WeasylSubmission>
-                    (
-                        await response.Content.ReadAsStreamAsync(ct),
-                        _jsonOptions,
-                        ct
-                    );
-                }
-
-                var document = await JsonDocument.ParseAsync
+                return await JsonSerializer.DeserializeAsync<WeasylSubmission>
                 (
                     await response.Content.ReadAsStreamAsync(ct),
-                    cancellationToken: ct
+                    _jsonOptions,
+                    ct
                 );
-
-                if (!document.RootElement.TryGetProperty("error", out var errorProperty))
-                {
-                    if (response.StatusCode is HttpStatusCode.NotFound)
-                    {
-                        return new NotFoundError();
-                    }
-
-                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
-                }
-
-                var errorJson = errorProperty.ToString();
-                if (errorJson is null)
-                {
-                    if (response.StatusCode is HttpStatusCode.NotFound)
-                    {
-                        return new NotFoundError();
-                    }
-
-                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
-                }
-
-                var error = JsonSerializer.Deserialize<WeasylError>(errorJson, _jsonOptions)
-                            ?? throw new InvalidOperationException();
-
-                return error with { StatusCode = response.StatusCode };
             }
-            catch (Exception e)
+
+            var document = await JsonDocument.ParseAsync
+            (
+                await response.Content.ReadAsStreamAsync(ct),
+                cancellationToken: ct
+            );
+
+            if (!document.RootElement.TryGetProperty("error", out var errorProperty))
             {
-                return e;
+                if (response.StatusCode is HttpStatusCode.NotFound)
+                {
+                    return new NotFoundError();
+                }
+
+                return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
             }
+
+            var errorJson = errorProperty.ToString();
+            if (errorJson is null)
+            {
+                if (response.StatusCode is HttpStatusCode.NotFound)
+                {
+                    return new NotFoundError();
+                }
+
+                return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
+            }
+
+            var error = JsonSerializer.Deserialize<WeasylError>(errorJson, _jsonOptions)
+                        ?? throw new InvalidOperationException();
+
+            return error with { StatusCode = response.StatusCode };
         }
-
-        /// <summary>
-        /// Gets the submissions on the front page.
-        /// </summary>
-        /// <param name="count">The number of submissions to get from the front page.</param>
-        /// <param name="ct">The cancellation token for this operation.</param>
-        /// <returns>The submissions.</returns>
-        public async Task<Result<IReadOnlyList<WeasylSubmission>>> GetFrontpageAsync
-        (
-            int count = 1,
-            CancellationToken ct = default
-        )
+        catch (Exception e)
         {
-            try
+            return e;
+        }
+    }
+
+    /// <summary>
+    /// Gets the submissions on the front page.
+    /// </summary>
+    /// <param name="count">The number of submissions to get from the front page.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The submissions.</returns>
+    public async Task<Result<IReadOnlyList<WeasylSubmission>>> GetFrontpageAsync
+    (
+        int count = 1,
+        CancellationToken ct = default
+    )
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
+            using var request = new HttpRequestMessage
+            (
+                HttpMethod.Get,
+                $"https://www.weasyl.com/api/submissions/frontpage?count={count}"
+            );
+
+            request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
+
+            using var response = await client.SendAsync(request, ct);
+            if (response.IsSuccessStatusCode)
             {
-                var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
-                using var request = new HttpRequestMessage
-                (
-                    HttpMethod.Get,
-                    $"https://www.weasyl.com/api/submissions/frontpage?count={count}"
-                );
-
-                request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
-
-                using var response = await client.SendAsync(request, ct);
-                if (response.IsSuccessStatusCode)
-                {
-                    return await JsonSerializer.DeserializeAsync<List<WeasylSubmission>>
-                    (
-                        await response.Content.ReadAsStreamAsync(ct),
-                        _jsonOptions,
-                        ct
-                    );
-                }
-
-                var document = await JsonDocument.ParseAsync
+                return await JsonSerializer.DeserializeAsync<List<WeasylSubmission>>
                 (
                     await response.Content.ReadAsStreamAsync(ct),
-                    cancellationToken: ct
+                    _jsonOptions,
+                    ct
                 );
-
-                if (!document.RootElement.TryGetProperty("error", out var errorProperty))
-                {
-                    if (response.StatusCode is HttpStatusCode.NotFound)
-                    {
-                        return new NotFoundError();
-                    }
-
-                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
-                }
-
-                var errorJson = errorProperty.ToString();
-                if (errorJson is null)
-                {
-                    if (response.StatusCode is HttpStatusCode.NotFound)
-                    {
-                        return new NotFoundError();
-                    }
-
-                    return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
-                }
-
-                var error = JsonSerializer.Deserialize<WeasylError>(errorJson, _jsonOptions)
-                            ?? throw new InvalidOperationException();
-
-                return error with { StatusCode = response.StatusCode };
             }
-            catch (Exception e)
+
+            var document = await JsonDocument.ParseAsync
+            (
+                await response.Content.ReadAsStreamAsync(ct),
+                cancellationToken: ct
+            );
+
+            if (!document.RootElement.TryGetProperty("error", out var errorProperty))
             {
-                return e;
+                if (response.StatusCode is HttpStatusCode.NotFound)
+                {
+                    return new NotFoundError();
+                }
+
+                return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
             }
+
+            var errorJson = errorProperty.ToString();
+            if (errorJson is null)
+            {
+                if (response.StatusCode is HttpStatusCode.NotFound)
+                {
+                    return new NotFoundError();
+                }
+
+                return new InvalidOperationError($"HTTP operation failed: {response.StatusCode}");
+            }
+
+            var error = JsonSerializer.Deserialize<WeasylError>(errorJson, _jsonOptions)
+                        ?? throw new InvalidOperationException();
+
+            return error with { StatusCode = response.StatusCode };
+        }
+        catch (Exception e)
+        {
+            return e;
         }
     }
 }
