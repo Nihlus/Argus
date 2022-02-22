@@ -222,7 +222,18 @@ public class FurAffinityCollectorService : CollectorService
             var getLink = await _furAffinityAPI.GetSubmissionDownloadLinkAsync(submissionID, ct);
             if (!getLink.IsSuccess)
             {
-                return Result<(StatusReport Report, CollectedImage? Image)>.FromError(getLink);
+                if (getLink.Error is not NotFoundError)
+                {
+                    return Result<(StatusReport Report, CollectedImage? Image)>.FromError(getLink);
+                }
+
+                var rejectionReport = statusReport with
+                {
+                    Status = ImageStatus.Rejected,
+                    Message = "No file"
+                };
+
+                return (rejectionReport, null);
             }
 
             var location = getLink.Entity;
