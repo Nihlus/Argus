@@ -85,6 +85,9 @@ public class CoordinatorContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<ImageSource>()
+            .HasIndex(s => s.SourceIdentifier);
+
+        modelBuilder.Entity<ImageSource>()
             .HasIndex(s => s.FirstVisitedAt);
 
         modelBuilder.Entity<ImageSource>()
