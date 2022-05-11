@@ -1,0 +1,42 @@
+:root {
+    --primary-light-color: #FFD024;
+    --primary-main-color: #FEA82F;
+    --primary-dark-color: #E87820;
+    --secondary-main-color: #202030;
+    --secondary-light-color: #2F2F45;
+
+    --text-color: #E5E5E5;
+    --text-color-hint: #5A5A85;
+}
+
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu,
+    Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+    line-height: 1.6;
+    font-size: 18px;
+    min-height: 100vh;
+    background-color: var(--secondary-main-color);
+    color: var(--text-color);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+a {
+    color: #0070f3;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
