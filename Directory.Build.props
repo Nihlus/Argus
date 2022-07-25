@@ -91,7 +91,7 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
 
-        <DebDotNetDependencies Include="dotnet-runtime-5.0"/>
+        <DebDotNetDependencies Include="dotnet-runtime-6.0"/>
     </ItemGroup>
 
 </Project>
