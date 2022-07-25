@@ -35,7 +35,6 @@ using Argus.Collector.Driver.Minibooru.Model;
 using Argus.Common;
 using Argus.Common.Messages.BulkData;
 using MassTransit;
-using MassTransit.MessageData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;

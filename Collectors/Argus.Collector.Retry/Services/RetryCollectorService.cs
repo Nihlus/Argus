@@ -35,7 +35,6 @@ using Argus.Common.Messages.BulkData;
 using Argus.Common.Messages.Replies;
 using Argus.Common.Messages.Requests;
 using MassTransit;
-using MassTransit.MessageData;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Remora.Results;

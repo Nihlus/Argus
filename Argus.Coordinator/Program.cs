@@ -29,7 +29,6 @@ using Argus.Common.Services.Elasticsearch;
 using Argus.Coordinator.Configuration;
 using Argus.Coordinator.MassTransit.Consumers;
 using Argus.Coordinator.Model;
-using GreenPipes;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
