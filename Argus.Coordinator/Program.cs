@@ -56,7 +56,7 @@ internal class Program
         // Ensure the index is created
         var elasticClient = host.Services.GetRequiredService<ElasticClient>();
         var exists = await elasticClient.Indices.ExistsAsync("argus");
-        if (exists.ServerError is not null)
+        if (exists.ServerError is not null || exists.OriginalException is not null)
         {
             log.LogError
             (
@@ -77,7 +77,7 @@ internal class Program
                 )
             );
 
-            if (ensureCreated.ServerError is not null and not { Error: { Type: "resource_already_exists_exception" } })
+            if (ensureCreated.OriginalException is not null || ensureCreated.ServerError is not null and not { Error: { Type: "resource_already_exists_exception" } })
             {
                 log.LogError
                 (
