@@ -80,7 +80,8 @@ public class RevisitRequestConsumer : IConsumer<GetSourcesToRevisit>
 
         var asDictionary = sources
             .GroupBy(o => o.Source)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<StatusReport>)g.Select(o => o.Report).ToList());
+            .Select(g => new KeyValuePair<ImageSource, IReadOnlyList<StatusReport>>(g.Key, g.Select(o => o.Report).ToList()))
+            .ToList();
 
         await context.RespondAsync(new SourcesToRevisit(asDictionary));
         _log.LogInformation("Sent {Count} sources for revisiting", asDictionary.Count);

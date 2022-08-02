@@ -29,4 +29,4 @@ namespace Argus.Common.Messages.Replies;
 /// Represents a set of sources that the service should revisit.
 /// </summary>
 /// <param name="Sources">The sources, as a mapping of image sources to the images that are associated with it.</param>
-public record SourcesToRevisit(IReadOnlyDictionary<ImageSource, IReadOnlyList<StatusReport>> Sources);
+public record SourcesToRevisit(IReadOnlyList<KeyValuePair<ImageSource, IReadOnlyList<StatusReport>>> Sources);
