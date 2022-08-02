@@ -58,5 +58,10 @@ public enum ImageStatus
     /// <summary>
     /// Processing of the image faulted in some way.
     /// </summary>
-    Faulted = 4
+    Faulted = 4,
+
+    /// <summary>
+    /// The image has been deleted on the remote.
+    /// </summary>
+    Deleted = 6
 }
