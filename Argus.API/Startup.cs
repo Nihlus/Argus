@@ -128,13 +128,17 @@ public class Startup
 
         services.AddCors(options =>
         {
-            options.AddPolicy("_allowSpecificOrigins", policy =>
-            {
-                policy
-                    .AllowAnyOrigin()
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
-            });
+            options.AddPolicy
+            (
+                "_allowSpecificOrigins",
+                policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }
+            );
         });
 
         // Authentication
