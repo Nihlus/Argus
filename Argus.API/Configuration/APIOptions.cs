@@ -30,7 +30,7 @@ namespace Argus.API.Configuration;
 /// <param name="ElasticsearchServer">The Elasticsearch server to connect to.</param>
 /// <param name="ElasticsearchUsername">The Elasticsearch username to use.</param>
 /// <param name="ElasticsearchPassword">The Elasticsearch password to use.</param>
-/// <param name="ElasticsearchCertificateFingerprint">The fingerprint of the Elasticsearch server's certificate</param>
+/// <param name="ElasticsearchCertificateFingerprint">The fingerprint of the Elasticsearch server's certificate.</param>
 public record APIOptions
 (
     Uri ElasticsearchServer,
