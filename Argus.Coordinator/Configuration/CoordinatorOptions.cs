@@ -30,9 +30,11 @@ namespace Argus.Coordinator.Configuration;
 /// <param name="ElasticsearchServer">The endpoint of the elasticsearch server.</param>
 /// <param name="ElasticsearchUsername">The username of the elasticsearch credentials.</param>
 /// <param name="ElasticsearchPassword">The password of the elasticsearch credentials.</param>
+/// <param name="ElasticsearchCertificateFingerprint">The fingerprint of the Elasticsearch server's certificate.</param>
 public record CoordinatorOptions
 (
     Uri ElasticsearchServer,
     string ElasticsearchUsername,
-    string ElasticsearchPassword
+    string ElasticsearchPassword,
+    string? ElasticsearchCertificateFingerprint
 );

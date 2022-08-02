@@ -181,7 +181,8 @@ internal class Program
             (
                 new Uri("about:blank"),
                 string.Empty,
-                string.Empty
+                string.Empty,
+                null
             );
 
             hostContext.Configuration.Bind(nameof(CoordinatorOptions), options);
@@ -210,7 +211,13 @@ internal class Program
                         var password = options.ElasticsearchPassword;
                         settings.BasicAuthentication(username, password);
 
+                        if (options.ElasticsearchCertificateFingerprint is not null)
+                        {
+                            settings.CertificateFingerprint(options.ElasticsearchCertificateFingerprint);
+                        }
+
                         settings.DefaultIndex("argus");
+                        settings.EnableApiVersioningHeader();
 
                         return settings;
                     }

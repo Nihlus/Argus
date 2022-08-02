@@ -118,7 +118,8 @@ public class Startup
             (
                 new Uri("about:blank"),
                 string.Empty,
-                string.Empty
+                string.Empty,
+                null
             );
 
             this.Configuration.Bind(nameof(APIOptions), options);
@@ -162,14 +163,19 @@ public class Startup
             (
                 transientServices =>
                 {
-                    var (node, username, password) = transientServices
+                    var (node, username, password, fingerprint) = transientServices
                         .GetRequiredService<IOptions<APIOptions>>().Value;
 
                     var settings = new ConnectionSettings(node);
 
                     settings.BasicAuthentication(username, password);
-
                     settings.DefaultIndex("argus");
+                    settings.EnableApiVersioningHeader();
+
+                    if (fingerprint is not null)
+                    {
+                        settings.CertificateFingerprint(fingerprint);
+                    }
 
                     return settings;
                 }
