@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -113,104 +114,310 @@ public class FListCollectorService : CollectorService
                 latestCharacterId = getLatestCharacter.Entity.Id;
                 if (currentCharacterId >= latestCharacterId)
                 {
-                    _log.LogInformation("Waiting for new characters to come in...");
-                    await Task.Delay(TimeSpan.FromHours(1), ct);
+                    _log.LogInformation("No new characters. Revisiting some old stuff while we wait...");
+
+                    var then = DateTimeOffset.UtcNow;
+                    while (DateTimeOffset.UtcNow - then < TimeSpan.FromHours(1))
+                    {
+                        var requestRevisits = await RequestRevisitsAsync(ct: ct);
+                        if (!requestRevisits.IsSuccess)
+                        {
+                            return (Result)requestRevisits;
+                        }
+
+                        var revisits = requestRevisits.Entity.Sources;
+                        if (revisits.Count <= 0)
+                        {
+                            await Task.Delay(TimeSpan.FromMinutes(15), ct);
+                            continue;
+                        }
+
+                        foreach (var (source, reports) in requestRevisits.Entity.Sources)
+                        {
+                            var revisitExistingCharacter = await RevisitExistingCharacterAsync(source, reports, ct);
+                            if (!revisitExistingCharacter.IsSuccess)
+                            {
+                                return revisitExistingCharacter;
+                            }
+                        }
+                    }
+
                     continue;
                 }
             }
 
-            var setResume = await SetResumePointAsync(currentCharacterId.ToString(), ct);
-            if (!setResume.IsSuccess)
+            var collectNewCharacter = await CollectNewCharacterAsync(currentCharacterId, ct);
+            if (!collectNewCharacter.IsSuccess)
             {
-                return setResume;
+                return (Result)collectNewCharacter;
             }
 
-            var getCharacter = await _flistAPI.GetCharacterDataAsync(currentCharacterId, ct);
-            if (!getCharacter.IsSuccess)
-            {
-                if (!getCharacter.Error.Message.Contains("Character not found"))
-                {
-                    _log.LogWarning
-                    (
-                        "Failed to get data for character {ID}: {Reason}",
-                        currentCharacterId,
-                        getCharacter.Error.Message
-                    );
-                }
-
-                ++currentCharacterId;
-                continue;
-            }
-
-            var character = getCharacter.Entity;
-            var characterLink = new Uri($"https://www.f-list.net/c/{character.Name}");
-
-            var imageSource = new ImageSource
-            (
-                this.ServiceName,
-                characterLink,
-                DateTimeOffset.UtcNow,
-                currentCharacterId.ToString()
-            );
-
-            var source = await PushImageSourceAsync(imageSource, ct);
-            if (!source.IsSuccess)
-            {
-                return source;
-            }
-
-            if (character.Images.Count <= 0)
-            {
-                ++currentCharacterId;
-                continue;
-            }
-
-            var client = _httpClientFactory.CreateClient("BulkDownload");
-
-            var collections = character.Images.Select(i => CollectImageAsync(client, characterLink, i, ct));
-            var collectedImages = await Task.WhenAll(collections);
-
-            foreach (var imageCollection in collectedImages)
-            {
-                if (!imageCollection.IsSuccess)
-                {
-                    _log.LogWarning("Failed to collect image: {Reason}", imageCollection.Error.Message);
-                    continue;
-                }
-
-                var collectedImage = imageCollection.Entity;
-
-                var statusReport = new StatusReport
-                (
-                    DateTimeOffset.UtcNow,
-                    this.ServiceName,
-                    collectedImage.Source,
-                    collectedImage.Link,
-                    ImageStatus.Collected,
-                    string.Empty
-                );
-
-                var report = await PushStatusReportAsync(statusReport, ct);
-                if (!report.IsSuccess)
-                {
-                    _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
-                    return report;
-                }
-
-                var push = await PushCollectedImageAsync(collectedImage, ct);
-                if (push.IsSuccess)
-                {
-                    continue;
-                }
-
-                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
-                return push;
-            }
-
-            ++currentCharacterId;
+            currentCharacterId = collectNewCharacter.Entity;
         }
 
         return Result.FromSuccess();
+    }
+
+    private async Task<Result<int>> CollectNewCharacterAsync(int characterId, CancellationToken ct = default)
+    {
+        var setResume = await SetResumePointAsync(characterId.ToString(), ct);
+        if (!setResume.IsSuccess)
+        {
+            return Result<int>.FromError(setResume);
+        }
+
+        var collectImages = await CollectImagesAsync(characterId, ct);
+        if (collectImages.Error is NotFoundError)
+        {
+            return characterId + 1;
+        }
+
+        if (!collectImages.IsSuccess)
+        {
+            return Result<int>.FromError(collectImages);
+        }
+
+        var (imageSource, collectedImages) = collectImages.Entity;
+
+        var pushSource = await PushImageSourceAsync(imageSource, ct);
+        if (!pushSource.IsSuccess)
+        {
+            return Result<int>.FromError(pushSource);
+        }
+
+        if (collectedImages.Count <= 0)
+        {
+            return characterId + 1;
+        }
+
+        foreach (var collectedImage in collectedImages)
+        {
+            var statusReport = new StatusReport
+            (
+                DateTimeOffset.UtcNow,
+                this.ServiceName,
+                collectedImage.Source,
+                collectedImage.Link,
+                ImageStatus.Collected,
+                string.Empty
+            );
+
+            var report = await PushStatusReportAsync(statusReport, ct);
+            if (!report.IsSuccess)
+            {
+                _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
+                return Result<int>.FromError(report);
+            }
+
+            var push = await PushCollectedImageAsync(collectedImage, ct);
+            if (!push.IsSuccess)
+            {
+                _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+                return Result<int>.FromError(push);
+            }
+        }
+
+        return characterId + 1;
+    }
+
+    private async Task<Result> RevisitExistingCharacterAsync
+    (
+        ImageSource source,
+        IReadOnlyList<StatusReport> images,
+        CancellationToken ct = default
+    )
+    {
+        if (!int.TryParse(source.SourceIdentifier, out var characterId))
+        {
+            throw new InvalidOperationException("Bad data in the database?");
+        }
+
+        ImageSource updatedSource;
+        IReadOnlyList<StatusReport> updatedImages;
+        IReadOnlyList<CollectedImage> collectedImages;
+
+        var collectImages = await CollectImagesAsync(characterId, ct);
+        if (collectImages.Error is NotFoundError)
+        {
+            updatedImages = images.Select(i => i with { Status = ImageStatus.Deleted }).ToList();
+            updatedSource = source with
+            {
+                RevisitCount = source.RevisitCount + 1,
+                LastRevisitedAt = DateTimeOffset.UtcNow
+            };
+            collectedImages = Array.Empty<CollectedImage>();
+        }
+        else
+        {
+            if (!collectImages.IsSuccess)
+            {
+                return (Result)collectImages;
+            }
+
+            (var imageSource, collectedImages) = collectImages.Entity;
+
+            // Update the image records
+            var newImages = collectedImages.Select(c => new StatusReport
+            (
+                DateTimeOffset.UtcNow,
+                this.ServiceName,
+                c.Source,
+                c.Link,
+                ImageStatus.Collected,
+                string.Empty
+            )).ToList();
+
+            var finalImages = new List<StatusReport>();
+
+            // Filter out deleted images
+            foreach (var oldImage in images)
+            {
+                if (newImages.All(i => i.Link != oldImage.Link))
+                {
+                    finalImages.Add(oldImage with { Status = ImageStatus.Deleted });
+                }
+            }
+
+            // Add in the existing or new images
+            foreach (var newImage in newImages)
+            {
+                var existingImage = images.FirstOrDefault(i => i.Link == newImage.Link);
+                if (existingImage is not null)
+                {
+                    switch (existingImage.Status)
+                    {
+                        case ImageStatus.Indexed or ImageStatus.Collected:
+                        {
+                            finalImages.Add(existingImage);
+                            break;
+                        }
+                        case ImageStatus.Deleted: // it's come back?
+                        case var _ when existingImage.Status != newImage.Status:
+                        {
+                            finalImages.Add(newImage);
+                            break;
+                        }
+                        default:
+                        {
+                            throw new ArgumentOutOfRangeException(nameof(existingImage));
+                        }
+                    }
+                }
+                else
+                {
+                    finalImages.Add(newImage);
+                }
+            }
+
+            updatedImages = finalImages;
+            updatedSource = imageSource with
+            {
+                RevisitCount = imageSource.RevisitCount + 1,
+                LastRevisitedAt = DateTimeOffset.UtcNow
+            };
+        }
+
+        var pushSource = await PushImageSourceAsync(updatedSource, ct);
+        if (!pushSource.IsSuccess)
+        {
+            return pushSource;
+        }
+
+        foreach (var updatedImage in updatedImages)
+        {
+            if (images.Contains(updatedImage))
+            {
+                // No need to send out identical reports
+                continue;
+            }
+
+            var report = await PushStatusReportAsync(updatedImage, ct);
+            if (report.IsSuccess)
+            {
+                continue;
+            }
+
+            _log.LogWarning("Failed to push status report: {Reason}", report.Error.Message);
+            return report;
+        }
+
+        foreach (var collectedImage in collectedImages)
+        {
+            if (images.Any(i => i.Link == collectedImage.Link && i.Status is ImageStatus.Indexed or ImageStatus.Collected))
+            {
+                // No need to redownload existing images
+                continue;
+            }
+
+            var push = await PushCollectedImageAsync(collectedImage, ct);
+            if (push.IsSuccess)
+            {
+                continue;
+            }
+
+            _log.LogWarning("Failed to push collected image: {Reason}", push.Error.Message);
+            return push;
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private async Task<Result<(ImageSource Source, IReadOnlyList<CollectedImage> Images)>> CollectImagesAsync
+    (
+        int characterId,
+        CancellationToken ct = default
+    )
+    {
+        var getCharacter = await _flistAPI.GetCharacterDataAsync(characterId, ct);
+        if (!getCharacter.IsSuccess)
+        {
+            if (!getCharacter.Error.Message.Contains("Character not found"))
+            {
+                _log.LogWarning
+                (
+                    "Failed to get data for character {ID}: {Reason}",
+                    characterId,
+                    getCharacter.Error.Message
+                );
+            }
+
+            return new NotFoundError("Character not found.");
+        }
+
+        var character = getCharacter.Entity;
+        var characterLink = new Uri($"https://www.f-list.net/c/{character.Name}");
+
+        var imageSource = new ImageSource
+        (
+            this.ServiceName,
+            characterLink,
+            DateTimeOffset.UtcNow,
+            characterId.ToString()
+        );
+
+        if (character.Images.Count <= 0)
+        {
+            return (imageSource, Array.Empty<CollectedImage>());
+        }
+
+        var client = _httpClientFactory.CreateClient("BulkDownload");
+
+        var collections = character.Images.Select(i => CollectImageAsync(client, characterLink, i, ct));
+        var imageCollections = await Task.WhenAll(collections);
+
+        var images = new List<CollectedImage>();
+        foreach (var imageCollection in imageCollections)
+        {
+            if (!imageCollection.IsSuccess)
+            {
+                _log.LogWarning("Failed to collect image: {Reason}", imageCollection.Error.Message);
+                continue;
+            }
+
+            images.Add(imageCollection.Entity);
+        }
+
+        return (imageSource, images);
     }
 
     private async Task<Result<CollectedImage>> CollectImageAsync
