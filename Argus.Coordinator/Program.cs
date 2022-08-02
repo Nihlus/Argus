@@ -156,6 +156,7 @@ internal class Program
 
             busConfig.AddConsumer<ResumeRequestConsumer>();
             busConfig.AddConsumer<RetryRequestConsumer>();
+            busConfig.AddConsumer<RevisitRequestConsumer>();
             busConfig.AddConsumer<FingerprintedImageFaultConsumer>();
         })
         .ConfigureAppConfiguration((_, configuration) =>

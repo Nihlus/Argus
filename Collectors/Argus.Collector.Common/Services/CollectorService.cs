@@ -176,6 +176,20 @@ public abstract class CollectorService : BackgroundService
     }
 
     /// <summary>
+    /// Requests a batch of sources to revisit.
+    /// </summary>
+    /// <param name="maxCount">The maximum number of sources to revisit.</param>
+    /// <param name="ct">The cancellation token for this operation.</param>
+    /// <returns>The sources to revisit.</returns>
+    protected async Task<Result<SourcesToRevisit>> RequestRevisitsAsync(int maxCount = 25, CancellationToken ct = default)
+    {
+        var message = new GetSourcesToRevisit(this.ServiceName, maxCount);
+        var response = await this.Bus.Request<GetSourcesToRevisit, SourcesToRevisit>(message, ct);
+
+        return response.Message;
+    }
+
+    /// <summary>
     /// Pushes a collected image out to the coordinator.
     /// </summary>
     /// <param name="collectedImage">The collected image.</param>
