@@ -368,6 +368,32 @@ public class FListCollectorService : CollectorService
         CancellationToken ct = default
     )
     {
+        async Task<Result<CollectedImage>> CollectImageAsync
+        (
+            HttpClient client,
+            Uri characterLink,
+            CharacterImage image
+        )
+        {
+            try
+            {
+                var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
+                var bytes = await client.GetByteArrayAsync(location, ct);
+
+                return new CollectedImage
+                (
+                    this.ServiceName,
+                    characterLink,
+                    new Uri(location),
+                    await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
+                );
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
         var getCharacter = await _flistAPI.GetCharacterDataAsync(characterId, ct);
         if (!getCharacter.IsSuccess)
         {
@@ -402,7 +428,7 @@ public class FListCollectorService : CollectorService
 
         var client = _httpClientFactory.CreateClient("BulkDownload");
 
-        var collections = character.Images.Select(i => CollectImageAsync(client, characterLink, i, ct));
+        var collections = character.Images.Select(i => CollectImageAsync(client, characterLink, i));
         var imageCollections = await Task.WhenAll(collections);
 
         var images = new List<CollectedImage>();
@@ -418,32 +444,5 @@ public class FListCollectorService : CollectorService
         }
 
         return (imageSource, images);
-    }
-
-    private async Task<Result<CollectedImage>> CollectImageAsync
-    (
-        HttpClient client,
-        Uri characterLink,
-        CharacterImage image,
-        CancellationToken ct = default
-    )
-    {
-        try
-        {
-            var location = $"https://static.f-list.net/images/charimage/{image.ImageId}.{image.Extension}";
-            var bytes = await client.GetByteArrayAsync(location, ct);
-
-            return new CollectedImage
-            (
-                this.ServiceName,
-                characterLink,
-                new Uri(location),
-                await _repository.PutBytes(bytes, TimeSpan.FromHours(8), ct)
-            );
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
     }
 }
