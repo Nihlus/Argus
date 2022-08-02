@@ -61,6 +61,7 @@ public class RevisitRequestConsumer : IConsumer<GetSourcesToRevisit>
         //  2. a long time since they were revisited
         var sources = await _db.ServiceImageSources.AsNoTracking()
             .Where(s => s.ServiceName == context.Message.ServiceName)
+            .Where(s => s.LastRevisitedAt == null || DateTimeOffset.UtcNow - s.LastRevisitedAt >= TimeSpan.FromMinutes(15))
             .OrderBy(s => s.RevisitCount)
             .ThenByDescending(s => s.LastRevisitedAt == null)
             .ThenByDescending(s => DateTimeOffset.UtcNow - s.LastRevisitedAt)
