@@ -1,7 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project>
+    <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk.Web" />
+    <Import Project="Sdk.props" Sdk="Remora.Sdk" Version="1.0.0-preview6" />
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
         <UserSecretsId>c19a83fa-11a6-4dc5-aa7a-1a75d43c145b</UserSecretsId>
     </PropertyGroup>
 
@@ -32,4 +33,6 @@
         <ProjectReference Include="..\Argus.Common\Argus.Common.csproj" />
     </ItemGroup>
 
+    <Import Project="Sdk.targets" Sdk="Remora.Sdk" Version="1.0.0-preview6" />
+    <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk.Web" />
 </Project>
