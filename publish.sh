@@ -27,14 +27,14 @@ function main() {
         declare real_path=$(realpath ${project})
 
         pushd "${real_path}"
-            dotnet deb -c Release -o "${OUTPUT}"
+            dotnet deb -c Release -f net6.0 -o "${OUTPUT}"
         popd
     done
 
     # Deploy
     aptly repo add argus-release "${OUTPUT}" || true # suppress errors from adding existing packages
     aptly snapshot create "argus-$(date +"%Y-%m-%d:%H:%M:%S")" from repo argus-release
-    aptly publish update focal :argus
+    aptly publish update jammy :argus
     aptly publish update bullseye :argus
 
     rsync -ruvz -e 'ssh -p 21122' --progress "${HOME}/.aptly/public/argus/" jax@algiz.nu:/mnt/pool/sites/jarl/repo

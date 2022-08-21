@@ -14,7 +14,7 @@
 
             Collects images from Booru sites, handing them to the coordinator.
         </Description>
-        <Version>5.2.2</Version>
+        <VersionPrefix>5.2.3</VersionPrefix>
     </PropertyGroup>
 
     <ItemGroup>

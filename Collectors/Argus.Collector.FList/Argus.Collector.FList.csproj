@@ -14,7 +14,7 @@
 
             Collects images from https://www.f-list.net, handing them to the coordinator.
         </Description>
-        <Version>5.2.0</Version>
+        <VersionPrefix>5.2.1</VersionPrefix>
     </PropertyGroup>
 
     <ItemGroup>

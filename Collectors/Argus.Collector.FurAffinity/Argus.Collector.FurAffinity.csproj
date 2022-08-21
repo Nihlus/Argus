@@ -14,7 +14,7 @@
 
             Collects images from https://www.furaffinity.net, handing them to the coordinator.
         </Description>
-        <Version>2.2.2</Version>
+        <VersionPrefix>2.2.3</VersionPrefix>
     </PropertyGroup>
 
     <ItemGroup>

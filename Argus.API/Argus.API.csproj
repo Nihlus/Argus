@@ -12,7 +12,7 @@
 
             The REST API exposes a simple REST+JSON API for generating fingerprints and searching the database.
         </Description>
-        <Version>4.0.3</Version>
+        <VersionPrefix>4.0.4</VersionPrefix>
     </PropertyGroup>
 
     <ItemGroup>
