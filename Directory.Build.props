@@ -27,7 +27,6 @@
 
     <ItemGroup>
         <PackageReference Include="Packaging.Targets">
-            <Version>0.1.220</Version>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
 
