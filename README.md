@@ -16,7 +16,7 @@ and when they've been uploaded.
 
 ## Requirements
   * Elasticsearch
-  * .NET 5
+  * .NET 7
 
 ## Components
 Argus is composed of a suite of programs, each serving a specific purpose.
