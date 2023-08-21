@@ -1,4 +1,4 @@
-<Project Sdk="Remora.Sdk/1.0.0-preview6">
+<Project Sdk="Remora.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -15,10 +15,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="CommandLineParser" Version="2.9.1" />
-      <PackageReference Include="Puzzle" Version="3.0.0" />
-      <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
-      <PackageReference Remove="MessagePackAnalyzer" />
+      <PackageReference Include="CommandLineParser" />
+      <PackageReference Include="Puzzle" />
+      <PackageReference Include="Serilog.Sinks.Console" />
     </ItemGroup>
 
     <ItemGroup>

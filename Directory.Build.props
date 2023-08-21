@@ -3,22 +3,22 @@
         <LegalAuthor>Jarl Gullberg</LegalAuthor>
         <LegalEmail>jarl.gullberg@gmail.com</LegalEmail>
         <LegalLicense>AGPL-3.0-or-later</LegalLicense>
-        <LibraryFrameworks>net6.0</LibraryFrameworks>
-        <ExecutableFrameworks>net6.0</ExecutableFrameworks>
+        <LibraryFrameworks>net7.0</LibraryFrameworks>
+        <ExecutableFrameworks>net7.0</ExecutableFrameworks>
     </PropertyGroup>
 
     <!-- NuGet-related properties -->
     <PropertyGroup>
-        <RepositoryUrl>https://github.com/Nihlus/ImageScraper</RepositoryUrl>
+        <RepositoryUrl>https://github.com/Nihlus/Argus</RepositoryUrl>
         <RepositoryBranch>master</RepositoryBranch>
 
         <PackageOutputPath>$(MSBuildThisFileDirectory)/nuget</PackageOutputPath>
-        <PackageProjectUrl>https://github.com/Nihlus/ImageScraper</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/Nihlus/Argus</PackageProjectUrl>
         <PackageTags>image-search;puzzle;search;scraping</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Remora.Results.Analyzers" Version="1.0.0-preview3" PrivateAssets="all" />
+        <PackageReference Include="Remora.Results.Analyzers" PrivateAssets="all" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -31,7 +31,7 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
 
-        <DebDotNetDependencies Include="dotnet-runtime-6.0"/>
+        <DebDotNetDependencies Include="dotnet-runtime-7.0"/>
     </ItemGroup>
 
 </Project>

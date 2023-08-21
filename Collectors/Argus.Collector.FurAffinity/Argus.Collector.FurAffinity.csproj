@@ -1,4 +1,4 @@
-<Project Sdk="Remora.Sdk/1.0.0-preview6">
+<Project Sdk="Remora.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -22,9 +22,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AngleSharp" Version="0.17.1" />
-        <PackageReference Include="AngleSharp.Io" Version="0.17.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+        <PackageReference Include="AngleSharp" />
+        <PackageReference Include="AngleSharp.Io" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
     </ItemGroup>
 
     <ItemGroup>
