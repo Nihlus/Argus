@@ -146,7 +146,7 @@ public class FingerprintedImageConsumer : IConsumer<Batch<FingerprintedImage>>
         if (!response.IsValid)
         {
             var errorMessage = response.ServerError is not null
-                ? response.ServerError.ToString()
+                ? response.ServerError.ToString() ?? "Unknown error"
                 : response.OriginalException.Message;
 
             _log.LogWarning

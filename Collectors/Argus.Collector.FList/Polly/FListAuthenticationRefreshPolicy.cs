@@ -86,7 +86,7 @@ public class FListAuthenticationRefreshPolicy : AsyncPolicy<HttpResponseMessage>
             var contentStream = await result.Content.ReadAsStreamAsync(cancellationToken);
             var reader = new StreamReader(contentStream);
 
-            var content = await reader.ReadToEndAsync();
+            var content = await reader.ReadToEndAsync(cancellationToken);
             contentStream.Seek(0, SeekOrigin.Begin);
 
             // Retry once if we get an account issue

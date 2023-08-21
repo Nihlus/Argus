@@ -143,7 +143,7 @@ public class WeasylCollectorService : CollectorService
                     continue;
                 }
 
-                if (getSubmission.Error is not NotFoundError or WeasylError { StatusCode: HttpStatusCode.NotFound })
+                if (getSubmission.Error is not (NotFoundError or WeasylError { StatusCode: HttpStatusCode.NotFound }))
                 {
                     _log.LogWarning
                     (
