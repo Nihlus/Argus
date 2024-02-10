@@ -87,5 +87,10 @@ internal class Program
         {
             // Signature generation
             services.AddSingleton<SignatureGenerator>();
+
+            var imageConfiguration = SixLabors.ImageSharp.Configuration.Default.Clone();
+            imageConfiguration.PreferContiguousImageBuffers = true;
+
+            services.AddSingleton(imageConfiguration);
         });
 }

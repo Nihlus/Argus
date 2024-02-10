@@ -141,6 +141,11 @@ public class Startup
             );
         });
 
+        var imageConfiguration = SixLabors.ImageSharp.Configuration.Default.Clone();
+        imageConfiguration.PreferContiguousImageBuffers = true;
+
+        services.AddSingleton(imageConfiguration);
+
         // Authentication
         services
             .AddAuthentication("Key")

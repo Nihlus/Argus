@@ -49,20 +49,18 @@ public class APIKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
     /// <param name="options">The authentication scheme options.</param>
     /// <param name="logger">The logging instance.</param>
     /// <param name="encoder">The URL encoder.</param>
-    /// <param name="clock">The system clock.</param>
     public APIKeyAuthenticationHandler
     (
         ArgusAPIContext db,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
-        UrlEncoder encoder,
-        ISystemClock clock)
+        UrlEncoder encoder
+    )
         : base
         (
             options,
             logger,
-            encoder,
-            clock
+            encoder
         )
     {
         _db = db;
