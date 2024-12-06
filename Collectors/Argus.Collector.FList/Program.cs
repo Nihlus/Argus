@@ -97,7 +97,10 @@ internal class Program
                 rateLimit = 1;
             }
 
-            services.AddHttpClient(nameof(FListAPI), (_, client) =>
+            services.AddHttpClient
+            (
+                nameof(FListAPI),
+                (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
                     var name = assemblyName.Name ?? "Indexer";
@@ -108,26 +111,27 @@ internal class Program
                     (
                         new ProductInfoHeaderValue(name, version.ToString())
                     );
-                })
-                .AddTransientHttpErrorPolicy
-                (
-                    b => b
-                        .WaitAndRetryAsync(retryDelay)
-                        .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
-                )
-                .AddPolicyHandler((s, _) =>
-                {
-                    var api = s.GetRequiredService<FListAPI>();
-                    var options = s.GetRequiredService<IOptions<FListOptions>>();
+                }
+            )
+            .AddTransientHttpErrorPolicy
+            (
+                b => b
+                    .WaitAndRetryAsync(retryDelay)
+                    .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
+            )
+            .AddPolicyHandler((s, _) =>
+            {
+                var api = s.GetRequiredService<FListAPI>();
+                var options = s.GetRequiredService<IOptions<FListOptions>>();
 
-                    return new FListAuthenticationRefreshPolicy
-                    (
-                        api,
-                        options,
-                        Policy<HttpResponseMessage>
-                            .HandleResult(r => r.StatusCode == HttpStatusCode.Unauthorized)
-                    );
-                });
+                return new FListAuthenticationRefreshPolicy
+                (
+                    api,
+                    options,
+                    Policy<HttpResponseMessage>
+                        .HandleResult(r => r.StatusCode == HttpStatusCode.Unauthorized)
+                );
+            });
 
             CodePagesEncodingProvider.Instance.GetEncoding(437);
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

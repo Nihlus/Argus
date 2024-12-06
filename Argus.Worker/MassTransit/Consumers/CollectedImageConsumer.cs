@@ -29,6 +29,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Puzzle;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace Argus.Worker.MassTransit.Consumers;
@@ -41,7 +42,6 @@ public class CollectedImageConsumer : IConsumer<CollectedImage>
     private readonly IBus _bus;
     private readonly SignatureGenerator _signatureGenerator;
     private readonly ILogger<CollectedImageConsumer> _log;
-    private readonly Configuration _imageConfiguration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CollectedImageConsumer"/> class.
@@ -49,19 +49,16 @@ public class CollectedImageConsumer : IConsumer<CollectedImage>
     /// <param name="bus">The message bus.</param>
     /// <param name="signatureGenerator">The signature generator.</param>
     /// <param name="log">The logging instance.</param>
-    /// <param name="imageConfiguration">The image loader configuration.</param>
     public CollectedImageConsumer
     (
         IBus bus,
         SignatureGenerator signatureGenerator,
-        ILogger<CollectedImageConsumer> log,
-        Configuration imageConfiguration
+        ILogger<CollectedImageConsumer> log
     )
     {
         _bus = bus;
         _signatureGenerator = signatureGenerator;
         _log = log;
-        _imageConfiguration = imageConfiguration;
     }
 
     /// <inheritdoc />
@@ -73,7 +70,7 @@ public class CollectedImageConsumer : IConsumer<CollectedImage>
             // CPU-intensive step 1
             var data = await collectedImage.Data.Value;
 
-            using var image = Image.Load<L8>(_imageConfiguration, data);
+            using var image = Image.Load<L8>(data);
             context.CancellationToken.ThrowIfCancellationRequested();
 
             // CPU-intensive step 2

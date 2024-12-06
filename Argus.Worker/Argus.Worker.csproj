@@ -25,6 +25,7 @@
         <PackageReference Include="Remora.Extensions.Options.Immutable" />
         <PackageReference Include="Serilog.Extensions.Hosting" />
         <PackageReference Include="Serilog.Sinks.Console" />
+        <PackageReference Remove="Packaging.Targets" />
     </ItemGroup>
 
     <ItemGroup>

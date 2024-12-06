@@ -137,7 +137,8 @@ public class FurAffinityAPI
 
             var rawID = ((IHtmlAnchorElement)firstLink).Href.Split
             (
-                '/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries
+                '/',
+                StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries
             ).LastOrDefault();
 
             if (rawID is null)

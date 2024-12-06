@@ -5,6 +5,7 @@
         <LegalLicense>AGPL-3.0-or-later</LegalLicense>
         <LibraryFrameworks>net8.0</LibraryFrameworks>
         <ExecutableFrameworks>net8.0</ExecutableFrameworks>
+        <TargetNetStandard>false</TargetNetStandard>
     </PropertyGroup>
 
     <!-- NuGet-related properties -->
@@ -29,8 +30,6 @@
         <PackageReference Include="Packaging.Targets">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-
-        <DebDotNetDependencies Include="dotnet-runtime-7.0"/>
     </ItemGroup>
 
 </Project>

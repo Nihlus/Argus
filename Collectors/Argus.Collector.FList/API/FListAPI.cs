@@ -336,7 +336,7 @@ public class FListAPI
                 return new NotFoundError("No latest character found.");
             }
 
-            var nameAttribute = latestCharacter.GetAttribute("href");
+            var nameAttribute = latestCharacter.GetDomAttribute("href");
             if (nameAttribute is null)
             {
                 return new InvalidOperationError("href attribute not found; The scraping logic is no longer valid.");

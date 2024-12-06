@@ -27,6 +27,7 @@
         <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" />
         <PackageReference Include="Remora.Extensions.Options.Immutable" />
         <PackageReference Include="Swashbuckle.AspNetCore" />
+        <PackageReference Remove="Packaging.Targets" />
     </ItemGroup>
 
     <ItemGroup>

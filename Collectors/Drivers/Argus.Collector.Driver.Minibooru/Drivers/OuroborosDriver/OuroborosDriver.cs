@@ -44,7 +44,7 @@ public class OuroborosDriver : AbstractBooruDriver<OuroborosPage>
     public static string Name => "ouroboros";
 
     /// <inheritdoc />
-    protected override IReadOnlyList<ProductInfoHeaderValue> UserAgent => new[]
+    protected override IReadOnlyCollection<ProductInfoHeaderValue> UserAgent => new[]
     {
         new ProductInfoHeaderValue("Argus", Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0"),
         new ProductInfoHeaderValue("(by Jax#7487 on Discord)")

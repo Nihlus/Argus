@@ -89,7 +89,10 @@ internal class Program
                 rateLimit = 1;
             }
 
-            services.AddHttpClient(nameof(WeasylAPI), (_, client) =>
+            services.AddHttpClient
+            (
+                nameof(WeasylAPI),
+                (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
                     var name = assemblyName.Name ?? "Indexer";
@@ -100,12 +103,13 @@ internal class Program
                     (
                         new ProductInfoHeaderValue(name, version.ToString())
                     );
-                })
-                .AddTransientHttpErrorPolicy
-                (
-                    b => b
-                        .WaitAndRetryAsync(retryDelay)
-                        .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
-                );
+                }
+            )
+            .AddTransientHttpErrorPolicy
+            (
+                b => b
+                    .WaitAndRetryAsync(retryDelay)
+                    .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
+            );
         });
 }

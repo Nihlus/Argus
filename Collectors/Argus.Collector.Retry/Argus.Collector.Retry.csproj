@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+        <PackageReference Remove="Packaging.Targets" />
     </ItemGroup>
 
     <ItemGroup>

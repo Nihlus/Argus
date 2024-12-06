@@ -82,11 +82,16 @@ public static class HostBuilderExtensions
                 busConfig.UsingRabbitMq((context, cfg) =>
                 {
                     cfg.UseMessageData(dataRepository);
-                    cfg.Host(brokerOptions.Host, "/argus", h =>
-                    {
-                        h.Username(brokerOptions.Username);
-                        h.Password(brokerOptions.Password);
-                    });
+                    cfg.Host
+                    (
+                        brokerOptions.Host,
+                        "/argus",
+                        h =>
+                        {
+                            h.Username(brokerOptions.Username);
+                            h.Password(brokerOptions.Password);
+                        }
+                    );
 
                     cfg.ConfigureEndpoints(context);
                 });

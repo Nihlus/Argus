@@ -60,8 +60,7 @@ internal class Program
 
     private static async Task<int> RunAsync(FingerprintOptions options)
     {
-        var imageConfiguration = Configuration.Default.Clone();
-        imageConfiguration.PreferContiguousImageBuffers = true;
+        Configuration.Default.PreferContiguousImageBuffers = true;
 
         var services = new ServiceCollection()
             .AddLogging(logging =>
@@ -75,7 +74,6 @@ internal class Program
                     .ClearProviders()
                     .AddSerilog(loggingConfiguration, true);
             })
-            .AddSingleton(imageConfiguration)
             .BuildServiceProvider();
 
         var log = services.GetRequiredService<ILogger<Program>>();
@@ -113,7 +111,6 @@ internal class Program
             // Processing
             var portableFingerprints = await CreateFingerprints
             (
-                imageConfiguration,
                 absoluteFilePaths,
                 log
             );
@@ -155,7 +152,6 @@ internal class Program
 
     private static async Task<List<PortableFingerprint>> CreateFingerprints
     (
-        Configuration imageConfiguration,
         List<string> absoluteFilePaths,
         ILogger<Program> log
     )
@@ -179,7 +175,7 @@ internal class Program
             file.Seek(0, SeekOrigin.Begin);
 
             log.LogInformation("Computing perceptual fingerprint...");
-            using var image = await Image.LoadAsync<L8>(imageConfiguration, file);
+            using var image = await Image.LoadAsync<L8>(file);
             var fingerprint = signatureGenerator.GenerateSignature(image);
 
             portableFingerprints.Add(new PortableFingerprint(filename, hash, fingerprint));

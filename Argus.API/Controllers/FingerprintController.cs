@@ -48,21 +48,17 @@ namespace Argus.API.Controllers;
 public class FingerprintController : ControllerBase
 {
     private readonly SignatureGenerator _signatureGenerator;
-    private readonly SixLabors.ImageSharp.Configuration _imageConfiguration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FingerprintController"/> class.
     /// </summary>
     /// <param name="signatureGenerator">The signature generator.</param>
-    /// <param name="imageConfiguration">The image loading configuration.</param>
     public FingerprintController
     (
-        SignatureGenerator signatureGenerator,
-        SixLabors.ImageSharp.Configuration imageConfiguration
+        SignatureGenerator signatureGenerator
     )
     {
         _signatureGenerator = signatureGenerator;
-        _imageConfiguration = imageConfiguration;
     }
 
     /// <summary>
@@ -81,7 +77,7 @@ public class FingerprintController : ControllerBase
         foreach (var file in files)
         {
             await using var stream = file.OpenReadStream();
-            using var image = await Image.LoadAsync<L8>(_imageConfiguration, stream, ct);
+            using var image = await Image.LoadAsync<L8>(stream, ct);
 
             stream.Seek(0, SeekOrigin.Begin);
 

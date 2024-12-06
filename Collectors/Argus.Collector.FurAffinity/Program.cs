@@ -87,18 +87,22 @@ internal class Program
                 rateLimit = 10;
             }
 
-            services.AddHttpClient(nameof(FurAffinityAPI), (s, client) =>
+            services.AddHttpClient
+            (
+                nameof(FurAffinityAPI),
+                (s, client) =>
                 {
                     var options = s.GetRequiredService<IOptions<FurAffinityOptions>>();
 
                     var (a, b, _) = options.Value;
                     client.DefaultRequestHeaders.Add("Cookie", $"a={a}; b={b}");
-                })
-                .AddTransientHttpErrorPolicy
-                (
-                    b => b
-                        .WaitAndRetryAsync(retryDelay)
-                        .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
-                );
+                }
+            )
+            .AddTransientHttpErrorPolicy
+            (
+                b => b
+                    .WaitAndRetryAsync(retryDelay)
+                    .WrapAsync(new ThrottlingPolicy(rateLimit, TimeSpan.FromSeconds(1)))
+            );
         });
 }

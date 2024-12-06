@@ -185,7 +185,8 @@ public class NESTService
             var offsetCopy = after;
             var searchResponse = await this.Client.SearchAsync<IndexedImage>
             (
-                s => BuildQuery(s.From((int)offsetCopy).Size(pageSize), signature.Words), ct
+                s => BuildQuery(s.From((int)offsetCopy).Size(pageSize), signature.Words),
+                ct
             ).ConfigureAwait(false);
 
             if (!searchResponse.IsValid)
