@@ -1,5 +1,5 @@
 //
-//  APIKeyAuthenticationHandler.cs
+//  ApiKeyAuthenticationHandler.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>

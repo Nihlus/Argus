@@ -1,5 +1,5 @@
 //
-//  APITicket.cs
+//  ApiTicket.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>

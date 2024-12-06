@@ -1,5 +1,5 @@
 //
-//  FurAffinityAPI.cs
+//  FurAffinityApi.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>

@@ -1,5 +1,5 @@
 //
-//  APIKey.cs
+//  ApiKey.cs
 //
 //  Author:
 //       Jarl Gullberg <jarl.gullberg@gmail.com>
