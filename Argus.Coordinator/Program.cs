@@ -224,6 +224,6 @@ internal class Program
                     }
                 )
                 .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
-                .AddTransient<NESTService>();
+                .AddTransient<NestService>();
         });
 }

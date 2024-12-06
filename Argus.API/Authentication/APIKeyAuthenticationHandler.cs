@@ -38,20 +38,20 @@ namespace Argus.API.Authentication;
 /// <summary>
 /// Handles API key authentication.
 /// </summary>
-public class APIKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly ArgusAPIContext _db;
+    private readonly ArgusApiContext _db;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="APIKeyAuthenticationHandler"/> class.
+    /// Initializes a new instance of the <see cref="ApiKeyAuthenticationHandler"/> class.
     /// </summary>
     /// <param name="db">The database context.</param>
     /// <param name="options">The authentication scheme options.</param>
     /// <param name="logger">The logging instance.</param>
     /// <param name="encoder">The URL encoder.</param>
-    public APIKeyAuthenticationHandler
+    public ApiKeyAuthenticationHandler
     (
-        ArgusAPIContext db,
+        ArgusApiContext db,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder
@@ -101,7 +101,7 @@ public class APIKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
             return AuthenticateResult.Fail("Invalid authorization key.");
         }
 
-        var knownKey = await _db.APIKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == apiKey);
+        var knownKey = await _db.ApiKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == apiKey);
         if (knownKey is null)
         {
             return AuthenticateResult.Fail("Unknown authorization key.");

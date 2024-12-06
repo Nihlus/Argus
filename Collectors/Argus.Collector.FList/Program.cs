@@ -85,7 +85,7 @@ internal class Program
             });
 
             services
-                .AddSingleton<FListAPI>()
+                .AddSingleton<FListApi>()
                 .AddSingleton<FListAuthenticationRefreshPolicy>();
 
             var rateLimit = hostContext.Configuration
@@ -99,7 +99,7 @@ internal class Program
 
             services.AddHttpClient
             (
-                nameof(FListAPI),
+                nameof(FListApi),
                 (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();
@@ -121,7 +121,7 @@ internal class Program
             )
             .AddPolicyHandler((s, _) =>
             {
-                var api = s.GetRequiredService<FListAPI>();
+                var api = s.GetRequiredService<FListApi>();
                 var options = s.GetRequiredService<IOptions<FListOptions>>();
 
                 return new FListAuthenticationRefreshPolicy

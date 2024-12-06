@@ -38,7 +38,7 @@ namespace Argus.Common.Services.Elasticsearch;
 /// <summary>
 /// Represents an interface with Elasticsearch.
 /// </summary>
-public class NESTService
+public class NestService
 {
     /// <summary>
     /// Gets the Elasticsearch client associated with the service.
@@ -46,10 +46,10 @@ public class NESTService
     public ElasticClient Client { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="NESTService"/> class.
+    /// Initializes a new instance of the <see cref="NestService"/> class.
     /// </summary>
     /// <param name="client">The Elasticsearch client to use.</param>
-    public NESTService(ElasticClient client)
+    public NestService(ElasticClient client)
     {
         this.Client = client;
     }

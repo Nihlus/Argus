@@ -27,7 +27,7 @@ namespace Argus.API.Database.Model;
 /// <summary>
 /// Represents an API key.
 /// </summary>
-public class APIKey
+public class ApiKey
 {
     /// <summary>
     /// Gets the ID of the key.
@@ -54,9 +54,9 @@ public class APIKey
     /// </summary>
     /// <param name="expiresAt">The time at which the key expires.</param>
     /// <returns>The key.</returns>
-    public static APIKey Create(DateTimeOffset? expiresAt = null)
+    public static ApiKey Create(DateTimeOffset? expiresAt = null)
     {
-        return new APIKey
+        return new ApiKey
         {
             CreatedAt = DateTimeOffset.UtcNow,
             ExpiresAt = expiresAt,

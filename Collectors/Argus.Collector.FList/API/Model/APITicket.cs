@@ -25,7 +25,7 @@ namespace Argus.Collector.FList.API.Model;
 /// <summary>
 /// Represents a successful login.
 /// </summary>
-public class APITicket
+public abstract class ApiTicket
 {
     /// <summary>
     /// Gets or sets the issued API ticket.

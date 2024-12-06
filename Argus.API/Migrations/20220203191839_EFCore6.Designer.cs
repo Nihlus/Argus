@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Argus.API.Migrations
 {
-    [DbContext(typeof(ArgusAPIContext))]
+    [DbContext(typeof(ArgusApiContext))]
     [Migration("20220203191839_EFCore6")]
     partial class EFCore6
     {

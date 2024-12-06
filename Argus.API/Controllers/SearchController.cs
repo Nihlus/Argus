@@ -42,13 +42,13 @@ namespace Argus.API.Controllers;
 [Produces("application/json")]
 public class SearchController : ControllerBase
 {
-    private readonly NESTService _nestService;
+    private readonly NestService _nestService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SearchController"/> class.
     /// </summary>
     /// <param name="nestService">The NEST service.</param>
-    public SearchController(NESTService nestService)
+    public SearchController(NestService nestService)
     {
         _nestService = nestService;
     }

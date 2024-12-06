@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Argus.API.Migrations
 {
-    [DbContext(typeof(ArgusAPIContext))]
+    [DbContext(typeof(ArgusApiContext))]
     partial class ArgusAPIContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

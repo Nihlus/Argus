@@ -44,7 +44,7 @@ namespace Argus.Collector.FList.Services;
 /// </summary>
 public class FListCollectorService : CollectorService
 {
-    private readonly FListAPI _flistAPI;
+    private readonly FListApi _flistApi;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<FListCollectorService> _log;
     private readonly IMessageDataRepository _repository;
@@ -55,7 +55,7 @@ public class FListCollectorService : CollectorService
     /// <summary>
     /// Initializes a new instance of the <see cref="FListCollectorService"/> class.
     /// </summary>
-    /// <param name="flistAPI">The F-List API.</param>
+    /// <param name="flistApi">The F-List API.</param>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
     /// <param name="repository">The data repository.</param>
     /// <param name="bus">The message bus.</param>
@@ -63,7 +63,7 @@ public class FListCollectorService : CollectorService
     /// <param name="log">The logging instance.</param>
     public FListCollectorService
     (
-        FListAPI flistAPI,
+        FListApi flistApi,
         IHttpClientFactory httpClientFactory,
         IMessageDataRepository repository,
         IBus bus,
@@ -73,7 +73,7 @@ public class FListCollectorService : CollectorService
     {
         _log = log;
         _repository = repository;
-        _flistAPI = flistAPI;
+        _flistApi = flistApi;
         _httpClientFactory = httpClientFactory;
     }
 
@@ -99,13 +99,13 @@ public class FListCollectorService : CollectorService
         {
             if (currentCharacterId >= latestCharacterId || latestCharacterId is null)
             {
-                var getLatestName = _flistAPI.GetMostRecentlyCreatedCharacter();
+                var getLatestName = _flistApi.GetMostRecentlyCreatedCharacter();
                 if (!getLatestName.IsSuccess)
                 {
                     return Result.FromError(getLatestName);
                 }
 
-                var getLatestCharacter = await _flistAPI.GetCharacterDataAsync(getLatestName.Entity, ct);
+                var getLatestCharacter = await _flistApi.GetCharacterDataAsync(getLatestName.Entity, ct);
                 if (!getLatestCharacter.IsSuccess)
                 {
                     return Result.FromError(getLatestCharacter);
@@ -394,7 +394,7 @@ public class FListCollectorService : CollectorService
             }
         }
 
-        var getCharacter = await _flistAPI.GetCharacterDataAsync(characterId, ct);
+        var getCharacter = await _flistApi.GetCharacterDataAsync(characterId, ct);
         if (!getCharacter.IsSuccess)
         {
             if (!getCharacter.Error.Message.Contains("Character not found"))

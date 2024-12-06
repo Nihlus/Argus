@@ -47,7 +47,7 @@ namespace Argus.Collector.Weasyl.Services;
 public class WeasylCollectorService : CollectorService
 {
     private readonly WeasylOptions _options;
-    private readonly WeasylAPI _weasylAPI;
+    private readonly WeasylApi _weasylApi;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<WeasylCollectorService> _log;
     private readonly IMessageDataRepository _repository;
@@ -62,13 +62,13 @@ public class WeasylCollectorService : CollectorService
     /// <param name="bus">The message bus.</param>
     /// <param name="repository">The message data repository.</param>
     /// <param name="options">The application options.</param>
-    /// <param name="weasylAPI">The weasyl weasylAPI.</param>
+    /// <param name="weasylApi">The weasyl weasylAPI.</param>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
     /// <param name="log">The logging instance.</param>
     public WeasylCollectorService
     (
         IOptions<WeasylOptions> weasylOptions,
-        WeasylAPI weasylAPI,
+        WeasylApi weasylApi,
         IHttpClientFactory httpClientFactory,
         IBus bus,
         IMessageDataRepository repository,
@@ -79,7 +79,7 @@ public class WeasylCollectorService : CollectorService
         _options = weasylOptions.Value;
         _log = log;
         _repository = repository;
-        _weasylAPI = weasylAPI;
+        _weasylApi = weasylApi;
         _httpClientFactory = httpClientFactory;
     }
 
@@ -105,7 +105,7 @@ public class WeasylCollectorService : CollectorService
         {
             if (currentSubmissionID >= latestSubmissionID || latestSubmissionID is null)
             {
-                var getFrontpage = await _weasylAPI.GetFrontpageAsync(ct: ct);
+                var getFrontpage = await _weasylApi.GetFrontpageAsync(ct: ct);
                 if (!getFrontpage.IsSuccess)
                 {
                     return Result.FromError(getFrontpage);
@@ -132,7 +132,7 @@ public class WeasylCollectorService : CollectorService
             }
 
             var ids = Enumerable.Range(currentSubmissionID, _options.PageSize);
-            var getSubmissions = await Task.WhenAll(ids.Select(i => _weasylAPI.GetSubmissionAsync(i, ct)));
+            var getSubmissions = await Task.WhenAll(ids.Select(i => _weasylApi.GetSubmissionAsync(i, ct)));
 
             var submissions = new List<WeasylSubmission>();
             foreach (var getSubmission in getSubmissions)
@@ -253,11 +253,11 @@ public class WeasylCollectorService : CollectorService
             var supportedMedia = media.FirstOrDefault
             (
                 m =>
-                    m.URL.EndsWith("jpeg") ||
-                    m.URL.EndsWith("jpg") ||
-                    m.URL.EndsWith("png") ||
-                    m.URL.EndsWith("bmp") ||
-                    m.URL.EndsWith("tga")
+                    m.Url.EndsWith("jpeg") ||
+                    m.Url.EndsWith("jpg") ||
+                    m.Url.EndsWith("png") ||
+                    m.Url.EndsWith("bmp") ||
+                    m.Url.EndsWith("tga")
             );
 
             if (supportedMedia is null)
@@ -271,12 +271,12 @@ public class WeasylCollectorService : CollectorService
                 return (rejectionReport, null);
             }
 
-            var location = supportedMedia.URL;
+            var location = supportedMedia.Url;
             var bytes = await client.GetByteArrayAsync(location, ct);
 
             statusReport = statusReport with
             {
-                Link = new Uri(supportedMedia.URL)
+                Link = new Uri(supportedMedia.Url)
             };
 
             var collectedImage = new CollectedImage

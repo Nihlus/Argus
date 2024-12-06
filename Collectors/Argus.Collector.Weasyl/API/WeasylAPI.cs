@@ -37,19 +37,19 @@ namespace Argus.Collector.Weasyl.API;
 /// <summary>
 /// Interfaces with the Weasyl API.
 /// </summary>
-public class WeasylAPI
+public class WeasylApi
 {
     private readonly WeasylOptions _options;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly IHttpClientFactory _httpClientFactory;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="WeasylAPI"/> class.
+    /// Initializes a new instance of the <see cref="WeasylApi"/> class.
     /// </summary>
     /// <param name="options">The Weasyl options.</param>
     /// <param name="jsonOptions">The JSON options.</param>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
-    public WeasylAPI
+    public WeasylApi
     (
         IOptions<WeasylOptions> options,
         IOptions<JsonSerializerOptions> jsonOptions,
@@ -71,14 +71,14 @@ public class WeasylAPI
     {
         try
         {
-            var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
+            var client = _httpClientFactory.CreateClient(nameof(WeasylApi));
             using var request = new HttpRequestMessage
             (
                 HttpMethod.Get,
                 $"https://www.weasyl.com/api/submissions/{submissionID}/view?anyway=true"
             );
 
-            request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
+            request.Headers.Add("X-Weasyl-API-Key", _options.ApiKey);
 
             using var response = await client.SendAsync(request, ct);
             if (response.IsSuccessStatusCode)
@@ -143,14 +143,14 @@ public class WeasylAPI
     {
         try
         {
-            var client = _httpClientFactory.CreateClient(nameof(WeasylAPI));
+            var client = _httpClientFactory.CreateClient(nameof(WeasylApi));
             using var request = new HttpRequestMessage
             (
                 HttpMethod.Get,
                 $"https://www.weasyl.com/api/submissions/frontpage?count={count}"
             );
 
-            request.Headers.Add("X-Weasyl-API-Key", _options.APIKey);
+            request.Headers.Add("X-Weasyl-API-Key", _options.ApiKey);
 
             using var response = await client.SendAsync(request, ct);
             if (response.IsSuccessStatusCode)

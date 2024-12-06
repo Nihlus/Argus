@@ -28,13 +28,13 @@ namespace Argus.API.Database;
 /// <summary>
 /// Represents the database context for the REST API.
 /// </summary>
-public class ArgusAPIContext : DbContext
+public class ArgusApiContext : DbContext
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ArgusAPIContext"/> class.
+    /// Initializes a new instance of the <see cref="ArgusApiContext"/> class.
     /// </summary>
     /// <param name="options">The context options.</param>
-    public ArgusAPIContext(DbContextOptions options)
+    public ArgusApiContext(DbContextOptions options)
         : base(options)
     {
     }
@@ -42,16 +42,16 @@ public class ArgusAPIContext : DbContext
     /// <summary>
     /// Gets the API keys in the database.
     /// </summary>
-    public DbSet<APIKey> APIKeys => Set<APIKey>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<APIKey>()
+        modelBuilder.Entity<ApiKey>()
             .HasIndex(k => k.ID)
             .IsUnique();
 
-        modelBuilder.Entity<APIKey>()
+        modelBuilder.Entity<ApiKey>()
             .HasIndex(k => k.Key)
             .IsUnique();
     }

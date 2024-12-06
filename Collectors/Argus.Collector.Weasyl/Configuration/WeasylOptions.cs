@@ -25,7 +25,7 @@ namespace Argus.Collector.Weasyl.Configuration;
 /// <summary>
 /// Represents collector-specific configuration.
 /// </summary>
-/// <param name="APIKey">The API key.</param>
+/// <param name="ApiKey">The API key.</param>
 /// <param name="PageSize">The number of submissions to request in parallel.</param>
 /// <param name="RateLimit">The number of API requests to allow per second.</param>
-public record WeasylOptions(string APIKey, int PageSize = 25, int RateLimit = 25);
+public record WeasylOptions(string ApiKey, int PageSize = 25, int RateLimit = 25);

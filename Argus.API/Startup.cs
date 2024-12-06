@@ -114,7 +114,7 @@ public class Startup
 
         services.Configure(() =>
         {
-            var options = new APIOptions
+            var options = new ApiOptions
             (
                 new Uri("about:blank"),
                 string.Empty,
@@ -122,7 +122,7 @@ public class Startup
                 null
             );
 
-            this.Configuration.Bind(nameof(APIOptions), options);
+            this.Configuration.Bind(nameof(ApiOptions), options);
             return options;
         });
 
@@ -149,7 +149,7 @@ public class Startup
         // Authentication
         services
             .AddAuthentication("Key")
-            .AddScheme<AuthenticationSchemeOptions, APIKeyAuthenticationHandler>("Key", null);
+            .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("Key", null);
 
         // Rate limiting
         services.AddMemoryCache();
@@ -173,7 +173,7 @@ public class Startup
                 transientServices =>
                 {
                     var (node, username, password, fingerprint) = transientServices
-                        .GetRequiredService<IOptions<APIOptions>>().Value;
+                        .GetRequiredService<IOptions<ApiOptions>>().Value;
 
                     var settings = new ConnectionSettings(node);
 
@@ -190,10 +190,10 @@ public class Startup
                 }
             )
             .AddTransient(s => new ElasticClient(s.GetRequiredService<ConnectionSettings>()))
-            .AddTransient<NESTService>();
+            .AddTransient<NestService>();
 
         // Database
-        services.AddDbContext<ArgusAPIContext>(options =>
+        services.AddDbContext<ArgusApiContext>(options =>
         {
             options.UseNpgsql
                 (

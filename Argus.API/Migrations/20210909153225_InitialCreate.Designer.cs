@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Argus.API.Migrations
 {
-    [DbContext(typeof(ArgusAPIContext))]
+    [DbContext(typeof(ArgusApiContext))]
     [Migration("20210909153225_InitialCreate")]
     partial class InitialCreate
     {

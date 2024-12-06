@@ -41,7 +41,7 @@ namespace Argus.Collector.FList.API;
 /// <summary>
 /// Wraps the F-List API.
 /// </summary>
-public class FListAPI
+public class FListApi
 {
     private readonly IHttpClientFactory _clientFactory;
     private readonly JsonSerializerOptions _jsonOptions;
@@ -52,13 +52,13 @@ public class FListAPI
     private string _ticket;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FListAPI"/> class.
+    /// Initializes a new instance of the <see cref="FListApi"/> class.
     /// </summary>
     /// <param name="clientFactory">The HTTP client factory.</param>
     /// <param name="jsonOptions">The JSON serializer options.</param>
     /// <param name="driver">The Selenium web driver instance.</param>
     /// <param name="options">The F-List options.</param>
-    public FListAPI
+    public FListApi
     (
         IHttpClientFactory clientFactory,
         IOptions<JsonSerializerOptions> jsonOptions,
@@ -82,7 +82,7 @@ public class FListAPI
     /// <param name="password">The account's password.</param>
     /// <param name="ct">The cancellation token for this operation.</param>
     /// <returns>The API ticket.</returns>
-    public async Task<Result> RefreshAPITicketAsync
+    public async Task<Result> RefreshApiTicketAsync
     (
         string account,
         string password,
@@ -130,7 +130,7 @@ public class FListAPI
             request.Content = content;
 
             using var response = await client.SendAsync(request, ct);
-            var getTicket = await DeserializePayload<APITicket>(response, ct);
+            var getTicket = await DeserializePayload<ApiTicket>(response, ct);
             if (!getTicket.IsSuccess)
             {
                 return Result.FromError(getTicket);
@@ -163,7 +163,7 @@ public class FListAPI
     {
         if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
         {
-            var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
+            var refresh = await RefreshApiTicketAsync(_options.Username, _options.Password, ct);
             if (!refresh.IsSuccess)
             {
                 return Result<CharacterData>.FromError(refresh);
@@ -172,7 +172,7 @@ public class FListAPI
 
         try
         {
-            var client = _clientFactory.CreateClient(nameof(FListAPI));
+            var client = _clientFactory.CreateClient(nameof(FListApi));
 
             using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
             var executionContext = new Context
@@ -212,7 +212,7 @@ public class FListAPI
     {
         if (string.IsNullOrWhiteSpace(_account) || string.IsNullOrWhiteSpace(_ticket))
         {
-            var refresh = await RefreshAPITicketAsync(_options.Username, _options.Password, ct);
+            var refresh = await RefreshApiTicketAsync(_options.Username, _options.Password, ct);
             if (!refresh.IsSuccess)
             {
                 return Result<CharacterData>.FromError(refresh);
@@ -221,7 +221,7 @@ public class FListAPI
 
         try
         {
-            var client = _clientFactory.CreateClient(nameof(FListAPI));
+            var client = _clientFactory.CreateClient(nameof(FListApi));
 
             using var request = new HttpRequestMessage(HttpMethod.Post, "json/api/character-data.php");
             var executionContext = new Context

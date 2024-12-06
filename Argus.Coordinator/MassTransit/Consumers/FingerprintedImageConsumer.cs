@@ -39,7 +39,7 @@ namespace Argus.Coordinator.MassTransit.Consumers;
 public class FingerprintedImageConsumer : IConsumer<Batch<FingerprintedImage>>
 {
     private readonly IBus _bus;
-    private readonly NESTService _nestService;
+    private readonly NestService _nestService;
     private readonly ILogger<FingerprintedImageConsumer> _log;
 
     /// <summary>
@@ -48,7 +48,7 @@ public class FingerprintedImageConsumer : IConsumer<Batch<FingerprintedImage>>
     /// <param name="bus">The message bus.</param>
     /// <param name="nestService">The elasticsearch service.</param>
     /// <param name="log">The logging instance.</param>
-    public FingerprintedImageConsumer(IBus bus, NESTService nestService, ILogger<FingerprintedImageConsumer> log)
+    public FingerprintedImageConsumer(IBus bus, NestService nestService, ILogger<FingerprintedImageConsumer> log)
     {
         _bus = bus;
         _nestService = nestService;

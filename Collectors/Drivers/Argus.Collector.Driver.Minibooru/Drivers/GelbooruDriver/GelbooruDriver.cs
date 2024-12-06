@@ -83,7 +83,7 @@ public class GelbooruDriver : AbstractBooruDriver<IReadOnlyList<GelbooruPost>>
                 // Prefer the suggested file URL whenever possible
                 var realFileUrl = fileUrl is not null
                     ? new Uri(fileUrl)
-                    : new Uri($"{_options.BaseCDNUrl.ToString().TrimEnd('/')}/images/{directory}/{image}");
+                    : new Uri($"{_options.BaseCdnUrl.ToString().TrimEnd('/')}/images/{directory}/{image}");
 
                 var postUrl = new Uri(this.DriverOptions.BaseUrl, $"index.php?page=post&s=view&id={id}");
                 return new BooruPost(id, realFileUrl.ToString(), postUrl);

@@ -34,15 +34,15 @@ namespace Argus.Collector.FurAffinity.API;
 /// <summary>
 /// Wraps the FurAffinity API.
 /// </summary>
-public class FurAffinityAPI
+public class FurAffinityApi
 {
     private readonly IHttpClientFactory _clientFactory;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FurAffinityAPI"/> class.
+    /// Initializes a new instance of the <see cref="FurAffinityApi"/> class.
     /// </summary>
     /// <param name="clientFactory">The HTTP client factory.</param>
-    public FurAffinityAPI(IHttpClientFactory clientFactory)
+    public FurAffinityApi(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
@@ -57,7 +57,7 @@ public class FurAffinityAPI
     {
         try
         {
-            var client = _clientFactory.CreateClient(nameof(FurAffinityAPI));
+            var client = _clientFactory.CreateClient(nameof(FurAffinityApi));
             using var request = new HttpRequestMessage
             (
                 HttpMethod.Get,
@@ -113,7 +113,7 @@ public class FurAffinityAPI
     {
         try
         {
-            var client = _clientFactory.CreateClient(nameof(FurAffinityAPI));
+            var client = _clientFactory.CreateClient(nameof(FurAffinityApi));
             using var request = new HttpRequestMessage(HttpMethod.Get, "https://www.furaffinity.net/browse");
 
             using var get = await client.SendAsync(request, ct);

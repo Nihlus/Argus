@@ -30,5 +30,5 @@ public class WeasylMedia
     /// <summary>
     /// Gets the URL of the media item.
     /// </summary>
-    public string URL { get; init; } = string.Empty;
+    public string Url { get; init; } = string.Empty;
 }

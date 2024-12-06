@@ -39,24 +39,24 @@ namespace Argus.Collector.FList.Polly;
 /// </summary>
 public class FListAuthenticationRefreshPolicy : AsyncPolicy<HttpResponseMessage>
 {
-    private readonly FListAPI _fListAPI;
+    private readonly FListApi _fListApi;
     private readonly FListOptions _options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FListAuthenticationRefreshPolicy"/> class.
     /// </summary>
-    /// <param name="fListAPI">The F-List API.</param>
+    /// <param name="fListApi">The F-List API.</param>
     /// <param name="options">The application options.</param>
     /// <param name="policyBuilder">The policy builder.</param>
     public FListAuthenticationRefreshPolicy
     (
-        FListAPI fListAPI,
+        FListApi fListApi,
         IOptions<FListOptions> options,
         PolicyBuilder<HttpResponseMessage>? policyBuilder = null
     )
         : base(policyBuilder)
     {
-        _fListAPI = fListAPI;
+        _fListApi = fListApi;
         _options = options.Value;
     }
 
@@ -101,7 +101,7 @@ public class FListAuthenticationRefreshPolicy : AsyncPolicy<HttpResponseMessage>
             }
         }
 
-        var refreshResult = await _fListAPI.RefreshAPITicketAsync
+        var refreshResult = await _fListApi.RefreshApiTicketAsync
         (
             _options.Username,
             _options.Password,

@@ -41,7 +41,7 @@ public class Program
 
         // Perform migrations
         using var scope = host.Services.CreateScope();
-        await using var db = scope.ServiceProvider.GetRequiredService<ArgusAPIContext>();
+        await using var db = scope.ServiceProvider.GetRequiredService<ArgusApiContext>();
         await db.Database.MigrateAsync();
 
         // Seed policy stores

@@ -78,7 +78,7 @@ internal class Program
             });
 
             services
-                .AddSingleton<WeasylAPI>();
+                .AddSingleton<WeasylApi>();
 
             var rateLimit = hostContext.Configuration
                 .GetSection(nameof(WeasylOptions))
@@ -91,7 +91,7 @@ internal class Program
 
             services.AddHttpClient
             (
-                nameof(WeasylAPI),
+                nameof(WeasylApi),
                 (_, client) =>
                 {
                     var assemblyName = Assembly.GetExecutingAssembly().GetName();

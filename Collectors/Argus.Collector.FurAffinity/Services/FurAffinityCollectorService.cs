@@ -46,7 +46,7 @@ public class FurAffinityCollectorService : CollectorService
     /// <inheritdoc />
     protected override string ServiceName => "furaffinity";
 
-    private readonly FurAffinityAPI _furAffinityAPI;
+    private readonly FurAffinityApi _furAffinityApi;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<FurAffinityCollectorService> _log;
     private readonly IMessageDataRepository _repository;
@@ -54,7 +54,7 @@ public class FurAffinityCollectorService : CollectorService
     /// <summary>
     /// Initializes a new instance of the <see cref="FurAffinityCollectorService"/> class.
     /// </summary>
-    /// <param name="furAffinityAPI">The FurAffinity API.</param>
+    /// <param name="furAffinityApi">The FurAffinity API.</param>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
     /// <param name="repository">The data repository.</param>
     /// <param name="bus">The message bus.</param>
@@ -62,7 +62,7 @@ public class FurAffinityCollectorService : CollectorService
     /// <param name="log">The logging instance.</param>
     public FurAffinityCollectorService
     (
-        FurAffinityAPI furAffinityAPI,
+        FurAffinityApi furAffinityApi,
         IHttpClientFactory httpClientFactory,
         IMessageDataRepository repository,
         IBus bus,
@@ -79,7 +79,7 @@ public class FurAffinityCollectorService : CollectorService
         _httpClientFactory = httpClientFactory;
         _repository = repository;
         _log = log;
-        _furAffinityAPI = furAffinityAPI;
+        _furAffinityApi = furAffinityApi;
     }
 
     /// <inheritdoc/>
@@ -104,7 +104,7 @@ public class FurAffinityCollectorService : CollectorService
         {
             if (currentSubmissionID >= latestSubmissionID || latestSubmissionID is null)
             {
-                var getLatestID = await _furAffinityAPI.GetMostRecentSubmissionIDAsync(ct);
+                var getLatestID = await _furAffinityApi.GetMostRecentSubmissionIDAsync(ct);
                 if (!getLatestID.IsSuccess)
                 {
                     return Result.FromError(getLatestID);
@@ -218,7 +218,7 @@ public class FurAffinityCollectorService : CollectorService
                 string.Empty
             );
 
-            var getLink = await _furAffinityAPI.GetSubmissionDownloadLinkAsync(submissionID, ct);
+            var getLink = await _furAffinityApi.GetSubmissionDownloadLinkAsync(submissionID, ct);
             if (!getLink.IsSuccess)
             {
                 if (getLink.Error is not NotFoundError)

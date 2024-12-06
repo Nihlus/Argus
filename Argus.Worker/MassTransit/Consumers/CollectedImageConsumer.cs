@@ -29,7 +29,6 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Puzzle;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace Argus.Worker.MassTransit.Consumers;

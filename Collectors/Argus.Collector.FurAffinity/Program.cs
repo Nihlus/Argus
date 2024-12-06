@@ -76,7 +76,7 @@ internal class Program
                 o.PropertyNameCaseInsensitive = true;
             });
 
-            services.AddSingleton<FurAffinityAPI>();
+            services.AddSingleton<FurAffinityApi>();
 
             var rateLimit = hostContext.Configuration
                 .GetSection(nameof(FurAffinityOptions))
@@ -89,7 +89,7 @@ internal class Program
 
             services.AddHttpClient
             (
-                nameof(FurAffinityAPI),
+                nameof(FurAffinityApi),
                 (s, client) =>
                 {
                     var options = s.GetRequiredService<IOptions<FurAffinityOptions>>();
